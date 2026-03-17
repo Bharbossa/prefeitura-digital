@@ -19,7 +19,8 @@ origins = [
     "http://localhost:5500",
     "http://127.0.0.1",
     "http://127.0.0.1:5500",
-    "*"  # In production, replace with exact frontend domain
+    "https://leopoldina-digital-1b75e.web.app",
+    "https://leopoldina-digital-1b75e.firebaseapp.com"
 ]
 
 app.add_middleware(

@@ -1,5 +1,5 @@
 // Base URL for Backend API
-const API_URL = "http://localhost:8000/api";
+const API_URL = "https://prefeitura-digital.onrender.com/api";
 
 // Dark Mode Logic
 const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
