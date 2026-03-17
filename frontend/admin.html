@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Admin - Leopoldina Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="bg-animation-container" id="bg-animation"></div>
+
+    <nav class="navbar">
+        <div class="logo">
+            <a href="index.html" style="color: inherit;"><i class="fa-solid fa-city"></i> Painel Admin</a>
+        </div>
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="nav-links" id="nav-links">
+            <!-- Populated via JS -->
+        </div>
+    </nav>
+
+    <div class="dashboard-container fade-in">
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <i class="fa-solid fa-clipboard-list fa-2x" style="color: var(--primary-color);"></i>
+                <h3 id="totalOc">0</h3>
+                <p>Total de Ocorrências</p>
+            </div>
+            <div class="stat-card">
+                <i class="fa-solid fa-exclamation-circle fa-2x" style="color: var(--warning);"></i>
+                <h3 id="pendentesOc">0</h3>
+                <p>Pendentes</p>
+            </div>
+            <div class="stat-card">
+                <i class="fa-solid fa-check-double fa-2x" style="color: var(--success);"></i>
+                <h3 id="resolvidasOc">0</h3>
+                <p>Resolvidas</p>
+            </div>
+        </div>
+
+        <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; max-width: 600px; margin: 0 auto 2rem auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+            <canvas id="statusChart"></canvas>
+        </div>
+
+        <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);">Gestão de Ocorrências</h2>
+        <div class="ocorrencias-list" id="listaOcorrenciasAdmin">
+            <!-- Loaded via JS -->
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        if (!checkAuth(true)) throw new Error("Acesso negado - Não é admin");
+
+        let statusChartInst = null;
+
+        async function loadAdminOcorrencias() {
+            try {
+                const res = await fetch(`${API_URL}/ocorrencias/`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                
+                if(res.ok) {
+                    const ocorrencias = await res.json();
+                    
+                    let total = ocorrencias.length;
+                    let pendentes = ocorrencias.filter(o => o.status === 'Pendente').length;
+                    let resolvidas = ocorrencias.filter(o => o.status === 'Resolvido').length;
+                    let atendimento = ocorrencias.filter(o => o.status === 'Em atendimento').length;
+
+                    document.getElementById('totalOc').innerText = total;
+                    document.getElementById('pendentesOc').innerText = pendentes;
+                    document.getElementById('resolvidasOc').innerText = resolvidas;
+
+                    renderChart(pendentes, atendimento, resolvidas);
+
+                    const container = document.getElementById('listaOcorrenciasAdmin');
+                    container.innerHTML = '';
+                    
+                    ocorrencias.forEach(o => {
+                        const statusClass = {
+                            'Pendente': 'status-pendente',
+                            'Em atendimento': 'status-atendimento',
+                            'Resolvido': 'status-resolvido'
+                        }[o.status] || 'status-pendente';
+
+                        container.innerHTML += `
+                            <div class="ocorrencia-card">
+                                <h3>${o.titulo} <span class="status-badge ${statusClass}">${o.status}</span></h3>
+                                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Cidadão ID: ${o.usuario_id} | Data: ${new Date(o.data).toLocaleDateString()}</p>
+                                <p style="margin-bottom: 1rem;">${o.descricao}</p>
+                                ${o.foto ? `<p><a href="http://localhost:8000/${o.foto}" target="_blank"><i class="fa-solid fa-image"></i> Ver Foto Anexa</a></p>` : ''}
+                                
+                                <select onchange="atualizarStatus(${o.id}, this.value)" style="margin-top:1rem; padding:0.5rem; border-radius:5px; width:100%;">
+                                    <option value="" disabled selected>Alterar Status</option>
+                                    <option value="Pendente">Pendente</option>
+                                    <option value="Em atendimento">Em atendimento</option>
+                                    <option value="Resolvido">Resolvido</option>
+                                </select>
+                            </div>
+                        `;
+                    });
+                }
+            } catch(e) {}
+        }
+
+        async function atualizarStatus(id, novoStatus) {
+            try {
+                const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=${encodeURIComponent(novoStatus)}`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Accept': 'application/json'
+                    }
+                });
+                if(res.ok) {
+                    loadAdminOcorrencias();
+                } else {
+                    alert("Erro ao alterar status");
+                }
+            } catch(e) {
+                alert("Erro de conexão");
+            }
+        }
+
+        function renderChart(pendentes, atendimento, resolvidas) {
+            const ctx = document.getElementById('statusChart').getContext('2d');
+            if(statusChartInst) statusChartInst.destroy();
+            
+            // Adjust text color based on theme
+            const textColor = document.documentElement.getAttribute('data-theme') === 'dark' ? '#e0e0e0' : '#212121';
+
+            statusChartInst = new Chart(ctx, {
+                type: 'pie',
+                data: {
+                    labels: ['Pendente', 'Em atendimento', 'Resolvido'],
+                    datasets: [{
+                        data: [pendentes, atendimento, resolvidas],
+                        backgroundColor: ['#f57f17', '#1565c0', '#2e7d32'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: { labels: { color: textColor } }
+                    }
+                }
+            });
+        }
+
+        loadAdminOcorrencias();
+        initBackgroundAnimation('bg-animation');
+    </script>
+
+    <footer class="footer">
+        <p>Todos direitos reservados ao Desenvolvedor Barbosa Nunes</p>
+    </footer>
+</body>
+</html>

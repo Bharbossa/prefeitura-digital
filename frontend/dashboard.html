@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Cidadão - Leopoldina Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="bg-animation-container" id="bg-animation"></div>
+
+    <nav class="navbar">
+        <div class="logo">
+            <a href="index.html" style="color: inherit;"><i class="fa-solid fa-city"></i> Leopoldina</a>
+        </div>
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="nav-links" id="nav-links">
+            <!-- Populated via JS -->
+        </div>
+    </nav>
+
+    <div class="dashboard-container fade-in">
+        <h2 style="margin-bottom: 2rem; color: var(--primary-color);">Minhas Ocorrências</h2>
+        
+        <button class="btn btn-primary" style="margin-bottom: 2rem;" onclick="document.getElementById('modalNovaOcorrencia').style.display='block'">
+            <i class="fa-solid fa-plus"></i> Nova Ocorrência
+        </button>
+
+        <div class="ocorrencias-list" id="listaOcorrencias">
+            <!-- Loaded via JS -->
+        </div>
+    </div>
+
+    <!-- Modal Nova Ocorrencia -->
+    <div id="modalNovaOcorrencia" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1001;">
+        <div class="form-container fade-in" style="margin-top: 5rem; position: relative;">
+            <i class="fa-solid fa-times" style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem;" onclick="document.getElementById('modalNovaOcorrencia').style.display='none'"></i>
+            <h3 style="margin-bottom: 1.5rem;">Registrar Problema</h3>
+            <form id="formOcorrencia">
+                <div class="form-group">
+                    <label>Título</label>
+                    <input type="text" id="oc_titulo" required>
+                </div>
+                <div class="form-group">
+                    <label>Secretaria Responsável</label>
+                    <select id="oc_secretaria" required>
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Descrição Detalhada</label>
+                    <textarea id="oc_descricao" rows="4" required></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Foto (Opcional)</label>
+                    <input type="file" id="oc_foto" accept="image/*">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Enviar</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        if (!checkAuth()) throw new Error("Acesso negado");
+
+        async function loadSecretarias() {
+            try {
+                const res = await fetch(`${API_URL}/secretarias/`);
+                if(res.ok) {
+                    const secs = await res.json();
+                    const select = document.getElementById('oc_secretaria');
+                    select.innerHTML = '<option value="">Selecione...</option>';
+                    secs.forEach(s => {
+                        select.innerHTML += `<option value="${s.id}">${s.nome}</option>`;
+                    });
+                }
+            } catch(e) {}
+        }
+
+        async function loadOcorrencias() {
+            try {
+                const res = await fetch(`${API_URL}/ocorrencias/`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if(res.ok) {
+                    const ocorrencias = await res.json();
+                    const container = document.getElementById('listaOcorrencias');
+                    container.innerHTML = '';
+                    if(ocorrencias.length === 0) {
+                        container.innerHTML = '<p>Você ainda não registrou nenhuma ocorrência.</p>';
+                        return;
+                    }
+                    ocorrencias.forEach(o => {
+                        const statusClass = {
+                            'Pendente': 'status-pendente',
+                            'Em atendimento': 'status-atendimento',
+                            'Resolvido': 'status-resolvido'
+                        }[o.status] || 'status-pendente';
+
+                        container.innerHTML += `
+                            <div class="ocorrencia-card">
+                                <h3>${o.titulo}</h3>
+                                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">Data: ${new Date(o.data).toLocaleDateString()}</p>
+                                <span class="status-badge ${statusClass}">${o.status}</span>
+                                <p style="margin-top: 1rem;">${o.descricao}</p>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (e) {}
+        }
+
+        document.getElementById('formOcorrencia').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('titulo', document.getElementById('oc_titulo').value);
+            formData.append('descricao', document.getElementById('oc_descricao').value);
+            formData.append('secretaria_id', document.getElementById('oc_secretaria').value);
+            
+            const fileInput = document.getElementById('oc_foto');
+            if(fileInput.files.length > 0) {
+                formData.append('foto', fileInput.files[0]);
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/ocorrencias/`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${getToken()}` },
+                    body: formData
+                });
+                if(res.ok) {
+                    alert('Ocorrência registrada!');
+                    document.getElementById('modalNovaOcorrencia').style.display='none';
+                    e.target.reset();
+                    loadOcorrencias();
+                } else {
+                    alert('Erro ao registrar.');
+                }
+            } catch(e) { alert('Erro de conexao.'); }
+        });
+
+        loadSecretarias();
+        loadOcorrencias();
+        initBackgroundAnimation('bg-animation');
+    </script>
+
+    <footer class="footer">
+        <p>Todos direitos reservados ao Desenvolvedor Barbosa Nunes</p>
+    </footer>
+</body>
+</html>

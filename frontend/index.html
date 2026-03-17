@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste.Prefeitura Digital - A Cidade Mais Conectada</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .hero {
+            height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            color: white;
+            position: relative;
+            overflow: hidden;
+            background-color: var(--primary-color);
+        }
+
+        .hero::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.7));
+            z-index: 1;
+        }
+
+        .hero-images {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .hero-img {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            opacity: 0;
+            transition: opacity 1.5s ease-in-out;
+        }
+
+        .hero-img.active {
+            opacity: 1;
+        }
+
+        .hero-content {
+            position: relative;
+            z-index: 2;
+            max-width: 800px;
+            padding: 2rem;
+        }
+
+        .hero-content h1 {
+            font-size: 3.5rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            /* Slide animation done via slide-in-left class */
+        }
+
+        .hero-content p {
+            font-size: 1.2rem;
+            margin-bottom: 2rem;
+            /* Slide animation done via slide-in-left class */
+        }
+    </style>
+</head>
+
+<body>
+
+    <nav class="navbar">
+        <div class="logo">
+            <i class="fa-solid fa-city"></i>
+            Teste. prefeitura Digital
+        </div>
+        <div class="hamburger" id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="nav-links" id="nav-links">
+            <a href="login.html" class="btn btn-outline" style="margin-right: 1rem;">Entrar</a>
+            <a href="register.html" class="btn btn-primary">Cadastrar</a>
+
+            <div class="theme-switch-wrapper">
+                <label class="theme-switch" for="checkbox">
+                    <input type="checkbox" id="checkbox" />
+                    <div class="slider round"></div>
+                </label>
+            </div>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-images" id="hero-slider">
+            <!-- As imagens serão inseridas via JavaScript -->
+        </div>
+
+        <div class="hero-content">
+            <h1 class="slide-in-left" style="animation-delay: 0.2s;">Sua voz transforma a Prefeitura</h1>
+            <p class="slide-in-left" style="animation-delay: 0.5s;">Plataforma digital para registro de problemas
+                urbanos e comunicação direta com a prefeitura.</p>
+            <div class="slide-in-left" style="animation-delay: 0.8s;">
+                <a href="register.html" class="btn btn-primary" style="font-size: 1.2rem; padding: 1rem 2rem;">Começar
+                    Agora <i class="fa-solid fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </header>
+
+    <section style="padding: 5rem 5%; text-align: center;">
+        <h2 style="font-size: 2.5rem; margin-bottom: 3rem; color: var(--primary-color);">Como Funciona</h2>
+        <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 2rem;">
+            <div
+                style="flex: 1; min-width: 250px; padding: 2rem; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                <i class="fa-solid fa-camera fa-3x" style="color: var(--accent); margin-bottom: 1.5rem;"></i>
+                <h3>1. Registre o Problema</h3>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">Tire uma foto ou vídeo do buraco, lâmpada
+                    queimada ou problema na rua.</p>
+            </div>
+            <div
+                style="flex: 1; min-width: 250px; padding: 2rem; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                <i class="fa-solid fa-paper-plane fa-3x" style="color: var(--accent); margin-bottom: 1.5rem;"></i>
+                <h3>2. Envie a Ocorrência</h3>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">Selecione a secretaria responsável pelo
+                    problema e envie os detalhes.</p>
+            </div>
+            <div
+                style="flex: 1; min-width: 250px; padding: 2rem; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                <i class="fa-solid fa-check-circle fa-3x" style="color: var(--accent); margin-bottom: 1.5rem;"></i>
+                <h3>3. Acompanhe a Solução</h3>
+                <p style="color: var(--text-secondary); margin-top: 1rem;">Receba atualizações diretamente do painel
+                    administrativo até a resolução.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- AI Chatbot Widget -->
+    <div class="chat-widget">
+        <div class="chat-window" id="chat-window">
+            <div class="chat-header">
+                <span><i class="fa-solid fa-robot"></i> Desenrolado (Assistente Digital)</span>
+                <i class="fa-solid fa-times" style="cursor: pointer;" onclick="toggleChat()"></i>
+            </div>
+            <div class="chat-body" id="chatBody">
+                <div class="chat-msg msg-ia">Olá! Sou o Desenrolado, o assistente virtual da prefeitura. Em que posso
+                    ajudar?
+                </div>
+            </div>
+            <div class="chat-input">
+                <input type="text" id="chatInput" placeholder="Digite sua dúvida..."
+                    onkeypress="if(event.key === 'Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()"><i class="fa-solid fa-paper-plane"></i></button>
+            </div>
+        </div>
+        <div class="chat-btn" onclick="toggleChat()">
+            <i class="fa-solid fa-message"></i>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        // Hero Image Sequence Animation
+        initBackgroundAnimation('hero-slider');
+    </script>
+
+    <footer class="footer">
+        <p>Todos direitos reservados ao Desenvolvedor Barbosa Nunes</p>
+    </footer>
+</body>
+
+</html>

@@ -1,0 +1,90 @@
+-- Failed query:
+-- -- Schema for Leopoldina Digital
+-- 
+-- -- Secretarias
+-- CREATE TABLE IF NOT EXISTS secretarias (
+--     id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     nome VARCHAR(150) UNIQUE NOT NULL
+-- );
+-- 
+-- -- Usuários (Cidadãos e Administradores Gerais)
+-- CREATE TABLE IF NOT EXISTS usuarios (
+--     id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     nome VARCHAR(150) NOT NULL,
+--     cpf VARCHAR(20) UNIQUE NOT NULL,
+--     email VARCHAR(150) UNIQUE NOT NULL,
+--     telefone VARCHAR(20),
+--     endereco VARCHAR(255),
+--     senha_hash VARCHAR(255) NOT NULL,
+--     tipo_usuario TEXT CHECK(tipo_usuario IN ('cidadao', 'admin')) DEFAULT 'cidadao'
+-- );
+-- 
+-- -- Administradores de Secretarias
+-- CREATE TABLE IF NOT EXISTS admins_secretaria (
+--     id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     nome VARCHAR(150) NOT NULL,
+--     cpf VARCHAR(20) UNIQUE NOT NULL,
+--     email VARCHAR(150) UNIQUE NOT NULL,
+--     telefone VARCHAR(20),
+--     endereco VARCHAR(255),
+--     senha_hash VARCHAR(255) NOT NULL,
+--     secretaria_id INTEGER,
+--     FOREIGN KEY (secretaria_id) REFERENCES secretarias(id)
+-- );
+-- 
+-- -- Ocorrências
+-- CREATE TABLE IF NOT EXISTS ocorrencias (
+--     id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     titulo VARCHAR(150) NOT NULL,
+--     descricao TEXT NOT NULL,
+--     foto VARCHAR(255),
+--     video VARCHAR(255),
+--     status TEXT CHECK(status IN ('Pendente', 'Em atendimento', 'Resolvido')) DEFAULT 'Pendente',
+--     data DATETIME DEFAULT CURRENT_TIMESTAMP,
+--     usuario_id INTEGER,
+--     secretaria_id INTEGER,
+--     FOREIGN KEY (usuario_id) REFERENCES usuarios(id),
+--     FOREIGN KEY (secretaria_id) REFERENCES secretarias(id)
+-- );
+-- 
+-- -- Respostas de Administradores
+-- CREATE TABLE IF NOT EXISTS respostas (
+--     id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     mensagem TEXT NOT NULL,
+--     data DATETIME DEFAULT CURRENT_TIMESTAMP,
+--     ocorrencia_id INTEGER,
+--     admin_id INTEGER,
+--     FOREIGN KEY (ocorrencia_id) REFERENCES ocorrencias(id),
+--     FOREIGN KEY (admin_id) REFERENCES admins_secretaria(id)
+-- );
+-- 
+-- -- Histórico do Chat IA
+-- CREATE TABLE IF NOT EXISTS chat_ia (
+--     id INTEGER PRIMARY KEY AUTOINCREMENT,
+--     mensagem_usuario TEXT NOT NULL,
+--     resposta_ia TEXT NOT NULL,
+--     data DATETIME DEFAULT CURRENT_TIMESTAMP,
+--     usuario_id INTEGER,
+--     FOREIGN KEY (usuario_id) REFERENCES usuarios(id)
+-- );
+-- 
+-- -- Initial Seeding
+-- INSERT OR IGNORE INTO secretarias (nome) VALUES 
+-- ('Secretaria de Obras'),
+-- ('Secretaria de Saúde'),
+-- ('Secretaria de Educação'),
+-- ('Secretaria de Meio Ambiente'),
+-- ('Iluminação Pública'),
+-- ('Limpeza Urbana'),
+-- ('Guarda Municipal'),
+-- ('Secretaria da Mulher');
+-- 
+-- -- Default Admin (Password: admin123)
+-- -- Hash generated for 'admin123' using bcrypt
+-- INSERT OR IGNORE INTO usuarios (nome, cpf, email, senha_hash, tipo_usuario) VALUES 
+-- ('Administrador Geral', '000.000.000-00', 'admin@leopoldina.gov.br', '$2b$12$2dP4FQ7Ly6GlQcwrKE7tY.dU1yAdh7uyPDgGylHifEpHatqZz9Ori', 'admin');
+-- 
+CREATE TABLE IF NOT EXISTS secretarias (
+    id SERIAL PRIMARY KEY,
+    nome VARCHAR(150) UNIQUE NOT NULL
+)

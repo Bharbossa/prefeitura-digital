@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro - Leopoldina Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh; position: relative; overflow: hidden;">
+
+    <div class="bg-animation-container" id="bg-animation"></div>
+    <div class="bg-overlay"></div>
+
+    <div class="form-container fade-in" style="width: 100%; max-width: 500px; margin: 1rem; position: relative; z-index: 10;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <h1 style="color: var(--primary-color); font-size: 2rem;">Crie sua Conta</h1>
+            <p style="color: var(--text-secondary); margin-top: 0.5rem;">Preencha os dados abaixo</p>
+        </div>
+
+        <form id="registerForm">
+            <div class="form-group">
+                <label for="nome">Nome Completo</label>
+                <input type="text" id="nome" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="cpf">CPF</label>
+                <input type="text" id="cpf" required placeholder="Apenas números">
+            </div>
+
+            <div class="form-group">
+                <label for="email">E-mail</label>
+                <input type="email" id="email" required>
+            </div>
+
+            <div class="form-group">
+                <label for="telefone">Telefone</label>
+                <input type="text" id="telefone">
+            </div>
+            
+            <div class="form-group">
+                <label for="endereco">Endereço Completo</label>
+                <input type="text" id="endereco">
+            </div>
+
+            <div class="form-group">
+                <label for="senha">Senha</label>
+                <input type="password" id="senha" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Cadastrar</button>
+            <p id="errorMsg" style="color: var(--error); margin-top: 1rem; text-align: center; display: none;"></p>
+        </form>
+        
+        <div style="text-align: center; margin-top: 2rem; color: var(--text-secondary);">
+            Já tem uma conta? <a href="login.html">Faça Login</a>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+    <script>
+        initBackgroundAnimation('bg-animation');
+
+        document.getElementById('registerForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const data = {
+                nome: document.getElementById('nome').value,
+                cpf: document.getElementById('cpf').value,
+                email: document.getElementById('email').value,
+                telefone: document.getElementById('telefone').value,
+                endereco: document.getElementById('endereco').value,
+                senha: document.getElementById('senha').value
+            };
+
+            const errorMsg = document.getElementById('errorMsg');
+
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                if (response.ok) {
+                    alert('Cadastro realizado com sucesso! Faça login.');
+                    window.location.href = 'login.html';
+                } else {
+                    const errorData = await response.json();
+                    errorMsg.innerText = errorData.detail || "Erro no cadastro.";
+                    errorMsg.style.display = "block";
+                }
+            } catch (err) {
+                errorMsg.innerText = "Erro ao conectar ao servidor.";
+                errorMsg.style.display = "block";
+            }
+        });
+    </script>
+
+    <footer class="footer">
+        <p>Todos direitos reservados ao Desenvolvedor Barbosa Nunes</p>
+    </footer>
+</body>
+</html>
