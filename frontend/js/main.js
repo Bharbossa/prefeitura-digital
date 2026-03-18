@@ -1,12 +1,14 @@
 // Base URL for Backend API
 const API_URL = 
-    window.location.hostname === 'localhost' || 
-    window.location.hostname === '127.0.0.1' || 
-    window.location.hostname === 'prefeitura-digital-teste'
+    window.location.hostname.includes('localhost') || 
+    window.location.hostname.includes('127.0.0.1') || 
+    window.location.hostname.includes('prefeitura-digital-teste')
     ? (window.location.hostname === 'prefeitura-digital-teste' || window.location.port === '10000'
-        ? `http://${window.location.hostname}:10000/api`
+        ? `http://${window.location.hostname.replace(':10000', '')}:10000/api`
         : "http://localhost:8000/api")
-    : "https://prefeitura-digital.onrender.com/api";
+    : (window.location.hostname.includes('onrender.com') 
+        ? `${window.location.origin}/api`
+        : "https://prefeitura-digital-backend.onrender.com/api");
 const MEDIA_URL = API_URL.replace('/api', '');
 
 // Dark Mode Logic
