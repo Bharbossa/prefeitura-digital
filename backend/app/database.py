@@ -11,7 +11,10 @@ load_dotenv()
 SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not SQLALCHEMY_DATABASE_URL:
-    SQLALCHEMY_DATABASE_URL = "sqlite:///../database/leopoldina.db"
+    # Get the absolute path to the 'database' directory relative to the project root
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    db_path = os.path.join(base_dir, "database", "leopoldina.db")
+    SQLALCHEMY_DATABASE_URL = f"sqlite:///{db_path}"
 
 # Format for MySQL: mysql+pymysql://user:pass@host:port/db
 if SQLALCHEMY_DATABASE_URL.startswith("mysql://"):

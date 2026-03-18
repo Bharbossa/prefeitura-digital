@@ -4,34 +4,36 @@ from fastapi.staticfiles import StaticFiles
 from .database import engine, Base
 import os
 
-# Tables are created via database/schema.sql
-# Auto-create tables if they don't exist
-Base.metadata.create_all(bind=engine)
-
-# Seed secretarias if empty
-def seed_secretarias():
-    from .database import SessionLocal
-    from .models.schema import Secretaria
-    db = SessionLocal()
-    try:
-        if db.query(Secretaria).count() == 0:
-            print("Seeding secretarias...")
-            sec_names = ["Obras", "Saúde", "Educação", "Transporte", "Meio Ambiente", "Limpeza Urbana"]
-            for name in sec_names:
-                db.add(Secretaria(nome=f"Secretaria de {name}" if "Limpeza" not in name else name))
-            db.commit()
-    except Exception as e:
-        print(f"Error seeding secretarias: {e}")
-    finally:
-        db.close()
-
-seed_secretarias()
-
 app = FastAPI(
     title="Leopoldina Digital API",
     description="API for Leopoldina Digital platform - Citizen Urban Occurrences",
     version="1.0.0"
 )
+
+# Database initialization on startup
+@app.on_event("startup")
+def startup_db_init():
+    try:
+        # Auto-create tables if they don't exist
+        print("Initializing database...")
+        Base.metadata.create_all(bind=engine)
+        
+        # Seed secretarias if empty
+        from .database import SessionLocal
+        from .models.schema import Secretaria
+        db = SessionLocal()
+        try:
+            if db.query(Secretaria).count() == 0:
+                print("Seeding secretarias...")
+                sec_names = ["Obras", "Saúde", "Educação", "Transporte", "Meio Ambiente", "Limpeza Urbana"]
+                for name in sec_names:
+                    db.add(Secretaria(nome=f"Secretaria de {name}" if "Limpeza" not in name else name))
+                db.commit()
+                print("Seeding complete.")
+        finally:
+            db.close()
+    except Exception as e:
+        print(f"Error initializing database: {e}")
 
 # CORS configuration
 origins = [
@@ -58,7 +60,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from app.routes import auth, ocorrencias, secretarias, chat_ia
+from .routes import auth, ocorrencias, secretarias, chat_ia
 
 @app.get("/")
 def read_root():
