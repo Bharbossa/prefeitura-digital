@@ -1,36 +1,55 @@
-import sqlite3
-import bcrypt
 import os
+import sys
+import bcrypt
+from sqlalchemy.orm import Session
 
-db_path = r'c:\Users\55829\OneDrive\Desktop\Leopoldina.D\database\leopoldina.db'
+# Add the 'backend' directory to sys.path so we can import 'app'
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from backend.app.database import SessionLocal, engine
+from backend.app.models.schema import Usuario, TipoUsuario
 
 def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-if not os.path.exists(db_path):
-    print(f"Error: {db_path} not found.")
-    exit(1)
+def ensure_test_user():
+    db: Session = SessionLocal()
+    
+    user_email = 'usuario@test.com'
+    user_nome = 'Cidadão de Teste'
+    user_cpf = '111.222.333-44'
+    password = 'user123'
+    
+    print(f"Ensuring test user {user_email} exists and has the correct password...")
+    
+    try:
+        # Check if user exists
+        user = db.query(Usuario).filter(Usuario.email == user_email).first()
+        
+        new_hash = get_password_hash(password)
+        
+        if user:
+            user.senha_hash = new_hash
+            user.tipo_usuario = TipoUsuario.cidadao
+            print(f"Updated existing user {user_email}")
+        else:
+            new_user = Usuario(
+                nome=user_nome,
+                cpf=user_cpf,
+                email=user_email,
+                senha_hash=new_hash,
+                tipo_usuario=TipoUsuario.cidadao
+            )
+            db.add(new_user)
+            print(f"Created new user {user_email}")
+            
+        db.commit()
+        print(f"Success: Citizen user ready with password '{password}'.")
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        db.rollback()
+    finally:
+        db.close()
 
-conn = sqlite3.connect(db_path)
-cursor = conn.cursor()
-
-user_email = 'usuario@test.com'
-user_nome = 'Cidadão de Teste'
-user_cpf = '111.222.333-44'
-new_hash = get_password_hash('user123')
-
-# Try to update or insert
-cursor.execute("SELECT id FROM usuarios WHERE email = ?", (user_email,))
-user = cursor.fetchone()
-
-if user:
-    cursor.execute("UPDATE usuarios SET senha_hash = ?, tipo_usuario = 'cidadao' WHERE email = ?", (new_hash, user_email))
-    print(f"Updated existing user {user_email}")
-else:
-    cursor.execute("INSERT INTO usuarios (nome, cpf, email, senha_hash, tipo_usuario) VALUES (?, ?, ?, ?, ?)", 
-                  (user_nome, user_cpf, user_email, new_hash, 'cidadao'))
-    print(f"Created new user {user_email}")
-
-conn.commit()
-conn.close()
-print(f"Success: Citizen user ready with password 'user123'.")
+if __name__ == "__main__":
+    ensure_test_user()

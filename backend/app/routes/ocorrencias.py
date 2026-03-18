@@ -150,5 +150,23 @@ def add_resposta(
         resposta_data["id"] = resp_ref.id
         return resposta_data
     else:
-        # SQLite Logic (if needed) - Keeping it simple for now
-        raise HTTPException(status_code=501, detail="Resposta não implementada em modo SQLite")
+        # SQL Implementation
+        ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == int(id)).first()
+        if not ocorrencia:
+            raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
+        
+        resposta = Resposta(
+            mensagem=mensagem,
+            ocorrencia_id=int(id),
+            admin_id=current_user.id
+        )
+        db_sql.add(resposta)
+        db_sql.commit()
+        db_sql.refresh(resposta)
+        return {
+            "id": str(resposta.id),
+            "mensagem": resposta.mensagem,
+            "ocorrencia_id": str(resposta.ocorrencia_id),
+            "admin_id": str(resposta.admin_id),
+            "data": resposta.data
+        }
