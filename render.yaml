@@ -1,11 +1,11 @@
 services:
   - type: web
     name: prefeitura-digital-backend
-    env: python
+    env: docker
     region: ohio
     plan: free
-    buildCommand: pip install -r backend/requirements.txt
-    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    dockerContext: .
+    dockerFilePath: Dockerfile
     envVars:
       - key: DATABASE_URL
         fromDatabase:

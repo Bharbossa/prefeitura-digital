@@ -1,0 +1,15 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.db
+database/*.db
+.env
+.git
+.github
+.agents
+.agent
+frontend/
+node_modules/
