@@ -8,6 +8,25 @@ import os
 # Auto-create tables if they don't exist
 Base.metadata.create_all(bind=engine)
 
+# Seed secretarias if empty
+def seed_secretarias():
+    from .database import SessionLocal
+    from .models.schema import Secretaria
+    db = SessionLocal()
+    try:
+        if db.query(Secretaria).count() == 0:
+            print("Seeding secretarias...")
+            sec_names = ["Obras", "Saúde", "Educação", "Transporte", "Meio Ambiente", "Limpeza Urbana"]
+            for name in sec_names:
+                db.add(Secretaria(nome=f"Secretaria de {name}" if "Limpeza" not in name else name))
+            db.commit()
+    except Exception as e:
+        print(f"Error seeding secretarias: {e}")
+    finally:
+        db.close()
+
+seed_secretarias()
+
 app = FastAPI(
     title="Leopoldina Digital API",
     description="API for Leopoldina Digital platform - Citizen Urban Occurrences",
