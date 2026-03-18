@@ -5,7 +5,7 @@ services:
     region: ohio
     plan: free
     dockerContext: .
-    dockerFilePath: Dockerfile
+    dockerFilePath: dockerfile
     envVars:
       - key: DATABASE_URL
         fromDatabase:
