@@ -47,3 +47,11 @@ app.include_router(chat_ia.router, prefix="/api/chat-ia", tags=["chat_ia"])
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+# Serve the frontend files
+frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend"))
+if os.path.exists(frontend_path):
+    app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
+else:
+    # Optional: print warning if frontend not found where expected
+    print(f"Warning: Frontend path not found at {frontend_path}")
