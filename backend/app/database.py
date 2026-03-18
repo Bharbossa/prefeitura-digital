@@ -14,6 +14,10 @@ if not SQLALCHEMY_DATABASE_URL:
     SQLALCHEMY_DATABASE_URL = "sqlite:///../database/leopoldina.db"
 
 # Format for MySQL: mysql+pymysql://user:pass@host:port/db
+if SQLALCHEMY_DATABASE_URL.startswith("mysql://"):
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
+
+# Format for MySQL: mysql+pymysql://user:pass@host:port/db
 # Prevent SQLite multithreading error
 connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
 
