@@ -97,7 +97,7 @@
                                 <h3>${o.titulo} <span class="status-badge ${statusClass}">${o.status}</span></h3>
                                 <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Cidadão ID: ${o.usuario_id} | Data: ${new Date(o.data).toLocaleDateString()}</p>
                                 <p style="margin-bottom: 1rem;">${o.descricao}</p>
-                                ${o.foto ? `<p><a href="${API_URL.replace('/api', '')}/${o.foto}" target="_blank"><i class="fa-solid fa-image"></i> Ver Foto Anexa</a></p>` : ''}
+                                ${o.foto ? `<p><a href="${MEDIA_URL}/${o.foto}" target="_blank"><i class="fa-solid fa-image"></i> Ver Foto Anexa</a></p>` : ''}
                                 
                                 <select onchange="atualizarStatus(${o.id}, this.value)" style="margin-top:1rem; padding:0.5rem; border-radius:5px; width:100%;">
                                     <option value="" disabled selected>Alterar Status</option>

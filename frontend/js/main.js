@@ -2,6 +2,7 @@
 const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' 
     ? "http://localhost:8000/api" 
     : "https://prefeitura-digital.onrender.com/api";
+const MEDIA_URL = API_URL.replace('/api', '');
 
 // Dark Mode Logic
 const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');

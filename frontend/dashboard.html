@@ -110,6 +110,7 @@
                                 <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 1rem;">Data: ${new Date(o.data).toLocaleDateString()}</p>
                                 <span class="status-badge ${statusClass}">${o.status}</span>
                                 <p style="margin-top: 1rem;">${o.descricao}</p>
+                                ${o.foto ? `<p><a href="${MEDIA_URL}/${o.foto}" target="_blank"><i class="fa-solid fa-image"></i> Ver Foto Anexa</a></p>` : ''}
                             </div>
                         `;
                     });
