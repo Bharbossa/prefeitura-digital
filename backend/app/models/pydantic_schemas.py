@@ -18,7 +18,7 @@ class UsuarioLogin(BaseModel):
     senha: str
 
 class UsuarioResponse(UsuarioBase):
-    id: str
+    id: int # Postgres uses integers by default in our model
     tipo_usuario: str
     status: str
     model_config = ConfigDict(from_attributes=True)

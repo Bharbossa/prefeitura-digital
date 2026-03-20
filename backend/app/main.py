@@ -39,16 +39,16 @@ def startup_db_init():
 origins = [
     "https://leopoldina-digital-1b75e.web.app",
     "https://leopoldina-digital-1b75e.firebaseapp.com",
-    "http://localhost",
+    "https://prefeitura-digital.onrender.com",
+    "https://prefeitura-digital-backend.onrender.com",
     "http://localhost:5500",
     "http://127.0.0.1:5500",
-    "https://prefeitura-digital-backend.onrender.com",
 ]
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=origins,
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )

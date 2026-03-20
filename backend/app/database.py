@@ -8,20 +8,18 @@ load_dotenv()
 
 # We use SQLite for local development; in production Postgres URI can be provided via DATABASE_URL
 # SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///../database/leopoldina.db")
-SQLALCHEMY_DATABASE_URL = os.getenv("DATABASE_URL")
-
-if not SQLALCHEMY_DATABASE_URL:
-    # Get the absolute path to the 'database' directory relative to the project root
-    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    db_path = os.path.join(base_dir, "database", "leopoldina.db")
-    SQLALCHEMY_DATABASE_URL = f"sqlite:///{db_path}"
+# Neon Postgres Connection String
+# For production, this should ideally be set in the environment variables (e.g., Render Dashboard)
+SQLALCHEMY_DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql://neondb_owner:npg_9gGs8ZPRMUnS@ep-wild-river-ancnt251-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require"
+)
 
 # Format for MySQL: mysql+pymysql://user:pass@host:port/db
 if SQLALCHEMY_DATABASE_URL.startswith("mysql://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
 
-# Format for MySQL: mysql+pymysql://user:pass@host:port/db
-# Prevent SQLite multithreading error
+# Prevent SQLite multithreading error (only applies if DATABASE_URL is explicitly set to sqlite)
 connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
 
 engine = create_engine(
