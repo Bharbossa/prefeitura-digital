@@ -36,7 +36,14 @@ def startup_db_init():
         print(f"Error initializing database: {e}")
 
 # CORS configuration
-origins = ["*"]
+origins = [
+    "https://leopoldina-digital-1b75e.web.app",
+    "https://leopoldina-digital-1b75e.firebaseapp.com",
+    "http://localhost",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "https://prefeitura-digital-backend.onrender.com",
+]
 
 app.add_middleware(
     CORSMiddleware,
