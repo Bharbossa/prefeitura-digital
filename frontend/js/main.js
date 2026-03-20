@@ -8,7 +8,7 @@ const API_URL =
         : "http://localhost:8000/api")
     : (window.location.hostname.includes('onrender.com') 
         ? `${window.location.origin}/api`
-        : "https://prefeitura-digital-backend.onrender.com/api");
+        : "https://prefeitura-digital.onrender.com/api");
 const MEDIA_URL = API_URL.replace('/api', '');
 
 // Dark Mode Logic
