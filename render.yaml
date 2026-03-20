@@ -1,16 +1,14 @@
 services:
   - type: web
     name: prefeitura-digital-backend
-    env: docker
+    env: python
     region: ohio
     plan: free
-    dockerContext: .
-    dockerFilePath: dockerfile
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: DATABASE_URL
-        fromDatabase:
-          name: prefeitura-digital-db
-          property: connectionString
+        value: mysql+pymysql://admin:adminpassword@mysql-db:3306/leopoldina
       - key: SECRET_KEY
         generateValue: true
       - key: ALGORITHM
@@ -31,8 +29,18 @@ services:
         source: /*
         destination: /index.html
 
-databases:
-  - name: prefeitura-digital-db
-    type: mysql
+  - type: pserv
+    name: mysql-db
+    env: docker
+    dockerContext: .
+    dockerfilePath: mysql.Dockerfile
     plan: free
-    region: ohio
+    envVars:
+      - key: MYSQL_ROOT_PASSWORD
+        value: "rootpassword"
+      - key: MYSQL_DATABASE
+        value: "leopoldina"
+      - key: MYSQL_USER
+        value: "admin"
+      - key: MYSQL_PASSWORD
+        value: "adminpassword"
