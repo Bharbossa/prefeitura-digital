@@ -5,7 +5,7 @@ from typing import Any
 
 from ..core.firebase_config import db, DB_MODE
 from ..database import get_db
-from ..models.schema import Usuario, AdminSecretaria
+from ..models.schema import Usuario, AdminSecretaria, StatusUsuario
 from sqlalchemy.orm import Session
 from ..models.pydantic_schemas import UsuarioCreate, UsuarioResponse, Token
 from ..core.security import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
@@ -24,19 +24,23 @@ def register(user_in: UsuarioCreate, db_sql: Session = Depends(get_db)) -> Any:
         hashed_password = get_password_hash(user_in.senha)
         user_data = {
             "nome": user_in.nome, "cpf": user_in.cpf, "email": user_in.email,
-            "senha_hash": hashed_password, "tipo_usuario": "cidadao", "criado_em": datetime.utcnow()
+            "senha_hash": hashed_password, "tipo_usuario": "cidadao", 
+            "status": StatusUsuario.pendente, "criado_em": datetime.utcnow()
         }
         doc_ref = db.collection("usuarios").document()
         doc_ref.set(user_data)
         user_data["id"] = doc_ref.id
         return user_data
     else:
-        # SQLite Fallback
+        # SQL Fallback (MySQL/SQLite)
         user = db_sql.query(Usuario).filter(Usuario.email == user_in.email).first()
         if user:
             raise HTTPException(status_code=400, detail="The user with this email already exists.")
         hashed_password = get_password_hash(user_in.senha)
-        db_user = Usuario(nome=user_in.nome, cpf=user_in.cpf, email=user_in.email, senha_hash=hashed_password)
+        db_user = Usuario(
+            nome=user_in.nome, cpf=user_in.cpf, email=user_in.email, 
+            senha_hash=hashed_password, status=StatusUsuario.pendente
+        )
         db_sql.add(db_user)
         db_sql.commit()
         db_sql.refresh(db_user)
@@ -81,6 +85,21 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
+        )
+    
+    # Check if user is active (Admins and Approved users only)
+    user_status = user_data.get("status")
+    # If it's a string from Firestore or an Enum from SQL
+    if hasattr(user_status, "value"): user_status = user_status.value
+    
+    if user_type != "admin" and user_status != "Ativo" and user_status != StatusUsuario.ativo:
+        status_msg = "Sua conta está aguardando aprovação administrativa."
+        if user_status == "Rejeitado" or user_status == StatusUsuario.rejeitado:
+            status_msg = "Sua solicitação de acesso foi rejeitada."
+        
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=status_msg
         )
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

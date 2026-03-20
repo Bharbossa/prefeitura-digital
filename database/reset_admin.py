@@ -19,11 +19,11 @@ admin_email = 'admin@leopoldina.gov.br'
 new_hash = get_password_hash('admin123')
 
 # Try to update existing user
-cursor.execute("UPDATE usuarios SET senha_hash = ? WHERE email = ?", (new_hash, admin_email))
+cursor.execute("UPDATE usuarios SET senha_hash = ?, status = 'Ativo' WHERE email = ?", (new_hash, admin_email))
 if cursor.rowcount == 0:
     # If not found, insert
-    cursor.execute("INSERT INTO usuarios (nome, cpf, email, senha_hash, tipo_usuario) VALUES (?, ?, ?, ?, ?)", 
-                  ('Administrador Geral', '000.000.000-00', admin_email, new_hash, 'admin'))
+    cursor.execute("INSERT INTO usuarios (nome, cpf, email, senha_hash, tipo_usuario, status) VALUES (?, ?, ?, ?, ?, ?)", 
+                  ('Administrador Geral', '000.000.000-00', admin_email, new_hash, 'admin', 'Ativo'))
 
 conn.commit()
 conn.close()

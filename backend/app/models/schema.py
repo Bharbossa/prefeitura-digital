@@ -13,6 +13,11 @@ class StatusOcorrencia(str, enum.Enum):
     em_atendimento = "Em atendimento"
     resolvido = "Resolvido"
 
+class StatusUsuario(str, enum.Enum):
+    pendente = "Pendente"
+    ativo = "Ativo"
+    rejeitado = "Rejeitado"
+
 class Usuario(Base):
     __tablename__ = "usuarios"
 
@@ -24,6 +29,7 @@ class Usuario(Base):
     endereco = Column(String(255))
     senha_hash = Column(String(255), nullable=False)
     tipo_usuario = Column(Enum(TipoUsuario), default=TipoUsuario.cidadao)
+    status = Column(Enum(StatusUsuario), default=StatusUsuario.pendente)
 
     ocorrencias = relationship("Ocorrencia", back_populates="usuario")
 

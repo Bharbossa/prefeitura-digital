@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.app.database import SessionLocal, engine
-from backend.app.models.schema import Usuario, TipoUsuario
+from backend.app.models.schema import Usuario, TipoUsuario, StatusUsuario
 
 def get_password_hash(password: str) -> str:
     return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -38,7 +38,8 @@ def ensure_test_user():
                 cpf=user_cpf,
                 email=user_email,
                 senha_hash=new_hash,
-                tipo_usuario=TipoUsuario.cidadao
+                tipo_usuario=TipoUsuario.cidadao,
+                status=StatusUsuario.ativo
             )
             db.add(new_user)
             print(f"Created new user {user_email}")

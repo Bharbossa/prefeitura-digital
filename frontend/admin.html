@@ -50,6 +50,13 @@
             <canvas id="statusChart"></canvas>
         </div>
 
+        <section id="userRequestsSection" style="margin-bottom: 3rem; display: none;">
+            <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);">Solicitações de Cadastro</h2>
+            <div class="ocorrencias-list" id="listaSolicitacoes">
+                <!-- Loaded via JS -->
+            </div>
+        </section>
+
         <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);">Gestão de Ocorrências</h2>
         <div class="ocorrencias-list" id="listaOcorrenciasAdmin">
             <!-- Loaded via JS -->
@@ -157,7 +164,64 @@
             });
         }
 
-        loadAdminOcorrencias();
+        async function loadPendingUsers() {
+            try {
+                const res = await fetch(`${API_URL}/admin/users/pending`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                
+                if(res.ok) {
+                    const users = await res.json();
+                    const section = document.getElementById('userRequestsSection');
+                    const container = document.getElementById('listaSolicitacoes');
+                    
+                    if (users.length > 0) {
+                        section.style.display = 'block';
+                        container.innerHTML = '';
+                        users.forEach(u => {
+                            container.innerHTML += `
+                                <div class="ocorrencia-card" style="border-left: 5px solid var(--warning);">
+                                    <h3 style="display: flex; justify-content: space-between; align-items: center;">
+                                        ${u.nome}
+                                        <div style="display: flex; gap: 0.5rem;">
+                                            <button onclick="changeUserStatus('${u.id}', 'approve')" class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; background: var(--success);">Aprovar</button>
+                                            <button onclick="changeUserStatus('${u.id}', 'reject')" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; background: var(--error);">Rejeitar</button>
+                                        </div>
+                                    </h3>
+                                    <p style="font-size: 0.9rem; color: var(--text-secondary);">CPF: ${u.cpf} | Email: ${u.email}</p>
+                                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Endereço: ${u.endereco || 'Não informado'}</p>
+                                </div>
+                            `;
+                        });
+                    } else {
+                        section.style.display = 'none';
+                    }
+                }
+            } catch(e) {}
+        }
+
+        async function changeUserStatus(userId, action) {
+            try {
+                const res = await fetch(`${API_URL}/admin/users/${userId}/${action}`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if(res.ok) {
+                    loadPendingUsers();
+                } else {
+                    alert("Erro ao processar solicitação");
+                }
+            } catch(e) {
+                alert("Erro de conexão");
+            }
+        }
+
+        async function loadDashboard() {
+            await loadAdminOcorrencias();
+            await loadPendingUsers();
+        }
+
+        loadDashboard();
         initBackgroundAnimation('bg-animation');
     </script>
 

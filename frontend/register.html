@@ -83,7 +83,7 @@
                 });
 
                 if (response.ok) {
-                    alert('Cadastro realizado com sucesso! Faça login.');
+                    alert('Cadastro realizado com sucesso! Sua conta agora passará por uma análise administrativa. Você poderá fazer login assim que for aprovado.');
                     window.location.href = 'login.html';
                 } else {
                     const errorData = await response.json();

@@ -1,7 +1,7 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional, List
 from datetime import datetime
-from .schema import TipoUsuario, StatusOcorrencia
+from .schema import TipoUsuario, StatusOcorrencia, StatusUsuario
 
 class UsuarioBase(BaseModel):
     nome: str
@@ -20,6 +20,7 @@ class UsuarioLogin(BaseModel):
 class UsuarioResponse(UsuarioBase):
     id: str
     tipo_usuario: str
+    status: str
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):

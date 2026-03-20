@@ -60,7 +60,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from .routes import auth, ocorrencias, secretarias, chat_ia
+from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users
 
 @app.get("/")
 def read_root():
@@ -70,6 +70,7 @@ app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(ocorrencias.router, prefix="/api/ocorrencias", tags=["ocorrencias"])
 app.include_router(secretarias.router, prefix="/api/secretarias", tags=["secretarias"])
 app.include_router(chat_ia.router, prefix="/api/chat-ia", tags=["chat_ia"])
+app.include_router(admin_users.router, prefix="/api/admin/users", tags=["admin_users"])
 
 # Mount the 'uploads' directory to serve files (photos/videos)
 if not os.path.exists("uploads"):
