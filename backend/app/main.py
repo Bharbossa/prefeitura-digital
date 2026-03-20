@@ -4,6 +4,8 @@ from fastapi.staticfiles import StaticFiles
 from .database import engine, Base
 import os
 
+# FastAPI Application for Leopoldina Digital
+# Using Neon Postgres as the primary database
 app = FastAPI(
     title="Leopoldina Digital API",
     description="API for Leopoldina Digital platform - Citizen Urban Occurrences",
