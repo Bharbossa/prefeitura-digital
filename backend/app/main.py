@@ -37,20 +37,7 @@ def startup_db_init():
 
 # CORS configuration
 origins = [
-    "http://localhost",
-    "http://localhost:5500",
-    "http://localhost:8000",
-    "http://localhost:10000",
-    "http://127.0.0.1",
-    "http://127.0.0.1:5500",
-    "http://127.0.0.1:8000",
-    "http://127.0.0.1:10000",
-    "http://prefeitura-digital-teste:10000",
-    "https://leopoldina-digital-1b75e.web.app",
-    "https://leopoldina-digital-1b75e.firebaseapp.com",
-    "https://prefeitura-digital.onrender.com",
-    "https://prefeitura-digital-backend.onrender.com"
-]
+origins = ["*"]
 
 app.add_middleware(
     CORSMiddleware,
