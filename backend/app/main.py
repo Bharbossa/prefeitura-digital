@@ -36,7 +36,6 @@ def startup_db_init():
         print(f"Error initializing database: {e}")
 
 # CORS configuration
-origins = [
 origins = ["*"]
 
 app.add_middleware(
