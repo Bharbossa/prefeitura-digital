@@ -73,11 +73,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
                 user_type = str(user_type)
                 if "." in user_type: user_type = user_type.split(".")[-1]
             
-            user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id}
+            user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id, "status": user.status}
         else:
             user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == form_data.username).first()
             if user:
-                user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id}
+                user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id, "status": getattr(user, "status", "Ativo")}
                 user_type = "admin"
 
     if not user_data or not verify_password(form_data.password, user_data.get("senha_hash")):
