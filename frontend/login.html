@@ -88,11 +88,12 @@
                         }
                     }
                 } else {
-                    errorMsg.innerText = "Credenciais inválidas.";
+                    const errorData = await response.json();
+                    errorMsg.innerText = errorData.detail || "Credenciais inválidas.";
                     errorMsg.style.display = "block";
                 }
             } catch (err) {
-                errorMsg.innerText = "Erro ao conectar ao servidor.";
+                errorMsg.innerText = `Erro de Conexão/CORS. Verifique se a API backend está respondendo. Detalhe: ${err.message}`;
                 errorMsg.style.display = "block";
             }
         });
