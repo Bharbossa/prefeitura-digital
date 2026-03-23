@@ -57,6 +57,23 @@
             </div>
         </section>
 
+        <section id="manageAdminsSection" style="margin-bottom: 3rem; display: none;">
+            <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);">Gerenciar Administradores</h2>
+            <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
+                <form id="formNovoadmin" onsubmit="criarAdmin(event)" style="display: grid; gap: 1rem; grid-template-columns: 1fr 1fr;">
+                    <div style="grid-column: 1/-1;"><h3>Cadastrar Novo Sub-Administrador</h3></div>
+                    <div><label>Nome</label><input type="text" id="adminNome" class="input-field" required></div>
+                    <div><label>Secretaria</label><select id="adminSec" class="input-field" required></select></div>
+                    <div><label>E-mail</label><input type="email" id="adminEmail" class="input-field" required></div>
+                    <div><label>Nova Senha</label><input type="password" id="adminSenha" class="input-field" required minlength="6"></div>
+                    <div style="grid-column: 1/-1;"><button type="submit" class="btn btn-primary">Cadastrar Administrador</button></div>
+                </form>
+            </div>
+            <div class="ocorrencias-list" id="listaAdmins">
+                <!-- Loaded via JS -->
+            </div>
+        </section>
+
         <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);">Gestão de Ocorrências</h2>
         <div class="ocorrencias-list" id="listaOcorrenciasAdmin">
             <!-- Loaded via JS -->
@@ -68,6 +85,22 @@
         if (!checkAuth(true)) throw new Error("Acesso negado - Não é admin");
 
         let statusChartInst = null;
+        let secretariasMap = {};
+
+        async function loadSecretarias() {
+            try {
+                const res = await fetch(`${API_URL}/secretarias/`);
+                if(res.ok) {
+                    const data = await res.json();
+                    const secSelect = document.getElementById('adminSec');
+                    secSelect.innerHTML = '';
+                    data.forEach(s => {
+                        secretariasMap[s.id] = s.nome;
+                        secSelect.innerHTML += `<option value="${s.id}">${s.nome}</option>`;
+                    });
+                }
+            } catch(e) { console.error("Error loading secretarias", e); }
+        }
 
         async function loadAdminOcorrencias() {
             try {
@@ -92,29 +125,41 @@
                     const container = document.getElementById('listaOcorrenciasAdmin');
                     container.innerHTML = '';
                     
+                    const grouped = {};
                     ocorrencias.forEach(o => {
-                        const statusClass = {
-                            'Pendente': 'status-pendente',
-                            'Em atendimento': 'status-atendimento',
-                            'Resolvido': 'status-resolvido'
-                        }[o.status] || 'status-pendente';
-
-                        container.innerHTML += `
-                            <div class="ocorrencia-card">
-                                <h3>${o.titulo} <span class="status-badge ${statusClass}">${o.status}</span></h3>
-                                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Cidadão ID: ${o.usuario_id} | Data: ${new Date(o.data).toLocaleDateString()}</p>
-                                <p style="margin-bottom: 1rem;">${o.descricao}</p>
-                                ${o.foto ? `<p><a href="${MEDIA_URL}/${o.foto}" target="_blank"><i class="fa-solid fa-image"></i> Ver Foto Anexa</a></p>` : ''}
-                                
-                                <select onchange="atualizarStatus(${o.id}, this.value)" style="margin-top:1rem; padding:0.5rem; border-radius:5px; width:100%;">
-                                    <option value="" disabled selected>Alterar Status</option>
-                                    <option value="Pendente">Pendente</option>
-                                    <option value="Em atendimento">Em atendimento</option>
-                                    <option value="Resolvido">Resolvido</option>
-                                </select>
-                            </div>
-                        `;
+                        const sId = o.secretaria_id;
+                        if(!grouped[sId]) grouped[sId] = [];
+                        grouped[sId].push(o);
                     });
+
+                    for (const [sId, items] of Object.entries(grouped)) {
+                        const secName = secretariasMap[sId] || 'Geral';
+                        container.innerHTML += `<div style="grid-column: 1/-1; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem;"><h3 style="margin: 1rem 0 0 0; color: var(--primary-color);">📂 ${secName}</h3></div>`;
+                        
+                        items.forEach(o => {
+                            const statusClass = {
+                                'Pendente': 'status-pendente',
+                                'Em atendimento': 'status-atendimento',
+                                'Resolvido': 'status-resolvido'
+                            }[o.status] || 'status-pendente';
+
+                            container.innerHTML += `
+                                <div class="ocorrencia-card">
+                                    <h3>${o.titulo} <span class="status-badge ${statusClass}">${o.status}</span></h3>
+                                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Cidadão ID: ${o.usuario_id} | Data: ${new Date(o.data).toLocaleDateString()}</p>
+                                    <p style="margin-bottom: 1rem;">${o.descricao}</p>
+                                    ${o.foto ? `<p><a href="${MEDIA_URL}/${o.foto}" target="_blank"><i class="fa-solid fa-image"></i> Ver Foto Anexa</a></p>` : ''}
+                                    
+                                    <select onchange="atualizarStatus('${o.id}', this.value)" style="margin-top:1rem; padding:0.5rem; border-radius:5px; width:100%; border:1px solid #ddd;">
+                                        <option value="" disabled selected>Alterar Status</option>
+                                        <option value="Pendente">Pendente</option>
+                                        <option value="Em atendimento">Em atendimento</option>
+                                        <option value="Resolvido">Resolvido</option>
+                                    </select>
+                                </div>
+                            `;
+                        });
+                    }
                 }
             } catch(e) {}
         }
@@ -216,9 +261,80 @@
             }
         }
 
+        async function loadAdmins() {
+            try {
+                const res = await fetch(`${API_URL}/admin/users/secretaria-admins`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if(res.ok) {
+                    const admins = await res.json();
+                    document.getElementById('manageAdminsSection').style.display = 'block';
+                    
+                    const container = document.getElementById('listaAdmins');
+                    container.innerHTML = '';
+                    admins.forEach(a => {
+                        container.innerHTML += `
+                            <div class="ocorrencia-card" style="border-left: 5px solid var(--primary-color);">
+                                <h3>${a.nome} <span class="status-badge" style="background:var(--primary-color);color:#fff;">${secretariasMap[a.secretaria_id] || 'N/A'}</span></h3>
+                                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Email: ${a.email}</p>
+                                <button onclick="alterarSenhaAdmin(${a.id})" class="btn btn-secondary" style="font-size:0.8rem; padding:0.4rem 0.8rem;">Trocar Senha do Admin</button>
+                            </div>
+                        `;
+                    });
+                } else if(res.status === 403) {
+                    document.getElementById('manageAdminsSection').style.display = 'none';
+                }
+            } catch(e) {}
+        }
+
+        async function criarAdmin(e) {
+            e.preventDefault();
+            const data = {
+                nome: document.getElementById('adminNome').value,
+                email: document.getElementById('adminEmail').value,
+                senha: document.getElementById('adminSenha').value,
+                secretaria_id: parseInt(document.getElementById('adminSec').value)
+            };
+            try {
+                const res = await fetch(`${API_URL}/admin/users/secretaria-admins`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                    body: JSON.stringify(data)
+                });
+                if(res.ok) {
+                    alert("Administrador cadastrado com sucesso!");
+                    document.getElementById('formNovoadmin').reset();
+                    loadAdmins();
+                } else {
+                    const err = await res.json();
+                    alert(err.detail || "Erro ao cadastrar.");
+                }
+            } catch(e) { alert("Erro de conexão"); }
+        }
+
+        async function alterarSenhaAdmin(id) {
+            const nova_senha = prompt("Digite a nova senha para este administrador (minimo 6 caracteres):");
+            if(!nova_senha || nova_senha.length < 6) return alert("Senha muito curta ou procedimento cancelado.");
+            
+            try {
+                const res = await fetch(`${API_URL}/admin/users/secretaria-admins/${id}/password`, {
+                    method: 'PATCH',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                    body: JSON.stringify({nova_senha})
+                });
+                if(res.ok) {
+                    alert("Senha alterada com sucesso!");
+                } else {
+                    alert("Erro ao alterar senha.");
+                }
+            } catch(e) { alert("Erro de conexão."); }
+        }
+
         async function loadDashboard() {
+            await loadSecretarias();
             await loadAdminOcorrencias();
             await loadPendingUsers();
+            await loadAdmins();
         }
 
         loadDashboard();

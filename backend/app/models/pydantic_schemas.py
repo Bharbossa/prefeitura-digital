@@ -61,3 +61,20 @@ class ChatIARequest(BaseModel):
 
 class ChatIAResponse(BaseModel):
     resposta: str
+
+class AdminSecretariaCreate(BaseModel):
+    nome: str
+    email: EmailStr
+    senha: str
+    secretaria_id: int
+
+class AdminSecretariaResponse(BaseModel):
+    id: int
+    nome: str
+    email: EmailStr
+    secretaria_id: int
+    status: str = "Ativo"
+    model_config = ConfigDict(from_attributes=True)
+
+class AdminPasswordUpdate(BaseModel):
+    nova_senha: str
