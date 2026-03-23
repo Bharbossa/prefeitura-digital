@@ -27,6 +27,13 @@
     </nav>
 
     <div class="dashboard-container fade-in">
+        <div id="adminShortcuts" style="display: none; margin-bottom: 2rem; background: var(--card-bg); padding: 1rem; border-radius: 12px; border-left: 5px solid var(--primary-color);">
+            <h3 style="margin-bottom: 1rem; color: var(--primary-color);"><i class="fa-solid fa-crown"></i> Ferramentas do Administrador Geral</h3>
+            <button onclick="document.getElementById('manageAdminsSection').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary">
+                <i class="fa-solid fa-users-gear"></i> Cadastrar Sub-Administradores
+            </button>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">Role a página para baixo para ver a sessão completa de gestão de senhas e secretarias.</p>
+        </div>
         
         <div class="stats-grid">
             <div class="stat-card">
@@ -269,6 +276,9 @@
                 if(res.ok) {
                     const admins = await res.json();
                     document.getElementById('manageAdminsSection').style.display = 'block';
+                    const shortcuts = document.getElementById('adminShortcuts');
+                    if (shortcuts) shortcuts.style.display = 'block';
+
                     
                     const container = document.getElementById('listaAdmins');
                     container.innerHTML = '';
