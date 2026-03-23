@@ -112,10 +112,19 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
 @router.get("/me", response_model=UsuarioResponse)
 def read_users_me(current_user = Depends(get_current_user)):
     tipo = getattr(current_user, "tipo_usuario_verificado", "admin")
+    
+    # Extract status correctly handling Enum if necessary
+    status_val = getattr(current_user, "status", "Ativo")
+    if hasattr(status_val, "value"):
+        status_val = status_val.value
+        
     return {
-        "id": str(current_user.id),
+        "id": int(current_user.id) if str(current_user.id).isdigit() else current_user.id,
         "nome": current_user.nome,
         "email": current_user.email,
-        "cpf": current_user.cpf,
-        "tipo_usuario": tipo
+        "cpf": getattr(current_user, "cpf", ""),
+        "telefone": getattr(current_user, "telefone", ""),
+        "endereco": getattr(current_user, "endereco", ""),
+        "tipo_usuario": tipo,
+        "status": status_val
     }
