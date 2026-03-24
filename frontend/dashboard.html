@@ -140,8 +140,10 @@
             const secSelect = document.getElementById('ag_secretaria');
             for(let i=0; i<secSelect.options.length; i++) {
                 if(secSelect.options[i].text.toUpperCase().includes("SAÚDE")) {
+                    secSelect.options[i].style.display = 'block';
                     secSelect.selectedIndex = i;
-                    break;
+                } else {
+                    secSelect.options[i].style.display = 'none';
                 }
             }
             secSelect.disabled = true; // Força para a Secretaria de Saúde
@@ -165,6 +167,9 @@
 
             const secSelect = document.getElementById('ag_secretaria');
             secSelect.disabled = false;
+            for(let i=0; i<secSelect.options.length; i++) {
+                secSelect.options[i].style.display = 'block';
+            }
             secSelect.value = "";
 
             document.getElementById('ag_assunto_label').innerText = 'Assunto (Para qual assunto/secretário deseja agendar?)';
