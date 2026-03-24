@@ -100,8 +100,8 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Assunto (Qual secretário/médico deseja agendar? E o Motivo?)</label>
-                    <input type="text" id="ag_assunto" placeholder="Ex: Consulta com Clínico Geral, ou Reunião com Sec. de Obras" required>
+                    <label id="ag_assunto_label">Assunto</label>
+                    <input type="text" id="ag_assunto" placeholder="" required>
                 </div>
                 <div class="form-group">
                     <label>Data e Hora Desejada (atendimento das 08:00 às 12:00)</label>
@@ -135,6 +135,9 @@
                 }
             }
             secSelect.disabled = true; // Força para a Secretaria de Saúde
+
+            document.getElementById('ag_assunto_label').innerText = 'Assunto (Qual médico deseja agendar? E o Motivo?)';
+            document.getElementById('ag_assunto').placeholder = 'Ex: Consulta com Clínico Geral, Pediatra, etc.';
         }
 
         function abrirModalAtendimento() {
@@ -150,6 +153,9 @@
             const secSelect = document.getElementById('ag_secretaria');
             secSelect.disabled = false;
             secSelect.value = "";
+
+            document.getElementById('ag_assunto_label').innerText = 'Assunto (Para qual assunto/secretário deseja agendar?)';
+            document.getElementById('ag_assunto').placeholder = 'Ex: Reunião sobre alvará, Falar com Secretário de Obras, etc.';
         }
 
         async function loadSecretarias() {
