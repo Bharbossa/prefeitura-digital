@@ -37,9 +37,14 @@
 
             <div style="flex: 1; min-width: 300px;">
                 <h2 style="margin-bottom: 2rem; color: var(--primary-color);">Meus Agendamentos</h2>
-                <button class="btn btn-primary" style="margin-bottom: 2rem; background: var(--success);" onclick="document.getElementById('modalNovoAgendamento').style.display='block'">
-                    <i class="fa-solid fa-calendar-plus"></i> Agendar Atendimento/Consulta
-                </button>
+                <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                    <button class="btn btn-primary" style="background: var(--success); flex: 1; min-width: 140px;" onclick="abrirModalConsulta()">
+                        <i class="fa-solid fa-user-doctor"></i> Marcar Consulta
+                    </button>
+                    <button class="btn btn-primary" style="background: var(--accent); flex: 1; min-width: 140px;" onclick="abrirModalAtendimento()">
+                        <i class="fa-solid fa-users"></i> Atendimento Geral
+                    </button>
+                </div>
                 <div class="ocorrencias-list" id="listaAgendamentos"></div>
             </div>
         </div>
@@ -78,7 +83,7 @@
     <div id="modalNovoAgendamento" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1001; overflow-y:auto;">
         <div class="form-container fade-in" style="margin-top: 5rem; margin-bottom: 5rem; position: relative;">
             <i class="fa-solid fa-times" style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem;" onclick="document.getElementById('modalNovoAgendamento').style.display='none'"></i>
-            <h3 style="margin-bottom: 1.5rem;">Agendar Atendimento / Consulta</h3>
+            <h3 id="modalAgTitle" style="margin-bottom: 1.5rem;">Agendamento</h3>
             <form id="formAgendamento">
                 <div class="form-group">
                     <label>Secretaria (Destino do Agendamento)</label>
@@ -110,6 +115,42 @@
     <script src="js/main.js"></script>
     <script>
         if (!checkAuth()) throw new Error("Acesso negado");
+
+        function abrirModalConsulta() {
+            document.getElementById('modalNovoAgendamento').style.display = 'block';
+            document.getElementById('modalAgTitle').innerText = 'Marcar Consulta (Saúde)';
+            
+            const tipoSelect = document.getElementById('ag_tipo');
+            tipoSelect.innerHTML = `
+                <option value="">Selecione...</option>
+                <option value="Consulta Presencial">Consulta Presencial</option>
+                <option value="Atendimento Online">Atendimento Online (Telemedicina)</option>
+            `;
+
+            const secSelect = document.getElementById('ag_secretaria');
+            for(let i=0; i<secSelect.options.length; i++) {
+                if(secSelect.options[i].text.toUpperCase().includes("SAÚDE")) {
+                    secSelect.selectedIndex = i;
+                    break;
+                }
+            }
+            secSelect.disabled = true; // Força para a Secretaria de Saúde
+        }
+
+        function abrirModalAtendimento() {
+            document.getElementById('modalNovoAgendamento').style.display = 'block';
+            document.getElementById('modalAgTitle').innerText = 'Agendar Atendimento Presencial';
+            
+            const tipoSelect = document.getElementById('ag_tipo');
+            tipoSelect.innerHTML = `
+                <option value="">Selecione...</option>
+                <option value="Atendimento Presencial">Atendimento Presencial</option>
+            `;
+
+            const secSelect = document.getElementById('ag_secretaria');
+            secSelect.disabled = false;
+            secSelect.value = "";
+        }
 
         async function loadSecretarias() {
             try {

@@ -11,7 +11,13 @@ def seed():
     secretarias_nomes = [
         "SECRETARIA MUNICIPAL DE SAÚDE",
         "SECRETARIA DA MULHER",
-        "GUARDA MUNICIPAL"
+        "GUARDA MUNICIPAL",
+        "SECRETARIA DE FINANÇAS",
+        "SECRETARIA DE INFRAESTRUTURA",
+        "SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO",
+        "SECRETARIA MUNICIPAL DE AGRICULTURA",
+        "SECRETARIA MUNICIPAL DE ASSISTÊNCIA SOCIAL",
+        "SECRETARIA MUNICIPAL DE EDUCAÇÃO"
     ]
     
     for nome in secretarias_nomes:
