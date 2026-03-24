@@ -115,3 +115,16 @@ def update_secretaria_admin_password(admin_id: int, pw_in: AdminPasswordUpdate, 
     admin_to_update.senha_hash = get_password_hash(pw_in.nova_senha)
     db_sql.commit()
     return {"message": "Senha atualizada com sucesso."}
+
+@router.delete("/secretaria-admins/{admin_id}")
+def delete_secretaria_admin(admin_id: int, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+    if not isinstance(current_user, Usuario) or current_user.tipo_usuario_verificado != "admin":
+        raise HTTPException(status_code=403, detail="Apenas o administrador geral pode excluir sub-admins.")
+    
+    admin_to_delete = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == admin_id).first()
+    if not admin_to_delete:
+        raise HTTPException(status_code=404, detail="Administrador de secretaria não encontrado.")
+    
+    db_sql.delete(admin_to_delete)
+    db_sql.commit()
+    return {"message": "Administrador excluído com sucesso."}

@@ -78,3 +78,19 @@ class AdminSecretariaResponse(BaseModel):
 
 class AdminPasswordUpdate(BaseModel):
     nova_senha: str
+
+class AgendamentoBase(BaseModel):
+    secretaria_id: int
+    tipo: str
+    assunto: str
+    data_hora: datetime
+
+class AgendamentoCreate(AgendamentoBase):
+    pass
+
+class AgendamentoResponse(AgendamentoBase):
+    id: int
+    usuario_id: int
+    status: str
+    criado_em: datetime
+    model_config = ConfigDict(from_attributes=True)

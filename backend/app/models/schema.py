@@ -32,6 +32,7 @@ class Usuario(Base):
     status = Column(Enum(StatusUsuario), default=StatusUsuario.pendente)
 
     ocorrencias = relationship("Ocorrencia", back_populates="usuario")
+    agendamentos = relationship("Agendamento", back_populates="usuario")
 
 class Secretaria(Base):
     __tablename__ = "secretarias"
@@ -41,6 +42,7 @@ class Secretaria(Base):
 
     admins = relationship("AdminSecretaria", back_populates="secretaria")
     ocorrencias = relationship("Ocorrencia", back_populates="secretaria")
+    agendamentos = relationship("Agendamento", back_populates="secretaria")
 
 class AdminSecretaria(Base):
     __tablename__ = "admins_secretaria"
@@ -99,3 +101,18 @@ class ChatIA(Base):
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True) # Optional link to user if logged in
 
     usuario = relationship("Usuario")
+
+class Agendamento(Base):
+    __tablename__ = "agendamentos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, ForeignKey("usuarios.id"))
+    secretaria_id = Column(Integer, ForeignKey("secretarias.id"))
+    tipo = Column(String(50)) # "Online" ou "Presencial"
+    assunto = Column(String(200)) # Ex: "Consulta Médica"
+    data_hora = Column(DateTime)
+    status = Column(String(50), default="Pendente") # Pendente, Confirmado, Cancelado
+    criado_em = Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+
+    usuario = relationship("Usuario", back_populates="agendamentos")
+    secretaria = relationship("Secretaria", back_populates="agendamentos")

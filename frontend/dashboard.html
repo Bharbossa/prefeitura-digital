@@ -26,14 +26,22 @@
     </nav>
 
     <div class="dashboard-container fade-in">
-        <h2 style="margin-bottom: 2rem; color: var(--primary-color);">Minhas Ocorrências</h2>
-        
-        <button class="btn btn-primary" style="margin-bottom: 2rem;" onclick="document.getElementById('modalNovaOcorrencia').style.display='block'">
-            <i class="fa-solid fa-plus"></i> Nova Ocorrência
-        </button>
+        <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 300px;">
+                <h2 style="margin-bottom: 2rem; color: var(--primary-color);">Minhas Ocorrências</h2>
+                <button class="btn btn-primary" style="margin-bottom: 2rem;" onclick="document.getElementById('modalNovaOcorrencia').style.display='block'">
+                    <i class="fa-solid fa-plus"></i> Nova Ocorrência
+                </button>
+                <div class="ocorrencias-list" id="listaOcorrencias"></div>
+            </div>
 
-        <div class="ocorrencias-list" id="listaOcorrencias">
-            <!-- Loaded via JS -->
+            <div style="flex: 1; min-width: 300px;">
+                <h2 style="margin-bottom: 2rem; color: var(--primary-color);">Meus Agendamentos</h2>
+                <button class="btn btn-primary" style="margin-bottom: 2rem; background: var(--success);" onclick="document.getElementById('modalNovoAgendamento').style.display='block'">
+                    <i class="fa-solid fa-calendar-plus"></i> Agendar Atendimento/Consulta
+                </button>
+                <div class="ocorrencias-list" id="listaAgendamentos"></div>
+            </div>
         </div>
     </div>
 
@@ -66,6 +74,39 @@
         </div>
     </div>
 
+    <!-- Modal Novo Agendamento -->
+    <div id="modalNovoAgendamento" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1001; overflow-y:auto;">
+        <div class="form-container fade-in" style="margin-top: 5rem; margin-bottom: 5rem; position: relative;">
+            <i class="fa-solid fa-times" style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem;" onclick="document.getElementById('modalNovoAgendamento').style.display='none'"></i>
+            <h3 style="margin-bottom: 1.5rem;">Agendar Atendimento / Consulta</h3>
+            <form id="formAgendamento">
+                <div class="form-group">
+                    <label>Secretaria (Destino do Agendamento)</label>
+                    <select id="ag_secretaria" required>
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Tipo de Atendimento</label>
+                    <select id="ag_tipo" required>
+                        <option value="">Selecione...</option>
+                        <option value="Consulta Presencial">Consulta Presencial</option>
+                        <option value="Atendimento Online">Atendimento Online (Telemedicina/Videochamada)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Assunto (Qual secretário/médico deseja agendar? E o Motivo?)</label>
+                    <input type="text" id="ag_assunto" placeholder="Ex: Consulta com Clínico Geral, ou Reunião com Sec. de Obras" required>
+                </div>
+                <div class="form-group">
+                    <label>Data e Hora Desejada</label>
+                    <input type="datetime-local" id="ag_data" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; background: var(--success);">Confirmar Agendamento</button>
+            </form>
+        </div>
+    </div>
+
     <script src="js/main.js"></script>
     <script>
         if (!checkAuth()) throw new Error("Acesso negado");
@@ -76,9 +117,12 @@
                 if(res.ok) {
                     const secs = await res.json();
                     const select = document.getElementById('oc_secretaria');
+                    const selectAg = document.getElementById('ag_secretaria');
                     select.innerHTML = '<option value="">Selecione...</option>';
+                    if(selectAg) selectAg.innerHTML = '<option value="">Selecione...</option>';
                     secs.forEach(s => {
                         select.innerHTML += `<option value="${s.id}">${s.nome}</option>`;
+                        if(selectAg) selectAg.innerHTML += `<option value="${s.id}">${s.nome}</option>`;
                     });
                 }
             } catch(e) {}
@@ -147,8 +191,68 @@
             } catch(e) { alert('Erro de conexao.'); }
         });
 
+        async function loadAgendamentos() {
+            try {
+                const res = await fetch(`${API_URL}/agendamentos/`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if(res.ok) {
+                    const agendamentos = await res.json();
+                    const container = document.getElementById('listaAgendamentos');
+                    container.innerHTML = '';
+                    if(agendamentos.length === 0) {
+                        container.innerHTML = '<p>Nenhum agendamento encontrado.</p>';
+                        return;
+                    }
+                    agendamentos.forEach(a => {
+                        const statusClass = {
+                            'Pendente': 'status-pendente',
+                            'Confirmado': 'status-resolvido',
+                            'Cancelado': 'status-error' // Using a generic error color
+                        }[a.status] || 'status-pendente';
+
+                        container.innerHTML += `
+                            <div class="ocorrencia-card" style="border-left: 4px solid var(--success);">
+                                <h3><i class="fa-solid fa-calendar"></i> ${a.assunto}</h3>
+                                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-laptop-medical"></i> Tipo: <strong>${a.tipo}</strong></p>
+                                <p style="color: var(--text-secondary); margin-bottom: 1rem;"><i class="fa-regular fa-clock"></i> Para: ${new Date(a.data_hora).toLocaleString()}</p>
+                                <span class="status-badge ${statusClass}">${a.status}</span>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (e) {}
+        }
+
+        document.getElementById('formAgendamento').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const data = {
+                secretaria_id: parseInt(document.getElementById('ag_secretaria').value),
+                tipo: document.getElementById('ag_tipo').value,
+                assunto: document.getElementById('ag_assunto').value,
+                data_hora: new Date(document.getElementById('ag_data').value).toISOString()
+            };
+
+            try {
+                const res = await fetch(`${API_URL}/agendamentos/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                    body: JSON.stringify(data)
+                });
+                if(res.ok) {
+                    alert('Agendamento solicitado com sucesso! Aguarde a confirmação da secretaria.');
+                    document.getElementById('modalNovoAgendamento').style.display='none';
+                    e.target.reset();
+                    loadAgendamentos();
+                } else {
+                    alert('Erro ao agendar.');
+                }
+            } catch(e) { alert('Erro de conexao.'); }
+        });
+
         loadSecretarias();
         loadOcorrencias();
+        loadAgendamentos();
         initBackgroundAnimation('bg-animation');
     </script>
 
