@@ -9,15 +9,9 @@ from backend.app.models.schema import Secretaria
 def seed():
     db = SessionLocal()
     secretarias_nomes = [
-        "COLONIAPREV",
-        "PROCURADORIA-GERAL DO MUNICÍPIO",
-        "SECRETARIA DE FINANÇAS",
-        "SECRETARIA DE INFRAESTRUTURA",
-        "SECRETARIA MUNICIPAL DE ADMINISTRAÇÃO",
-        "SECRETARIA MUNICIPAL DE AGRICULTURA",
-        "SECRETARIA MUNICIPAL DE ASSISTÊNCIA SOCIAL",
-        "SECRETARIA MUNICIPAL DE EDUCAÇÃO",
-        "SECRETARIA MUNICIPAL DE SAÚDE"
+        "SECRETARIA MUNICIPAL DE SAÚDE",
+        "SECRETARIA DA MULHER",
+        "GUARDA MUNICIPAL"
     ]
     
     for nome in secretarias_nomes:
