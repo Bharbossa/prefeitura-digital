@@ -96,7 +96,20 @@
                     <select id="ag_tipo" required>
                         <option value="">Selecione...</option>
                         <option value="Consulta Presencial">Consulta Presencial</option>
-                        <option value="Atendimento Online">Atendimento Online (Telemedicina/Videochamada)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="group_posto" style="display: none;">
+                    <label>Posto de Saúde</label>
+                    <select id="ag_posto">
+                        <option value="">Selecione o posto...</option>
+                        <option value="POSTO JOSÉ LUIZ LESSA (PSF 01)">POSTO JOSÉ LUIZ LESSA (PSF 01)</option>
+                        <option value="POSTO CENTRO (PSF 02)">POSTO CENTRO (PSF 02)</option>
+                        <option value="POSTO VILA NOVA (PSF 03)">POSTO VILA NOVA (PSF 03)</option>
+                        <option value="POSTO DANIEL MONTEIRO DA CRUZ (PSF 04)">POSTO DANIEL MONTEIRO DA CRUZ (PSF 04)</option>
+                        <option value="POSTO DE SAÚDE USINA TAQUARA (PSF 05)">POSTO DE SAÚDE USINA TAQUARA (PSF 05)</option>
+                        <option value="POSTO BELO JARDIM (PSF 06)">POSTO BELO JARDIM (PSF 06)</option>
+                        <option value="POSTO JOSÉ ADAMOR COSTA (PSF 07)">POSTO JOSÉ ADAMOR COSTA (PSF 07)</option>
+                        <option value="POSTO JOSÉ ACIOLY MACIEL (PSF 08)">POSTO JOSÉ ACIOLY MACIEL (PSF 08)</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -121,11 +134,8 @@
             document.getElementById('modalAgTitle').innerText = 'Marcar Consulta (Saúde)';
             
             const tipoSelect = document.getElementById('ag_tipo');
-            tipoSelect.innerHTML = `
-                <option value="">Selecione...</option>
-                <option value="Consulta Presencial">Consulta Presencial</option>
-                <option value="Atendimento Online">Atendimento Online (Telemedicina)</option>
-            `;
+            tipoSelect.innerHTML = `<option value="Consulta Presencial">Consulta Presencial</option>`;
+            tipoSelect.value = "Consulta Presencial";
 
             const secSelect = document.getElementById('ag_secretaria');
             for(let i=0; i<secSelect.options.length; i++) {
@@ -138,6 +148,9 @@
 
             document.getElementById('ag_assunto_label').innerText = 'Assunto (Qual médico deseja agendar? E o Motivo?)';
             document.getElementById('ag_assunto').placeholder = 'Ex: Consulta com Clínico Geral, Pediatra, etc.';
+            
+            document.getElementById('group_posto').style.display = 'block';
+            document.getElementById('ag_posto').required = true;
         }
 
         function abrirModalAtendimento() {
@@ -156,6 +169,9 @@
 
             document.getElementById('ag_assunto_label').innerText = 'Assunto (Para qual assunto/secretário deseja agendar?)';
             document.getElementById('ag_assunto').placeholder = 'Ex: Reunião sobre alvará, Falar com Secretário de Obras, etc.';
+            
+            document.getElementById('group_posto').style.display = 'none';
+            document.getElementById('ag_posto').required = false;
         }
 
         async function loadSecretarias() {
@@ -285,16 +301,21 @@
                 alert("Horário de agendamento indisponível! O atendimento ocorre apenas entre 08:00 e 12:00.");
                 return;
             }
-
-            if (tipoAtend === "Atendimento Online" && !nomeSecretaria.toUpperCase().includes("SAÚDE")) {
-                alert("A Consulta Online está disponível apenas para a Secretaria de Saúde.");
-                return;
+            
+            let assuntoFinal = document.getElementById('ag_assunto').value;
+            if (document.getElementById('group_posto').style.display !== 'none') {
+                const posto = document.getElementById('ag_posto').value;
+                if (!posto) {
+                    alert("Selecione um Posto de Saúde.");
+                    return;
+                }
+                assuntoFinal = `[${posto}] ` + assuntoFinal;
             }
 
             const data = {
                 secretaria_id: parseInt(dropdown.value),
                 tipo: tipoAtend,
-                assunto: document.getElementById('ag_assunto').value,
+                assunto: assuntoFinal,
                 data_hora: dataObjeto.toISOString()
             };
 
