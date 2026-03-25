@@ -95,6 +95,7 @@ class AgendamentoCreate(AgendamentoBase):
 class AgendamentoResponse(AgendamentoBase):
     id: int
     usuario_id: int
+    usuario_nome: Optional[str] = None
     status: str
     anexo: Optional[str] = None
     criado_em: datetime

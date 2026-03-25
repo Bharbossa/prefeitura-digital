@@ -10,6 +10,7 @@ from ..database import get_db
 from ..models.schema import Usuario, AdminSecretaria, Agendamento
 from ..models.pydantic_schemas import AgendamentoCreate, AgendamentoResponse
 from ..core.auth_deps import get_current_user
+from sqlalchemy.orm import joinedload
 
 router = APIRouter()
 
@@ -88,19 +89,41 @@ def criar_agendamento_viagem(
 def listar_meus_agendamentos(current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
     t_verificado = getattr(current_user, "tipo_usuario_verificado", "")
     
+    query = db_sql.query(Agendamento).options(joinedload(Agendamento.usuario))
+
     if t_verificado == "cidadao":
-        # Cidadão lista apenas os seus próprios agendamentos
-        return db_sql.query(Agendamento).filter(Agendamento.usuario_id == current_user.id).order_by(Agendamento.data_hora.desc()).all()
-    
-    if t_verificado == "admin":
-        # Se tiver secretaria_id no objeto, filtra por ela
+        results = query.filter(Agendamento.usuario_id == current_user.id).order_by(Agendamento.data_hora.desc()).all()
+    elif t_verificado == "admin":
         sec_id = getattr(current_user, "secretaria_id", None)
         if sec_id:
-            return db_sql.query(Agendamento).filter(Agendamento.secretaria_id == sec_id).order_by(Agendamento.data_hora.desc()).all()
-        # Admin geral
-        return db_sql.query(Agendamento).order_by(Agendamento.data_hora.desc()).all()
+            results = query.filter(Agendamento.secretaria_id == sec_id).order_by(Agendamento.data_hora.desc()).all()
+        else:
+            results = query.order_by(Agendamento.data_hora.desc()).all()
+    else:
+        raise HTTPException(status_code=403, detail="Não autorizado.")
+
+    # Populate usuario_nome
+    for r in results:
+        r.usuario_nome = r.usuario.nome if r.usuario else f"Cidadão #{r.usuario_id}"
+    return results
+
+@router.get("/{agend_id}", response_model=AgendamentoResponse)
+def obter_agendamento(agend_id: int, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+    agend = db_sql.query(Agendamento).options(joinedload(Agendamento.usuario)).filter(Agendamento.id == agend_id).first()
+    if not agend:
+        raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
     
-    raise HTTPException(status_code=403, detail="Não autorizado.")
+    # Check access
+    t_verificado = getattr(current_user, "tipo_usuario_verificado", "")
+    if t_verificado == "cidadao" and agend.usuario_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Acesso negado.")
+    
+    sec_id = getattr(current_user, "secretaria_id", None)
+    if sec_id and agend.secretaria_id != sec_id:
+        raise HTTPException(status_code=403, detail="Acesso negado.")
+
+    agend.usuario_nome = agend.usuario.nome if agend.usuario else f"Cidadão #{agend.usuario_id}"
+    return agend
 
 @router.patch("/{agend_id}/status")
 def atualizar_status(agend_id: int, status: str, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
