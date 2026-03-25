@@ -1,9 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
+from pydantic import BaseModel
 from ..database import get_db
-from ..models.schema import Usuario, StatusUsuario
-from ..models.pydantic_schemas import UsuarioResponse
+from ..models.schema import Usuario, StatusUsuario, AdminSecretaria
+from ..models.pydantic_schemas import (
+    UsuarioResponse, 
+    AdminSecretariaCreate, 
+    AdminSecretariaResponse, 
+    AdminPasswordUpdate
+)
 from ..core.auth_deps import get_current_user
 from ..core.firebase_config import db, DB_MODE
 from ..core.security import get_password_hash, verify_password
@@ -83,14 +89,11 @@ def reject_user(user_id: str, current_user = Depends(get_current_user), db_sql: 
     
     return {"message": "Usuário rejeitado."}
 
-from ..models.schema import AdminSecretaria
-from ..models.pydantic_schemas import AdminSecretariaCreate, AdminSecretariaResponse, AdminPasswordUpdate
+from pydantic import BaseModel
 
 class AdminOwnPasswordUpdate(BaseModel):
     senha_atual: str
     nova_senha: str
-
-from pydantic import BaseModel
 
 @router.delete("/{user_id}")
 def delete_user(user_id: str, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
