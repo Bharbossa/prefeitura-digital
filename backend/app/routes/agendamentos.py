@@ -83,17 +83,19 @@ def criar_agendamento_viagem(
 
 @router.get("/", response_model=List[AgendamentoResponse])
 def listar_meus_agendamentos(current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
-    if isinstance(current_user, Usuario) and current_user.tipo_usuario_verificado != "admin":
+    t_verificado = getattr(current_user, "tipo_usuario_verificado", "")
+    
+    if t_verificado == "cidadao":
         # Cidadão lista apenas os seus próprios agendamentos
         return db_sql.query(Agendamento).filter(Agendamento.usuario_id == current_user.id).order_by(Agendamento.data_hora.desc()).all()
     
-    # Se for admin geral
-    if isinstance(current_user, Usuario) and current_user.tipo_usuario_verificado == "admin":
+    if t_verificado == "admin":
+        # Se tiver secretaria_id no objeto, filtra por ela
+        sec_id = getattr(current_user, "secretaria_id", None)
+        if sec_id:
+            return db_sql.query(Agendamento).filter(Agendamento.secretaria_id == sec_id).order_by(Agendamento.data_hora.desc()).all()
+        # Admin geral
         return db_sql.query(Agendamento).order_by(Agendamento.data_hora.desc()).all()
-    
-    # Se for sub-admin de secretaria
-    if isinstance(current_user, AdminSecretaria):
-        return db_sql.query(Agendamento).filter(Agendamento.secretaria_id == current_user.secretaria_id).order_by(Agendamento.data_hora.desc()).all()
     
     raise HTTPException(status_code=403, detail="Não autorizado.")
 
@@ -106,9 +108,10 @@ def atualizar_status(agend_id: int, status: str, current_user = Depends(get_curr
     if not agendamento:
         raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
     
-    if isinstance(current_user, AdminSecretaria):
-        if agendamento.secretaria_id != current_user.secretaria_id:
-            raise HTTPException(status_code=403, detail="Agendamento pertence a outra secretaria.")
+    # Se for sub-admin de secretaria, verifica se pertence a ela
+    sec_id = getattr(current_user, "secretaria_id", None)
+    if sec_id and agendamento.secretaria_id != sec_id:
+        raise HTTPException(status_code=403, detail="Agendamento pertence a outra secretaria.")
             
     agendamento.status = status
     db_sql.commit()

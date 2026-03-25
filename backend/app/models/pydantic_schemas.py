@@ -95,5 +95,6 @@ class AgendamentoResponse(AgendamentoBase):
     id: int
     usuario_id: int
     status: str
+    anexo: Optional[str] = None
     criado_em: datetime
     model_config = ConfigDict(from_attributes=True)
