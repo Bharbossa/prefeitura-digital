@@ -6,6 +6,7 @@ from ..models.schema import Usuario, StatusUsuario
 from ..models.pydantic_schemas import UsuarioResponse
 from ..core.auth_deps import get_current_user
 from ..core.firebase_config import db, DB_MODE
+from ..core.security import get_password_hash, verify_password
 
 router = APIRouter()
 
@@ -25,6 +26,24 @@ def get_pending_users(current_user = Depends(get_current_user), db_sql: Session 
         return users
     else:
         return db_sql.query(Usuario).filter(Usuario.status == StatusUsuario.pendente).all()
+
+@router.get("/", response_model=List[UsuarioResponse])
+def get_all_users(current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+    # Check if current user is admin
+    if getattr(current_user, "tipo_usuario_verificado", "") != "admin":
+        raise HTTPException(status_code=403, detail="Não autorizado.")
+    
+    if DB_MODE == "firestore":
+        docs = db.collection("usuarios").get()
+        users = []
+        for d in docs:
+            u = d.to_dict()
+            u["id"] = d.id
+            users.append(u)
+        return users
+    else:
+        # Return all users (except maybe other admins if we want to be safe, but they are in different table)
+        return db_sql.query(Usuario).all()
 
 @router.post("/{user_id}/approve")
 def approve_user(user_id: str, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
@@ -64,9 +83,58 @@ def reject_user(user_id: str, current_user = Depends(get_current_user), db_sql: 
     
     return {"message": "Usuário rejeitado."}
 
-from ..core.security import get_password_hash
 from ..models.schema import AdminSecretaria
 from ..models.pydantic_schemas import AdminSecretariaCreate, AdminSecretariaResponse, AdminPasswordUpdate
+
+class AdminOwnPasswordUpdate(BaseModel):
+    senha_atual: str
+    nova_senha: str
+
+from pydantic import BaseModel
+
+@router.delete("/{user_id}")
+def delete_user(user_id: str, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+    """Delete a citizen user entirely."""
+    if getattr(current_user, "tipo_usuario_verificado", "") != "admin":
+        raise HTTPException(status_code=403, detail="Não autorizado.")
+    
+    if DB_MODE == "firestore":
+        doc_ref = db.collection("usuarios").document(user_id)
+        if not doc_ref.get().exists:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+        doc_ref.delete()
+    else:
+        user = db_sql.query(Usuario).filter(Usuario.id == int(user_id)).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+        db_sql.delete(user)
+        db_sql.commit()
+    
+    return {"message": "Usuário excluído com sucesso."}
+
+@router.patch("/me/password")
+def change_own_password(pw_in: dict, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+    """Allow admin to change their own password after verifying the current one."""
+    if getattr(current_user, "tipo_usuario_verificado", "") != "admin":
+        raise HTTPException(status_code=403, detail="Não autorizado.")
+    
+    senha_atual = pw_in.get("senha_atual")
+    nova_senha = pw_in.get("nova_senha")
+    
+    if not senha_atual or not nova_senha:
+        raise HTTPException(status_code=400, detail="Forneça a senha atual e a nova senha.")
+    
+    user = db_sql.query(Usuario).filter(Usuario.email == current_user.email).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Administrador não encontrado.")
+    
+    if not verify_password(senha_atual, user.senha_hash):
+        raise HTTPException(status_code=400, detail="Senha atual incorreta.")
+    
+    user.senha_hash = get_password_hash(nova_senha)
+    db_sql.commit()
+    return {"message": "Senha alterada com sucesso."}
+
 
 @router.get("/secretaria-admins", response_model=List[AdminSecretariaResponse])
 def get_secretaria_admins(current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
