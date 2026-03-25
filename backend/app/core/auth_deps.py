@@ -63,12 +63,16 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
                 try:
                     user.tipo_usuario_verificado = tipo
                 except:
-                    # If SQLAlchemy object is immutable, create a wrapper
+                    # If SQLAlchemy object is immutable, create a wrapper with all fields
                     from types import SimpleNamespace
                     user = SimpleNamespace(
                         id=str(user.id),
                         email=user.email,
-                        nome=user.nome,
+                        nome=getattr(user, 'nome', ''),
+                        cpf=getattr(user, 'cpf', ''),
+                        telefone=getattr(user, 'telefone', ''),
+                        endereco=getattr(user, 'endereco', ''),
+                        status=getattr(user, 'status', 'Ativo'),
                         tipo_usuario_verificado=tipo
                     )
 
