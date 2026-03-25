@@ -116,32 +116,40 @@ def delete_user(user_id: str, current_user = Depends(get_current_user), db_sql: 
     return {"message": "Usuário excluído com sucesso."}
 
 @router.patch("/me/password")
-def change_own_password(pw_in: dict, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+def change_own_password(pw_in: AdminOwnPasswordUpdate, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
     """Allow admin to change their own password after verifying the current one."""
     if getattr(current_user, "tipo_usuario_verificado", "") != "admin":
         raise HTTPException(status_code=403, detail="Não autorizado.")
     
-    senha_atual = pw_in.get("senha_atual")
-    nova_senha = pw_in.get("nova_senha")
+    if DB_MODE == "firestore":
+        doc_ref = db.collection("usuarios").where("email", "==", current_user.email).limit(1).get()
+        if not doc_ref:
+            raise HTTPException(status_code=404, detail="Administrador não encontrado.")
+        
+        user_data = doc_ref[0].to_dict()
+        if not verify_password(pw_in.senha_atual, user_data.get("senha_hash")):
+            raise HTTPException(status_code=400, detail="Senha atual incorreta.")
+        
+        db.collection("usuarios").document(doc_ref[0].id).update({
+            "senha_hash": get_password_hash(pw_in.nova_senha)
+        })
+    else:
+        user = db_sql.query(Usuario).filter(Usuario.email == current_user.email).first()
+        if not user:
+            raise HTTPException(status_code=404, detail="Administrador não encontrado.")
+        
+        if not verify_password(pw_in.senha_atual, user.senha_hash):
+            raise HTTPException(status_code=400, detail="Senha atual incorreta.")
+        
+        user.senha_hash = get_password_hash(pw_in.nova_senha)
+        db_sql.commit()
     
-    if not senha_atual or not nova_senha:
-        raise HTTPException(status_code=400, detail="Forneça a senha atual e a nova senha.")
-    
-    user = db_sql.query(Usuario).filter(Usuario.email == current_user.email).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="Administrador não encontrado.")
-    
-    if not verify_password(senha_atual, user.senha_hash):
-        raise HTTPException(status_code=400, detail="Senha atual incorreta.")
-    
-    user.senha_hash = get_password_hash(nova_senha)
-    db_sql.commit()
     return {"message": "Senha alterada com sucesso."}
 
 
 @router.get("/secretaria-admins", response_model=List[AdminSecretariaResponse])
 def get_secretaria_admins(current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
-    if not isinstance(current_user, Usuario) or current_user.tipo_usuario_verificado != "admin":
+    if getattr(current_user, "tipo_usuario_verificado", "") != "admin":
         raise HTTPException(status_code=403, detail="Apenas o administrador geral pode listar sub-admins.")
     
     admins = db_sql.query(AdminSecretaria).all()
@@ -153,7 +161,7 @@ def get_secretaria_admins(current_user = Depends(get_current_user), db_sql: Sess
 
 @router.post("/secretaria-admins", response_model=AdminSecretariaResponse)
 def create_secretaria_admin(admin_in: AdminSecretariaCreate, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
-    if not isinstance(current_user, Usuario) or current_user.tipo_usuario_verificado != "admin":
+    if getattr(current_user, "tipo_usuario_verificado", "") != "admin":
         raise HTTPException(status_code=403, detail="Apenas o administrador geral pode criar sub-admins.")
     
     # Check if email exists
@@ -177,7 +185,7 @@ def create_secretaria_admin(admin_in: AdminSecretariaCreate, current_user = Depe
 
 @router.patch("/secretaria-admins/{admin_id}/password")
 def update_secretaria_admin_password(admin_id: int, pw_in: AdminPasswordUpdate, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
-    if not isinstance(current_user, Usuario) or current_user.tipo_usuario_verificado != "admin":
+    if getattr(current_user, "tipo_usuario_verificado", "") != "admin":
         raise HTTPException(status_code=403, detail="Apenas o administrador geral pode alterar senhas.")
     
     admin_to_update = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == admin_id).first()
@@ -190,7 +198,7 @@ def update_secretaria_admin_password(admin_id: int, pw_in: AdminPasswordUpdate, 
 
 @router.delete("/secretaria-admins/{admin_id}")
 def delete_secretaria_admin(admin_id: int, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
-    if not isinstance(current_user, Usuario) or current_user.tipo_usuario_verificado != "admin":
+    if getattr(current_user, "tipo_usuario_verificado", "") != "admin":
         raise HTTPException(status_code=403, detail="Apenas o administrador geral pode excluir sub-admins.")
     
     admin_to_delete = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == admin_id).first()
