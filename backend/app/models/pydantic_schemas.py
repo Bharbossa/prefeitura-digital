@@ -21,6 +21,7 @@ class UsuarioResponse(UsuarioBase):
     id: int # Postgres uses integers by default in our model
     tipo_usuario: str
     status: str
+    secretaria_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):

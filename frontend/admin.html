@@ -29,10 +29,17 @@
     <div class="dashboard-container fade-in">
         <div id="adminShortcuts" style="display: none; margin-bottom: 2rem; background: var(--card-bg); padding: 1rem; border-radius: 12px; border-left: 5px solid var(--primary-color);">
             <h3 style="margin-bottom: 1rem; color: var(--primary-color);"><i class="fa-solid fa-crown"></i> Ferramentas do Administrador Geral</h3>
-            <button onclick="document.getElementById('manageAdminsSection').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary">
-                <i class="fa-solid fa-users-gear"></i> Cadastrar Sub-Administradores
-            </button>
-            <p style="margin-top: 0.5rem; font-size: 0.9rem; color: var(--text-secondary);">Role a página para baixo para ver a sessão completa de gestão de senhas e secretarias.</p>
+            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                <button onclick="document.getElementById('manageAdminsSection').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary">
+                    <i class="fa-solid fa-users-gear"></i> Cadastrar Sub-Administradores
+                </button>
+                <button onclick="document.getElementById('manageUsersSection').scrollIntoView({behavior: 'smooth'})" class="btn btn-outline" style="border-color: var(--error); color: var(--error);">
+                    <i class="fa-solid fa-user-minus"></i> Excluir Usuários
+                </button>
+                <button onclick="document.getElementById('modalAlterarSenhaAdmin').style.display='flex'" class="btn btn-outline">
+                    <i class="fa-solid fa-key"></i> Alterar Minha Senha
+                </button>
+            </div>
         </div>
         
         <div class="stats-grid">
@@ -51,6 +58,11 @@
                 <h3 id="resolvidasOc">0</h3>
                 <p>Resolvidas</p>
             </div>
+            <div class="stat-card" id="cardUsuariosGeral" style="display: none;">
+                <i class="fa-solid fa-users fa-2x" style="color: var(--primary-color);"></i>
+                <h3 id="totalUsuarios">0</h3>
+                <p>Usuários Cadastrados</p>
+            </div>
         </div>
 
         <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; max-width: 600px; margin: 0 auto 2rem auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
@@ -60,7 +72,7 @@
 
 
         <section id="manageAdminsSection" style="margin-bottom: 3rem; display: none;">
-            <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);">Gerenciar Administradores</h2>
+            <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);"><i class="fa-solid fa-user-shield"></i> Sub-Administradores das Secretarias</h2>
             <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
                 <form id="formNovoadmin" onsubmit="criarAdmin(event)" style="display: grid; gap: 1rem; grid-template-columns: 1fr 1fr;">
                     <div style="grid-column: 1/-1;"><h3>Cadastrar Novo Sub-Administrador (v1.1)</h3></div>
@@ -77,14 +89,48 @@
             </div>
         </section>
 
+        <section id="manageUsersSection" style="margin-bottom: 3rem; display: none;">
+            <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);"><i class="fa-solid fa-users"></i> Gestão de Cidadãos Cadastrados</h2>
+            <div class="ocorrencias-list" id="listaUsuarios">
+                <!-- Loaded via JS -->
+            </div>
+        </section>
+
         <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);">Gestão de Ocorrências</h2>
         <div class="ocorrencias-list" id="listaOcorrenciasAdmin" style="margin-bottom: 3rem;">
             <!-- Loaded via JS -->
         </div>
 
-        <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);">Gestão de Agendamentos (Consultas/Reuniões)</h2>
+
+        <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);">Gestão de Agêndamentos (Consultas/Reuniões)</h2>
         <div class="ocorrencias-list" id="listaAgendamentosAdmin">
             <!-- Loaded via JS -->
+        </div>
+
+        <!-- Modal: Alterar Senha do Admin Geral -->
+        <div id="modalAlterarSenhaAdmin" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+            <div style="background: var(--card-bg); padding: 2rem; border-radius: 16px; width: 100%; max-width: 400px; margin: 1rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
+                <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);"><i class="fa-solid fa-key"></i> Alterar Minha Senha</h3>
+                <div style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div>
+                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem;">Senha Atual</label>
+                        <input type="password" id="senhaAtualAdmin" class="input-field" placeholder="Digite a senha atual" required>
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem;">Nova Senha</label>
+                        <input type="password" id="novaSenhaAdmin" class="input-field" placeholder="Mínimo 6 caracteres" required minlength="6">
+                    </div>
+                    <div>
+                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem;">Confirmar Nova Senha</label>
+                        <input type="password" id="confirmarSenhaAdmin" class="input-field" placeholder="Repita a nova senha" required>
+                    </div>
+                    <p id="erroSenhaAdmin" style="color:var(--error); display:none; font-size:0.88rem;"></p>
+                    <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
+                        <button onclick="alterarMinhaSenha()" class="btn btn-primary" style="flex:1;"><i class="fa-solid fa-check"></i> Confirmar</button>
+                        <button onclick="document.getElementById('modalAlterarSenhaAdmin').style.display='none'" class="btn btn-outline" style="flex:1;"><i class="fa-solid fa-times"></i> Cancelar</button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -117,7 +163,14 @@
                 });
                 
                 if(res.ok) {
-                    const ocorrencias = await res.json();
+                    let ocorrencias = await res.json();
+                    
+                    const user = getUserInfo();
+                    const isSubAdmin = user && user.tipo_usuario === 'admin' && user.secretaria_id;
+                    
+                    if (isSubAdmin) {
+                        ocorrencias = ocorrencias.filter(o => parseInt(o.secretaria_id) === parseInt(user.secretaria_id));
+                    }
                     
                     let total = ocorrencias.length;
                     let pendentes = ocorrencias.filter(o => o.status === 'Pendente').length;
@@ -158,12 +211,20 @@
                                     <p style="margin-bottom: 1rem;">${o.descricao}</p>
                                     ${o.foto ? `<p><a href="${MEDIA_URL}/${o.foto}" target="_blank"><i class="fa-solid fa-image"></i> Ver Foto Anexa</a></p>` : ''}
                                     
-                                    <select onchange="atualizarStatus('${o.id}', this.value)" style="margin-top:1rem; padding:0.5rem; border-radius:5px; width:100%; border:1px solid #ddd;">
-                                        <option value="" disabled selected>Alterar Status</option>
-                                        <option value="Pendente">Pendente</option>
-                                        <option value="Em atendimento">Em atendimento</option>
-                                        <option value="Resolvido">Resolvido</option>
-                                    </select>
+                                    <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                                        <select onchange="atualizarStatus('${o.id}', this.value)" style="padding:0.5rem; border-radius:5px; width:100%; border:1px solid #ddd;">
+                                            <option value="" disabled selected>Alterar Status</option>
+                                            <option value="Pendente">Pendente</option>
+                                            <option value="Em atendimento">Em atendimento</option>
+                                            <option value="Resolvido">Resolvido</option>
+                                        </select>
+                                        
+                                        ${o.status === 'Resolvido' ? `
+                                            <button onclick="gerarProtocolo('${o.id}')" class="btn btn-primary" style="background: var(--success); font-size: 0.85rem; padding: 0.5rem;">
+                                                <i class="fa-solid fa-print"></i> Imprimir Protocolo
+                                            </button>
+                                        ` : ''}
+                                    </div>
                                 </div>
                             `;
                         });
@@ -197,7 +258,15 @@
                     headers: { 'Authorization': `Bearer ${getToken()}` }
                 });
                 if(res.ok) {
-                    const agendamentos = await res.json();
+                    let agendamentos = await res.json();
+                    
+                    const user = getUserInfo();
+                    const isSubAdmin = user && user.tipo_usuario === 'admin' && user.secretaria_id;
+                    
+                    if (isSubAdmin) {
+                        agendamentos = agendamentos.filter(a => parseInt(a.secretaria_id) === parseInt(user.secretaria_id));
+                    }
+
                     const container = document.getElementById('listaAgendamentosAdmin');
                     container.innerHTML = '';
                     
@@ -338,7 +407,6 @@
                     const shortcuts = document.getElementById('adminShortcuts');
                     if (shortcuts) shortcuts.style.display = 'block';
 
-                    
                     const container = document.getElementById('listaAdmins');
                     container.innerHTML = '';
                     admins.forEach(a => {
@@ -347,7 +415,7 @@
                                 <h3>${a.nome} <span class="status-badge" style="background:var(--primary-color);color:#fff;">${secretariasMap[a.secretaria_id] || 'N/A'}</span></h3>
                                 <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Email: ${a.email}</p>
                                 <div style="display: flex; gap: 0.5rem;">
-                                    <button onclick="alterarSenhaAdmin(${a.id})" class="btn btn-secondary" style="font-size:0.8rem; padding:0.4rem 0.8rem;">Trocar Senha</button>
+                                    <button onclick="alterarSenhaSubAdmin(${a.id})" class="btn btn-secondary" style="font-size:0.8rem; padding:0.4rem 0.8rem;">Trocar Senha</button>
                                     <button onclick="excluirAdmin(${a.id})" class="btn btn-primary" style="font-size:0.8rem; padding:0.4rem 0.8rem; background: var(--error);">Excluir</button>
                                 </div>
                             </div>
@@ -356,7 +424,7 @@
                 } else if(res.status === 403) {
                     document.getElementById('manageAdminsSection').style.display = 'none';
                 }
-            } catch(e) {}
+            } catch(e) { console.error("Erro ao carregar admins:", e); }
         }
 
         async function criarAdmin(e) {
@@ -380,17 +448,13 @@
                     loadAdmins();
                 } else {
                     const err = await res.json();
-                    console.log("Error Response:", err);
-                    alert(JSON.stringify(err.detail) || "Erro ao cadastrar.");
+                    alert(err.detail || "Erro ao cadastrar.");
                 }
-            } catch(e) { 
-                console.error("Fetch Error:", e);
-                alert("Erro de conexão: " + e.message); 
-            }
+            } catch(e) { alert("Erro de conexão."); }
         }
 
-        async function alterarSenhaAdmin(id) {
-            const nova_senha = prompt("Digite a nova senha para este administrador (minimo 6 caracteres):");
+        async function alterarSenhaSubAdmin(id) {
+            const nova_senha = prompt("Digite a nova senha para este administrador (mínimo 6 caracteres):");
             if(!nova_senha || nova_senha.length < 6) return alert("Senha muito curta ou procedimento cancelado.");
             
             try {
@@ -419,15 +483,212 @@
                     alert("Administrador excluído com sucesso!");
                     loadAdmins();
                 } else {
-                    alert("Erro ao excluir. Apenas administradores gerais podem fazer isso.");
+                    alert("Erro ao excluir.");
                 }
             } catch(e) { alert("Erro de conexão."); }
+        }
+        async function loadUsuarios() {
+            if (!checkAuth(true)) return;
+            const user = getUserInfo();
+            if (user.tipo_usuario !== 'admin') return; // Only general admin can see this
+
+            try {
+                const res = await fetch(`${API_URL}/admin/users/`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (res.ok) {
+                    const usuarios = await res.json();
+                    document.getElementById('manageUsersSection').style.display = 'block';
+                    document.getElementById('cardUsuariosGeral').style.display = 'block';
+                    document.getElementById('totalUsuarios').innerText = usuarios.length;
+                    
+                    const container = document.getElementById('listaUsuarios');
+                    container.innerHTML = '';
+                    
+                    if (usuarios.length === 0) {
+                        container.innerHTML = '<p style="text-align:center; padding:1rem;">Nenhum usuário cadastrado.</p>';
+                        return;
+                    }
+
+                    usuarios.forEach(u => {
+                        container.innerHTML += `
+                            <div class="ocorrencia-card" style="border-left: 5px solid ${u.status === 'Ativo' ? 'var(--primary-color)' : 'var(--error)'};">
+                                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                                    <div>
+                                        <h3 style="margin-bottom:0.25rem;">${u.nome} <span class="status-badge" style="font-size:0.7rem;">${u.status}</span></h3>
+                                        <p style="font-size: 0.85rem; color: var(--text-secondary);">Email: ${u.email} | CPF: ${u.cpf}</p>
+                                    </div>
+                                    <button onclick="excluirUsuario(${u.id})" class="btn" style="background:var(--error); color:white; padding:0.4rem 0.8rem; font-size:0.8rem;">
+                                        <i class="fa-solid fa-trash-can"></i> Excluir
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    });
+                }
+            } catch (e) {
+                console.error("Erro ao carregar usuários:", e);
+            }
+        }
+
+        async function excluirUsuario(id) {
+            if (!confirm("⚠️ ATENÇÃO: Esta ação excluirá PERMANENTEMENTE o usuário e todos os seus dados. Deseja continuar?")) return;
+            
+            try {
+                const res = await fetch(`${API_URL}/admin/users/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (res.ok) {
+                    alert("Usuário excluído com sucesso!");
+                    loadUsuarios();
+                } else {
+                    alert("Erro ao excluir usuário.");
+                }
+            } catch (e) {
+                alert("Erro de conexão ao excluir usuário.");
+            }
+        }
+
+        async function alterarMinhaSenha() {
+            const senhaAtual = document.getElementById('senhaAtualAdmin').value;
+            const novaSenha = document.getElementById('novaSenhaAdmin').value;
+            const confirmarSenha = document.getElementById('confirmarSenhaAdmin').value;
+            const erroEl = document.getElementById('erroSenhaAdmin');
+
+            if (!senhaAtual || !novaSenha || !confirmarSenha) {
+                erroEl.innerText = "Preencha todos os campos.";
+                erroEl.style.display = 'block';
+                return;
+            }
+
+            if (novaSenha.length < 6) {
+                erroEl.innerText = "A nova senha deve ter pelo menos 6 caracteres.";
+                erroEl.style.display = 'block';
+                return;
+            }
+
+            if (novaSenha !== confirmarSenha) {
+                erroEl.innerText = "As senhas não coincidem.";
+                erroEl.style.display = 'block';
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/admin/users/me/password`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Content-Type': 'application/json', 
+                        'Authorization': `Bearer ${getToken()}` 
+                    },
+                    body: JSON.stringify({
+                        senha_atual: senhaAtual,
+                        nova_senha: novaSenha
+                    })
+                });
+
+                if (res.ok) {
+                    alert("Sua senha foi alterada com sucesso!");
+                    document.getElementById('modalAlterarSenhaAdmin').style.display = 'none';
+                    // Reset fields
+                    document.getElementById('senhaAtualAdmin').value = '';
+                    document.getElementById('novaSenhaAdmin').value = '';
+                    document.getElementById('confirmarSenhaAdmin').value = '';
+                } else {
+                    const err = await res.json();
+                    erroEl.innerText = err.detail || "Erro ao alterar senha. Verifique a senha atual.";
+                    erroEl.style.display = 'block';
+                }
+            } catch (e) {
+                erroEl.innerText = "Erro de conexão ao alterar senha.";
+                erroEl.style.display = 'block';
+            }
+        }
+
+        async function gerarProtocolo(id) {
+            try {
+                const res = await fetch(`${API_URL}/ocorrencias/`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if(res.ok) {
+                    const ocorrencias = await res.json();
+                    const o = ocorrencias.find(item => item.id == id);
+                    if(!o) return alert("Ocorrência não encontrada.");
+
+                    const printWindow = window.open('', '_blank');
+                    const secName = secretariasMap[o.secretaria_id] || 'Geral';
+                    
+                    printWindow.document.write(`
+                        <html>
+                        <head>
+                            <title>Protocolo de Encerramento - ${o.id}</title>
+                            <style>
+                                body { font-family: sans-serif; padding: 40px; color: #333; }
+                                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+                                .title { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+                                .info-group { margin-bottom: 15px; }
+                                .label { font-weight: bold; width: 150px; display: inline-block; }
+                                .content { border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
+                                .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 20px; }
+                                .stamp { margin-top: 30px; border: 2px solid #2e7d32; color: #2e7d32; display: inline-block; padding: 10px 20px; border-radius: 5px; font-weight: bold; transform: rotate(-5deg); }
+                                @media print { .no-print { display: none; } }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="header">
+                                <div class="title">📄 PROTOCOLO DE CONCLUSÃO</div>
+                                <div>Prefeitura Municipal de Leopoldina</div>
+                                <div>Sistema Leopoldina Digital</div>
+                            </div>
+                            
+                            <div class="content">
+                                <div class="info-group"><span class="label">Protocolo:</span> #${o.id}</div>
+                                <div class="info-group"><span class="label">Assunto:</span> ${o.titulo}</div>
+                                <div class="info-group"><span class="label">Secretaria:</span> ${secName}</div>
+                                <div class="info-group"><span class="label">Data de Abertura:</span> ${new Date(o.data).toLocaleString()}</div>
+                                <div class="info-group"><span class="label">Data de Conclusão:</span> ${new Date().toLocaleString()}</div>
+                                <div class="info-group"><span class="label">Status Final:</span> RESOLVIDO</div>
+                                <hr>
+                                <div class="info-group">
+                                    <div class="label">Descrição:</div>
+                                    <p>${o.descricao}</p>
+                                </div>
+                            </div>
+
+                            <div style="text-align: right;">
+                                <div class="stamp">CONCLUÍDO E VALIDADO</div>
+                            </div>
+
+                            <div class="footer">
+                                <p>Este documento é uma confirmação digital de encerramento de chamado.</p>
+                                <p>Gerado em: ${new Date().toLocaleString()} - Autenticidade verificada via ID #${o.id}</p>
+                                <button onclick="window.print()" class="no-print" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">🖨️ Imprimir agora</button>
+                            </div>
+                        </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                }
+            } catch(e) { alert("Erro ao gerar protocolo."); }
         }
 
         async function loadDashboard() {
             await loadSecretarias();
             await loadAdminOcorrencias();
-            await loadAdmins();
+            const user = getUserInfo();
+            // Somente o Administrador Geral (sem secretaria_id) tem acesso total
+            const isGeneralAdmin = user && user.tipo_usuario === 'admin' && !user.secretaria_id;
+            
+            if (isGeneralAdmin) {
+                if (document.getElementById('adminShortcuts')) document.getElementById('adminShortcuts').style.display = 'block';
+                await loadAdmins();
+                await loadUsuarios();
+            } else {
+                if (document.getElementById('adminShortcuts')) document.getElementById('adminShortcuts').style.display = 'none';
+                if (document.getElementById('manageAdminsSection')) document.getElementById('manageAdminsSection').style.display = 'none';
+                if (document.getElementById('manageUsersSection')) document.getElementById('manageUsersSection').style.display = 'none';
+                if (document.getElementById('cardUsuariosGeral')) document.getElementById('cardUsuariosGeral').style.display = 'none';
+            }
             await loadAdminAgendamentos();
         }
 

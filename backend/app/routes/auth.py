@@ -126,5 +126,6 @@ def read_users_me(current_user = Depends(get_current_user)):
         "telefone": getattr(current_user, "telefone", ""),
         "endereco": getattr(current_user, "endereco", ""),
         "tipo_usuario": tipo,
-        "status": status_val
+        "status": status_val,
+        "secretaria_id": getattr(current_user, "secretaria_id", None)
     }
