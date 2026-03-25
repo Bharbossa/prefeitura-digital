@@ -38,6 +38,7 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
         tipo=agend.tipo,
         assunto=agend.assunto,
         motivo=agend.motivo,
+        acompanhante=agend.acompanhante,
         data_hora=agend.data_hora
     )
     db_sql.add(novo_agendamento)
@@ -51,6 +52,7 @@ def criar_agendamento_viagem(
     tipo: str = Form(...),
     assunto: str = Form(...),
     motivo: Optional[str] = Form(None),
+    acompanhante: Optional[str] = Form(None),
     data_hora: str = Form(...),
     comprovante: Optional[UploadFile] = File(None),
     current_user = Depends(get_current_user),
@@ -72,6 +74,7 @@ def criar_agendamento_viagem(
         tipo=tipo,
         assunto=assunto,
         motivo=motivo,
+        acompanhante=acompanhante,
         data_hora=data_obj,
         anexo=arquivo_path
     )

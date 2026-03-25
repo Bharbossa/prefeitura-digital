@@ -86,6 +86,7 @@ class AgendamentoBase(BaseModel):
     tipo: str
     assunto: str
     motivo: Optional[str] = None
+    acompanhante: Optional[str] = None
     data_hora: datetime
 
 class AgendamentoCreate(AgendamentoBase):
