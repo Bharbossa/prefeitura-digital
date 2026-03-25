@@ -64,6 +64,7 @@ class ChatIAResponse(BaseModel):
 
 class AdminSecretariaCreate(BaseModel):
     nome: str
+    cpf: str
     email: EmailStr
     senha: str
     secretaria_id: int

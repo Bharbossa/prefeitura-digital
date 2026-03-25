@@ -93,6 +93,7 @@ def create_secretaria_admin(admin_in: AdminSecretariaCreate, current_user = Depe
     hashed_password = get_password_hash(admin_in.senha)
     new_admin = AdminSecretaria(
         nome=admin_in.nome,
+        cpf=admin_in.cpf,
         email=admin_in.email,
         senha_hash=hashed_password,
         secretaria_id=admin_in.secretaria_id
