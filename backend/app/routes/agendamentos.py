@@ -1,6 +1,11 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
+import os
+import uuid
+import shutil
+from datetime import datetime
+
 from ..database import get_db
 from ..models.schema import Usuario, AdminSecretaria, Agendamento
 from ..models.pydantic_schemas import AgendamentoCreate, AgendamentoResponse
@@ -8,9 +13,23 @@ from ..core.auth_deps import get_current_user
 
 router = APIRouter()
 
+UPLOAD_DIR = "uploads"
+if not os.path.exists(UPLOAD_DIR):
+    os.makedirs(UPLOAD_DIR)
+
+def save_upload_file(upload_file: UploadFile) -> str:
+    file_ext = os.path.splitext(upload_file.filename)[1]
+    file_name = f"{uuid.uuid4()}{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, file_name)
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(upload_file.file, buffer)
+    return file_path
+
+router = APIRouter()
+
 @router.post("/", response_model=AgendamentoResponse)
 def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
-    if not isinstance(current_user, Usuario):
+    if getattr(current_user, "tipo_usuario_verificado", "") != "cidadao":
         raise HTTPException(status_code=403, detail="Apenas cidadãos podem criar agendamentos pelo perfil.")
     
     novo_agendamento = Agendamento(
@@ -18,12 +37,49 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
         secretaria_id=agend.secretaria_id,
         tipo=agend.tipo,
         assunto=agend.assunto,
+        motivo=agend.motivo,
         data_hora=agend.data_hora
     )
     db_sql.add(novo_agendamento)
     db_sql.commit()
     db_sql.refresh(novo_agendamento)
     return novo_agendamento
+
+@router.post("/viagem", response_model=AgendamentoResponse)
+def criar_agendamento_viagem(
+    secretaria_id: int = Form(...),
+    tipo: str = Form(...),
+    assunto: str = Form(...),
+    motivo: Optional[str] = Form(None),
+    data_hora: str = Form(...),
+    comprovante: Optional[UploadFile] = File(None),
+    current_user = Depends(get_current_user),
+    db_sql: Session = Depends(get_db)):
+    
+    if getattr(current_user, "tipo_usuario_verificado", "") != "cidadao":
+        raise HTTPException(status_code=403, detail="Apenas cidadãos podem criar agendamentos pelo perfil.")
+        
+    try:
+        data_obj = datetime.fromisoformat(data_hora.replace('Z', '+00:00')).replace(tzinfo=None)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Formato de data inválido. Use ISO 8601.")
+        
+    arquivo_path = save_upload_file(comprovante) if comprovante else None
+
+    novo_agendamento = Agendamento(
+        usuario_id=current_user.id,
+        secretaria_id=secretaria_id,
+        tipo=tipo,
+        assunto=assunto,
+        motivo=motivo,
+        data_hora=data_obj,
+        anexo=arquivo_path
+    )
+    db_sql.add(novo_agendamento)
+    db_sql.commit()
+    db_sql.refresh(novo_agendamento)
+    return novo_agendamento
+
 
 @router.get("/", response_model=List[AgendamentoResponse])
 def listar_meus_agendamentos(current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):

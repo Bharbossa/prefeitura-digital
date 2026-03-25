@@ -44,6 +44,9 @@
                     <button class="btn btn-primary" style="background: var(--accent); flex: 1; min-width: 140px;" onclick="abrirModalAtendimento()">
                         <i class="fa-solid fa-users"></i> Atendimento Geral
                     </button>
+                    <button class="btn btn-primary" style="background: var(--primary-color); flex: 1; min-width: 140px;" onclick="abrirModalViagem()">
+                        <i class="fa-solid fa-bus"></i> Marcação de Viagem
+                    </button>
                 </div>
                 <div class="ocorrencias-list" id="listaAgendamentos"></div>
             </div>
@@ -120,6 +123,14 @@
                     <label>Data e Hora Desejada (atendimento das 08:00 às 12:00)</label>
                     <input type="datetime-local" id="ag_data" required>
                 </div>
+                <div class="form-group" id="group_motivo" style="display: none;">
+                    <label>Motivo da Viagem (Ex: Consulta, Exame, Cirurgia, etc)</label>
+                    <textarea id="ag_motivo" rows="3"></textarea>
+                </div>
+                <div class="form-group" id="group_comprovante" style="display: none;">
+                    <label>Comprovante da Viagem (Consulta, Exame, etc)</label>
+                    <input type="file" id="ag_comprovante" accept="image/*,application/pdf">
+                </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%; background: var(--success);">Confirmar Agendamento</button>
             </form>
         </div>
@@ -153,6 +164,8 @@
             
             document.getElementById('group_posto').style.display = 'block';
             document.getElementById('ag_posto').required = true;
+            document.getElementById('group_comprovante').style.display = 'none';
+            document.getElementById('ag_comprovante').required = false;
         }
 
         function abrirModalAtendimento() {
@@ -177,6 +190,38 @@
             
             document.getElementById('group_posto').style.display = 'none';
             document.getElementById('ag_posto').required = false;
+            document.getElementById('group_comprovante').style.display = 'none';
+            document.getElementById('ag_comprovante').required = false;
+        }
+
+        function abrirModalViagem() {
+            document.getElementById('modalNovoAgendamento').style.display = 'block';
+            document.getElementById('modalAgTitle').innerText = 'Marcação de Viagem (Garagem Municipal)';
+            
+            const tipoSelect = document.getElementById('ag_tipo');
+            tipoSelect.innerHTML = `<option value="Marcação de Viagem">Marcação de Viagem</option>`;
+            tipoSelect.value = "Marcação de Viagem";
+
+            const secSelect = document.getElementById('ag_secretaria');
+            for(let i=0; i<secSelect.options.length; i++) {
+                if(secSelect.options[i].text.toUpperCase().includes("GARAGEM MUNICIPAL")) {
+                    secSelect.options[i].style.display = 'block';
+                    secSelect.selectedIndex = i;
+                } else {
+                    secSelect.options[i].style.display = 'none';
+                }
+            }
+            secSelect.disabled = true; // Força para a Garagem Municipal
+
+            document.getElementById('ag_assunto_label').innerText = 'Destino da Viagem';
+            document.getElementById('ag_assunto').placeholder = 'Ex: Juiz de Fora, Belo Horizonte, etc.';
+            
+            document.getElementById('group_posto').style.display = 'none';
+            document.getElementById('ag_posto').required = false;
+            document.getElementById('group_motivo').style.display = 'block';
+            document.getElementById('ag_motivo').required = true;
+            document.getElementById('group_comprovante').style.display = 'block';
+            document.getElementById('ag_comprovante').required = true;
         }
 
         async function loadSecretarias() {
@@ -283,8 +328,10 @@
                             <div class="ocorrencia-card" style="border-left: 4px solid var(--success);">
                                 <h3><i class="fa-solid fa-calendar"></i> ${a.assunto}</h3>
                                 <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-laptop-medical"></i> Tipo: <strong>${a.tipo}</strong></p>
+                                ${a.motivo ? `<p style="margin-bottom: 0.5rem;"><strong>Motivo:</strong> ${a.motivo}</p>` : ''}
                                 <p style="color: var(--text-secondary); margin-bottom: 1rem;"><i class="fa-regular fa-clock"></i> Para: ${new Date(a.data_hora).toLocaleString()}</p>
                                 <span class="status-badge ${statusClass}">${a.status}</span>
+                                ${a.anexo ? `<p style="margin-top: 1rem;"><a href="${MEDIA_URL}/${a.anexo}" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 1rem;"><i class="fa-solid fa-paperclip"></i> Ver Comprovante</a></p>` : ''}
                             </div>
                         `;
                     });
@@ -317,28 +364,58 @@
                 assuntoFinal = `[${posto}] ` + assuntoFinal;
             }
 
-            const data = {
-                secretaria_id: parseInt(dropdown.value),
-                tipo: tipoAtend,
-                assunto: assuntoFinal,
-                data_hora: dataObjeto.toISOString()
-            };
-
-            try {
-                const res = await fetch(`${API_URL}/agendamentos/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-                    body: JSON.stringify(data)
-                });
-                if(res.ok) {
-                    alert('Agendamento solicitado com sucesso! Aguarde a confirmação da secretaria.');
-                    document.getElementById('modalNovoAgendamento').style.display='none';
-                    e.target.reset();
-                    loadAgendamentos();
-                } else {
-                    alert('Erro ao agendar.');
+            if (tipoAtend === "Marcação de Viagem") {
+                const formData = new FormData();
+                formData.append('secretaria_id', parseInt(dropdown.value));
+                formData.append('tipo', tipoAtend);
+                formData.append('assunto', assuntoFinal);
+                formData.append('motivo', document.getElementById('ag_motivo').value);
+                formData.append('data_hora', dataObjeto.toISOString());
+                
+                const fileInput = document.getElementById('ag_comprovante');
+                if(fileInput.files.length > 0) {
+                    formData.append('comprovante', fileInput.files[0]);
                 }
-            } catch(e) { alert('Erro de conexao.'); }
+
+                try {
+                    const res = await fetch(`${API_URL}/agendamentos/viagem`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${getToken()}` },
+                        body: formData
+                    });
+                    if(res.ok) {
+                        alert('Viagem agendada com sucesso! Aguarde a confirmação da Garagem.');
+                        document.getElementById('modalNovoAgendamento').style.display='none';
+                        e.target.reset();
+                        loadAgendamentos();
+                    } else {
+                        alert('Erro ao agendar viagem.');
+                    }
+                } catch(e) { alert('Erro de conexao.'); }
+            } else {
+                const data = {
+                    secretaria_id: parseInt(dropdown.value),
+                    tipo: tipoAtend,
+                    assunto: assuntoFinal,
+                    data_hora: dataObjeto.toISOString()
+                };
+
+                try {
+                    const res = await fetch(`${API_URL}/agendamentos/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
+                        body: JSON.stringify(data)
+                    });
+                    if(res.ok) {
+                        alert('Agendamento solicitado com sucesso! Aguarde a confirmação da secretaria.');
+                        document.getElementById('modalNovoAgendamento').style.display='none';
+                        e.target.reset();
+                        loadAgendamentos();
+                    } else {
+                        alert('Erro ao agendar.');
+                    }
+                } catch(e) { alert('Erro de conexao.'); }
+            }
         });
 
         loadSecretarias();
