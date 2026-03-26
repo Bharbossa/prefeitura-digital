@@ -338,8 +338,14 @@
                         }[a.status] || 'status-pendente';
 
                         container.innerHTML += `
-                            <div class="ocorrencia-card" style="border-left: 4px solid var(--success);">
-                                <h3><i class="fa-solid fa-calendar"></i> ${a.assunto}</h3>
+                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                                    <h3><i class="fa-solid fa-calendar"></i> ${a.assunto}</h3>
+                                    ${a.status === 'Confirmado' ? `
+                                        <button onclick="gerarProtocoloAgendamento('${a.id}')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: var(--primary-color);">
+                                            <i class="fa-solid fa-print"></i> Protocolo
+                                        </button>
+                                    ` : ''}
+                                </div>
                                 <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-laptop-medical"></i> Tipo: <strong>${a.tipo}</strong></p>
                                 ${a.motivo ? `<p style="margin-bottom: 0.5rem;"><strong>Motivo:</strong> ${a.motivo}</p>` : ''}
                                 ${a.acompanhante ? `<p style="margin-bottom: 0.5rem;"><strong>Acompanhante:</strong> ${a.acompanhante}</p>` : ''}
@@ -368,12 +374,6 @@
             }
 
             const dataObjeto = new Date(`${dataDate}T${dataTime}`);
-            const hora = parseInt(dataTime.split(':')[0]);
-            
-            if (hora < 8 || hora >= 12) {
-                alert("Horário de agendamento indisponível! O atendimento ocorre apenas entre 08:00 e 12:00.");
-                return;
-            }
             
             let assuntoFinal = document.getElementById('ag_assunto').value;
             if (document.getElementById('group_posto').style.display !== 'none') {
@@ -443,9 +443,76 @@
         });
 
         loadSecretarias();
-        loadOcorrencias();
-        loadAgendamentos();
-        initBackgroundAnimation('bg-animation');
+        async function gerarProtocoloAgendamento(id) {
+            try {
+                const res = await fetch(`${API_URL}/agendamentos/${id}`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if(res.ok) {
+                    const a = await res.json();
+                    const printWindow = window.open('', '_blank');
+                    const secName = secretariasMap[a.secretaria_id] || 'SECRETARIA MUNICIPAL';
+                    const isSaude = secName.toUpperCase().includes("SAÚDE");
+                    const titleDoc = isSaude ? "COMPROVANTE DE AGENDAMENTO" : "CONFIRMAÇÃO DE VIAGEM";
+                    const stampText = isSaude ? "CONSULTA CONFIRMADA" : "VIAGEM AUTORIZADA";
+                    
+                    printWindow.document.write(`
+                        <html>
+                        <head>
+                            <title>${titleDoc} - ${a.id}</title>
+                            <style>
+                                body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; }
+                                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+                                .title { font-size: 24px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
+                                .info-group { margin-bottom: 15px; border-bottom: 1px dotted #eee; padding-bottom: 5px; }
+                                .label { font-weight: bold; width: 180px; display: inline-block; color: #555; }
+                                .content { border: 2px solid #333; padding: 30px; border-radius: 8px; background: #fff; }
+                                .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #666; border-top: 1px solid #ccc; padding-top: 20px; }
+                                .stamp { margin-top: 30px; border: 3px solid #1a237e; color: #1a237e; display: inline-block; padding: 15px 25px; border-radius: 5px; font-weight: bold; transform: rotate(-3deg); font-size: 1.2rem; }
+                                @media print { .no-print { display: none; } }
+                            </style>
+                        </head>
+                        <body>
+                            <div class="header">
+                                <div class="title">🎫 ${titleDoc}</div>
+                                <div>Prefeitura Municipal de Colônia Leopoldina - AL</div>
+                                <div>Secretaria: ${secName}</div>
+                            </div>
+                            
+                            <div class="content">
+                                <div class="info-group"><span class="label">Protocolo:</span> <strong>#${a.id}</strong></div>
+                                <div class="info-group"><span class="label">Cidadão:</span> ${a.usuario_nome || 'Não informado'}</div>
+                                <div class="info-group"><span class="label">Assunto/Destino:</span> ${a.assunto}</div>
+                                <div class="info-group"><span class="label">Motivo:</span> ${a.motivo || 'Não informado'}</div>
+                                <div class="info-group"><span class="label">Acompanhante:</span> ${a.acompanhante || 'Nenhum'}</div>
+                                <div class="info-group"><span class="label">Data/Hora:</span> ${new Date(a.data_hora).toLocaleString()}</div>
+                                <div class="info-group"><span class="label">Status:</span> <strong style="color: green;">CONFIRMADO</strong></div>
+                            </div>
+
+                            <div style="text-align: right;">
+                                <div class="stamp">${stampText}</div>
+                            </div>
+
+                            <div class="footer">
+                                <p>Este documento comprova o agendamento realizado via Leopoldina Digital.</p>
+                                <p>Gerado em: ${new Date().toLocaleString()} | Colônia Leopoldina - AL</p>
+                                <button onclick="window.print()" class="no-print" style="margin-top: 20px; padding: 12px 25px; cursor: pointer; background: #333; color: #fff; border: none; border-radius: 4px;">🖨️ Imprimir Documento</button>
+                            </div>
+                        </body>
+                        </html>
+                    `);
+                    printWindow.document.close();
+                }
+            } catch(e) { alert("Erro ao imprimir."); }
+        }
+
+        async function init() {
+            await loadSecretarias();
+            await loadOcorrencias();
+            await loadAgendamentos();
+            initBackgroundAnimation('bg-animation');
+        }
+        init();
     </script>
 
     <footer class="footer">
