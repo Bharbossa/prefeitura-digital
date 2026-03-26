@@ -68,6 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (user) {
         let dashboardLink = user.tipo_usuario === 'admin' ? 'admin.html' : 'dashboard.html';
         navLinks.innerHTML = `
+            <a href="index.html">Início</a>
             <a href="${dashboardLink}">Meu Painel</a>
             <span style="display: block; color: var(--text-secondary)">Olá, ${user.nome.split(' ')[0]}</span>
             <button onclick="logout()" class="btn btn-outline">Sair</button>

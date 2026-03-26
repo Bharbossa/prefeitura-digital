@@ -6,11 +6,33 @@ import os
 
 # FastAPI Application for Leopoldina Digital
 # Using Neon Postgres as the primary database
+
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from .core.rate_limit import limiter
+from fastapi import Request, Response
+from starlette.middleware.base import BaseHTTPMiddleware
+
 app = FastAPI(
     title="Leopoldina Digital API",
     description="API for Leopoldina Digital platform - Citizen Urban Occurrences",
     version="1.0.0"
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        response: Response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Content-Security-Policy"] = "default-src 'self' 'unsafe-eval' 'unsafe-inline' https:; img-src 'self' data: https: blob:; connect-src 'self' https: wss:;"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
 
 # Database initialization on startup
 @app.on_event("startup")

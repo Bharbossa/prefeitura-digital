@@ -112,6 +112,7 @@ class Agendamento(Base):
     assunto = Column(String(200)) # Ex: "Consulta Médica"
     motivo = Column(Text, nullable=True) # Descrição detalhada do motivo
     acompanhante = Column(String(100), nullable=True) # Nome do acompanhante (Viagem)
+    cartao_sus = Column(String(50), nullable=True)
     data_hora = Column(DateTime)
     status = Column(String(50), default="Pendente") # Pendente, Confirmado, Cancelado
     anexo = Column(String(255), nullable=True) # Path/URL for the uploaded proof

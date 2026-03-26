@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acesso Administrativo - Leopoldina Digital</title>
+    <meta name="description" content="Área restrita para administradores da Prefeitura de Leopoldina Digital.">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+        .admin-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            background: rgba(var(--primary-rgb, 0, 184, 148), 0.15);
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+            border-radius: 999px;
+            padding: 0.3rem 0.9rem;
+            font-size: 0.78rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1.2rem;
+        }
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin: 1.5rem 0;
+        }
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border-color, #e2e8f0);
+        }
+        .warning-box {
+            background: rgba(255, 193, 7, 0.1);
+            border: 1px solid rgba(255, 193, 7, 0.4);
+            border-radius: 8px;
+            padding: 0.75rem 1rem;
+            font-size: 0.82rem;
+            color: var(--text-secondary);
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        .warning-box i { color: #f59e0b; margin-top: 2px; flex-shrink: 0; }
+    </style>
+</head>
+<body>
+    <div class="bg-animation-container" id="bg-animation"></div>
+    <div class="bg-overlay"></div>
+
+    <div class="form-container fade-in" style="width: 100%; max-width: 420px; margin: 1rem; position: relative; z-index: 10;">
+        <div style="text-align: center; margin-bottom: 1.5rem;">
+            <h1 style="color: var(--primary-color); font-size: 1.8rem;">
+                <i class="fa-solid fa-city"></i> Leopoldina Digital
+            </h1>
+            <p style="color: var(--text-secondary); margin-top: 0.4rem; font-size: 0.9rem;">Sistema de Gestão Municipal</p>
+        </div>
+
+        <div style="text-align: center;">
+            <span class="admin-badge"><i class="fa-solid fa-shield-halved"></i> Área Restrita</span>
+        </div>
+
+        <div class="warning-box">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>Este acesso é exclusivo para <strong>Administradores</strong> e <strong>Sub-Administradores</strong>. Acesso não autorizado será registrado.</span>
+        </div>
+
+        <form id="adminLoginForm">
+            <div class="form-group">
+                <label for="email"><i class="fa-solid fa-envelope" style="margin-right: 0.4rem;"></i>E-mail institucional</label>
+                <input type="email" id="email" placeholder="seu@email.gov.br" required>
+            </div>
+
+            <div class="form-group">
+                <label for="password"><i class="fa-solid fa-lock" style="margin-right: 0.4rem;"></i>Senha</label>
+                <input type="password" id="password" required>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn btn-primary" style="width: 100%; margin-top: 0.5rem;">
+                <i class="fa-solid fa-right-to-bracket"></i> Entrar no Painel
+            </button>
+
+            <p id="errorMsg" style="color: var(--error); margin-top: 1rem; text-align: center; display: none; font-size: 0.9rem;"></p>
+        </form>
+
+        <div class="divider">ou</div>
+
+        <div style="text-align: center;">
+            <a href="../index.html" style="font-size: 0.85rem; color: var(--text-secondary);">
+                <i class="fa-solid fa-arrow-left"></i> Voltar ao site público
+            </a>
+        </div>
+    </div>
+
+    <script src="../js/main.js"></script>
+    <script>
+        initBackgroundAnimation('bg-animation');
+
+        // If already logged in as admin, redirect directly
+        const existingUser = getUserInfo();
+        const existingToken = getToken();
+        if (existingUser && existingToken && existingUser.tipo_usuario === 'admin') {
+            window.location.href = '../admin.html';
+        }
+
+        document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const errorMsg = document.getElementById('errorMsg');
+            const submitBtn = document.getElementById('submitBtn');
+
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Verificando...';
+            errorMsg.style.display = 'none';
+
+            try {
+                const formData = new URLSearchParams();
+                formData.append('username', email);
+                formData.append('password', password);
+
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    localStorage.setItem('access_token', data.access_token);
+
+                    const userRes = await fetch(`${API_URL}/auth/me`, {
+                        headers: { 'Authorization': `Bearer ${data.access_token}` }
+                    });
+
+                    if (userRes.ok) {
+                        const userData = await userRes.json();
+
+                        // Only allow admin users
+                        if (userData.tipo_usuario !== 'admin') {
+                            localStorage.removeItem('access_token');
+                            errorMsg.innerText = 'Acesso negado. Esta área é restrita a administradores.';
+                            errorMsg.style.display = 'block';
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Entrar no Painel';
+                            return;
+                        }
+
+                        localStorage.setItem('user_info', JSON.stringify(userData));
+                        window.location.href = '../admin.html';
+                    } else {
+                        const errData = await userRes.json().catch(() => ({}));
+                        errorMsg.innerText = errData.detail || 'Erro ao carregar perfil. Tente novamente.';
+                        errorMsg.style.display = 'block';
+                    }
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    errorMsg.innerText = errorData.detail || 'Credenciais inválidas.';
+                    errorMsg.style.display = 'block';
+                }
+            } catch (err) {
+                errorMsg.innerText = `Erro de conexão: ${err.message}. Tente novamente em instantes.`;
+                errorMsg.style.display = 'block';
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Entrar no Painel';
+            }
+        });
+    </script>
+</body>
+</html>

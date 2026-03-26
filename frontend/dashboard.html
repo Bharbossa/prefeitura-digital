@@ -127,6 +127,10 @@
                     <label>Horário (atendimento das 08:00 às 12:00)</label>
                     <input type="time" id="ag_data_time" required min="08:00" max="12:00">
                 </div>
+                <div class="form-group" id="group_sus" style="display: none;">
+                    <label>Número do Cartão SUS</label>
+                    <input type="text" id="ag_cartao_sus" placeholder="000 0000 0000 0000" maxlength="20">
+                </div>
                 <div class="form-group" id="group_motivo" style="display: none;">
                     <label>Motivo da Viagem (Ex: Consulta, Exame, Cirurgia, etc)</label>
                     <textarea id="ag_motivo" rows="3"></textarea>
@@ -155,6 +159,12 @@
             const tipoSelect = document.getElementById('ag_tipo');
             tipoSelect.innerHTML = `<option value="Consulta Presencial">Consulta Presencial</option>`;
             tipoSelect.value = "Consulta Presencial";
+            
+            document.getElementById('group_sus').style.display = 'block';
+            document.getElementById('ag_cartao_sus').required = true;
+            document.getElementById('ag_assunto').required = true;
+            document.getElementById('ag_data_date').required = true;
+            document.getElementById('ag_data_time').required = true;
 
             const secSelect = document.getElementById('ag_secretaria');
             for(let i=0; i<secSelect.options.length; i++) {
@@ -393,6 +403,7 @@
                 formData.append('motivo', document.getElementById('ag_motivo').value);
                 formData.append('acompanhante', document.getElementById('ag_acompanhante').value);
                 formData.append('data_hora', dataObjeto.toISOString());
+                formData.append('cartao_sus', '');
                 
                 const fileInput = document.getElementById('ag_comprovante');
                 if(fileInput.files.length > 0) {
@@ -421,7 +432,8 @@
                     assunto: assuntoFinal,
                     motivo: null,
                     acompanhante: null,
-                    data_hora: dataObjeto.toISOString()
+                    data_hora: dataObjeto.toISOString(),
+                    cartao_sus: document.getElementById('ag_cartao_sus').value
                 };
 
                 try {

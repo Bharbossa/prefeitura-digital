@@ -87,6 +87,7 @@ class AgendamentoBase(BaseModel):
     assunto: str
     motivo: Optional[str] = None
     acompanhante: Optional[str] = None
+    cartao_sus: Optional[str] = None
     data_hora: datetime
 
 class AgendamentoCreate(AgendamentoBase):
@@ -98,5 +99,6 @@ class AgendamentoResponse(AgendamentoBase):
     usuario_nome: Optional[str] = None
     status: str
     anexo: Optional[str] = None
+    cartao_sus: Optional[str] = None
     criado_em: datetime
     model_config = ConfigDict(from_attributes=True)

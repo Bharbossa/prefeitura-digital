@@ -295,6 +295,7 @@
                                 </div>
                                 <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-laptop-medical"></i> Tipo: <strong>${a.tipo}</strong> | Data: ${new Date(a.data_hora).toLocaleString()}</p>
                                 <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-building"></i> Secretaria: <strong>${secretariasMap[a.secretaria_id] || 'Geral'}</strong></p>
+                                ${a.cartao_sus ? `<p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-address-card"></i> Cartão SUS: <strong>${a.cartao_sus}</strong></p>` : ''}
                                 ${a.motivo ? `<p style="margin-bottom: 0.5rem;"><strong><i class="fa-solid fa-circle-info"></i> Motivo:</strong> ${a.motivo}</p>` : ''}
                                 ${a.acompanhante ? `<p style="margin-bottom: 1rem;"><strong><i class="fa-solid fa-user-plus"></i> Acompanhante:</strong> ${a.acompanhante}</p>` : ''}
                                 ${a.anexo ? `<p style="margin-bottom: 1rem;"><a href="${MEDIA_URL}/${a.anexo}" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 1rem;"><i class="fa-solid fa-paperclip"></i> Ver Comprovante</a></p>` : ''}
@@ -653,6 +654,7 @@
                             <div class="content">
                                 <div class="info-group"><span class="label">Protocolo:</span> <strong>#${a.id}</strong></div>
                                 <div class="info-group"><span class="label">Cidadão:</span> ${a.usuario_nome || 'Não informado'}</div>
+                                ${a.cartao_sus ? `<div class="info-group"><span class="label">Cartão SUS:</span> ${a.cartao_sus}</div>` : ''}
                                 <div class="info-group"><span class="label">Assunto/Destino:</span> ${a.assunto}</div>
                                 <div class="info-group"><span class="label">Motivo:</span> ${a.motivo || 'Não informado'}</div>
                                 <div class="info-group"><span class="label">Acompanhante:</span> ${a.acompanhante || 'Nenhum'}</div>
