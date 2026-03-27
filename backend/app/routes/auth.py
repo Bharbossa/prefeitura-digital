@@ -111,7 +111,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
     )
     return {"access_token": access_token, "token_type": "bearer"}
 
-@router.post("/forgot-password/")
+@router.post("/forgot-password")
 def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_db)):
     import secrets, string
     from ..utils.sms_service import send_password_sms
