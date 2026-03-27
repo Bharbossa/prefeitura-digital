@@ -7,7 +7,7 @@ from ..core.firebase_config import db, DB_MODE
 from ..database import get_db
 from ..models.schema import Usuario, AdminSecretaria, StatusUsuario
 from sqlalchemy.orm import Session
-from ..models.pydantic_schemas import UsuarioCreate, UsuarioResponse, Token
+from ..models.pydantic_schemas import UsuarioCreate, UsuarioResponse, Token, ForgotPasswordRequest
 from ..core.security import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from ..core.auth_deps import get_current_user
 
@@ -18,8 +18,9 @@ def register(user_in: UsuarioCreate, db_sql: Session = Depends(get_db)) -> Any:
     if DB_MODE == "firestore":
         # Check if user exists in Firestore
         email_exists = db.collection("usuarios").where("email", "==", user_in.email).limit(1).get()
-        if email_exists:
-            raise HTTPException(status_code=400, detail="The user with this email already exists.")
+        cpf_exists = db.collection("usuarios").where("cpf", "==", user_in.cpf).limit(1).get()
+        if email_exists or cpf_exists:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Já existe um usuário registrado com este CPF ou E-mail")
         
         hashed_password = get_password_hash(user_in.senha)
         user_data = {
@@ -33,9 +34,10 @@ def register(user_in: UsuarioCreate, db_sql: Session = Depends(get_db)) -> Any:
         return user_data
     else:
         # SQL Fallback (MySQL/SQLite)
-        user = db_sql.query(Usuario).filter(Usuario.email == user_in.email).first()
-        if user:
-            raise HTTPException(status_code=400, detail="The user with this email already exists.")
+        user_email = db_sql.query(Usuario).filter(Usuario.email == user_in.email).first()
+        user_cpf = db_sql.query(Usuario).filter(Usuario.cpf == user_in.cpf).first()
+        if user_email or user_cpf:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Já existe um usuário registrado com este CPF ou E-mail")
         hashed_password = get_password_hash(user_in.senha)
         db_user = Usuario(
             nome=user_in.nome, cpf=user_in.cpf, email=user_in.email, 
@@ -61,7 +63,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
             if admin_docs:
                 user_data = admin_docs[0].to_dict()
                 user_data["id"] = admin_docs[0].id
-                user_type = "admin"
+                user_type = "subadmin"
     else:
         # SQLite Fallback
         user = db_sql.query(Usuario).filter(Usuario.email == form_data.username).first()
@@ -78,7 +80,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
             user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == form_data.username).first()
             if user:
                 user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id, "status": getattr(user, "status", "Ativo")}
-                user_type = "admin"
+                user_type = "subadmin"
 
     if not user_data or not verify_password(form_data.password, user_data.get("senha_hash")):
         raise HTTPException(
@@ -108,6 +110,41 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
         expires_delta=access_token_expires
     )
     return {"access_token": access_token, "token_type": "bearer"}
+
+@router.post("/forgot-password/")
+def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_db)):
+    import secrets, string
+    from ..utils.sms_service import send_password_sms
+    
+    # 1. Find user by email or CPF
+    user = db_sql.query(Usuario).filter((Usuario.email == data.identifier) | (Usuario.cpf == data.identifier)).first()
+    if not user:
+        # Check sub-admins too
+        user = db_sql.query(AdminSecretaria).filter((AdminSecretaria.email == data.identifier) | (AdminSecretaria.cpf == data.identifier)).first()
+    
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado com os dados informados.")
+    
+    # 2. Generate random password (8 chars)
+    alphabet = string.ascii_letters + string.digits
+    new_pw = ''.join(secrets.choice(alphabet) for _ in range(8))
+    
+    # 3. Update in DB
+    user.senha_hash = get_password_hash(new_pw)
+    db_sql.commit()
+    
+    # 4. Send
+    if data.method == "sms":
+        if not hasattr(user, 'telefone') or not user.telefone:
+            raise HTTPException(status_code=400, detail="Número de telefone não encontrado para este usuário.")
+        send_password_sms(user.telefone, new_pw)
+    else:
+        # Email (simulated since we don't have a mailer yet)
+        print(f"--- EMAIL SIMULADO PARA {user.email} ---")
+        print(f"Sua nova senha é: {new_pw}")
+        print(f"----------------------------------------")
+    
+    return {"message": f"Uma nova senha foi gerada e enviada por {data.method.upper()}."}
 
 @router.get("/me", response_model=UsuarioResponse)
 def read_users_me(current_user = Depends(get_current_user)):

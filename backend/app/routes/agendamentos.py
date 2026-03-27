@@ -7,9 +7,11 @@ import shutil
 from datetime import datetime
 
 from ..database import get_db
-from ..models.schema import Usuario, AdminSecretaria, Agendamento
+from ..models.schema import Usuario, AdminSecretaria, Agendamento, LogAuditoria
 from ..models.pydantic_schemas import AgendamentoCreate, AgendamentoResponse
-from ..core.auth_deps import get_current_user
+from ..core.auth_deps import get_current_user, get_current_admin
+from ..utils.sms_service import send_status_sms, get_confirmed_message
+from ..core.utils import generate_protocol
 from sqlalchemy.orm import joinedload
 
 router = APIRouter()
@@ -31,9 +33,12 @@ router = APIRouter()
 @router.post("/", response_model=AgendamentoResponse)
 def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
     if getattr(current_user, "tipo_usuario_verificado", "") != "cidadao":
+        # Subadmins/Admins can create too? Maybe later. For now, keep as per user rules.
         raise HTTPException(status_code=403, detail="Apenas cidadãos podem criar agendamentos pelo perfil.")
     
+    protocolo = generate_protocol()
     novo_agendamento = Agendamento(
+        protocolo=protocolo,
         usuario_id=current_user.id,
         secretaria_id=agend.secretaria_id,
         tipo=agend.tipo,
@@ -68,8 +73,10 @@ def criar_agendamento_viagem(
         raise HTTPException(status_code=400, detail="Formato de data inválido. Use ISO 8601.")
         
     arquivo_path = save_upload_file(comprovante) if comprovante else None
+    protocolo = generate_protocol()
 
     novo_agendamento = Agendamento(
+        protocolo=protocolo,
         usuario_id=current_user.id,
         secretaria_id=secretaria_id,
         tipo=tipo,
@@ -87,22 +94,22 @@ def criar_agendamento_viagem(
 
 @router.get("/", response_model=List[AgendamentoResponse])
 def listar_meus_agendamentos(current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
-    t_verificado = getattr(current_user, "tipo_usuario_verificado", "")
-    
+    role = current_user.tipo_usuario_verificado
     query = db_sql.query(Agendamento).options(joinedload(Agendamento.usuario))
 
-    if t_verificado == "cidadao":
+    if role == "cidadao":
         results = query.filter(Agendamento.usuario_id == current_user.id).order_by(Agendamento.data_hora.desc()).all()
-    elif t_verificado == "admin":
-        sec_id = getattr(current_user, "secretaria_id", None)
+    elif role in ["admin", "subadmin"]:
+        sec_id = current_user.secretaria_id
         if sec_id:
             results = query.filter(Agendamento.secretaria_id == sec_id).order_by(Agendamento.data_hora.desc()).all()
         else:
+            # General Admin see all
             results = query.order_by(Agendamento.data_hora.desc()).all()
     else:
         raise HTTPException(status_code=403, detail="Não autorizado.")
 
-    # Populate usuario_nome
+    # Populate usuario_nome for response
     for r in results:
         r.usuario_nome = r.usuario.nome if r.usuario else f"Cidadão #{r.usuario_id}"
     return results
@@ -126,7 +133,7 @@ def obter_agendamento(agend_id: int, current_user = Depends(get_current_user), d
     return agend
 
 @router.patch("/{agend_id}/status")
-def atualizar_status(agend_id: int, status: str, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+def atualizar_status(agend_id: int, status: str, current_user = Depends(get_current_admin), db_sql: Session = Depends(get_db)):
     if status not in ["Confirmado", "Cancelado", "Pendente"]:
         raise HTTPException(status_code=400, detail="Status inválido.")
         
@@ -134,11 +141,21 @@ def atualizar_status(agend_id: int, status: str, current_user = Depends(get_curr
     if not agendamento:
         raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
     
-    # Se for sub-admin de secretaria, verifica se pertence a ela
-    sec_id = getattr(current_user, "secretaria_id", None)
-    if sec_id and agendamento.secretaria_id != sec_id:
-        raise HTTPException(status_code=403, detail="Agendamento pertence a outra secretaria.")
+    # Permission check for subadmin
+    if current_user.tipo_usuario_verificado == "subadmin":
+        if agendamento.secretaria_id != current_user.secretaria_id:
+            raise HTTPException(status_code=403, detail="Agendamento pertence a outra secretaria.")
             
+    old_status = agendamento.status
     agendamento.status = status
+    
+    if status == "Confirmado" and old_status != "Confirmado":
+        if agendamento.usuario and agendamento.usuario.telefone:
+            dt_str = agendamento.data_hora.strftime("%d/%m/%Y %H:%M")
+            msg = get_confirmed_message(agendamento.assunto, dt_str)
+            send_status_sms(agendamento.usuario.telefone, msg)
+            
     db_sql.commit()
-    return {"message": "Status atualizado com sucesso"}
+    db_sql.refresh(agendamento)
+    return agendamento
+

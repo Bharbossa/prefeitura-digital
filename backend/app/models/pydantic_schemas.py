@@ -48,13 +48,25 @@ class RespostaResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class OcorrenciaResponse(OcorrenciaBase):
-    id: str
+    id: int # Changed to int to match Postgres model
+    protocolo: Optional[str] = None
     foto: Optional[str] = None
     video: Optional[str] = None
     status: str
     data: datetime
-    usuario_id: str
+    usuario_id: int
     respostas: List[RespostaResponse] = []
+    model_config = ConfigDict(from_attributes=True)
+
+class LogAuditoriaBase(BaseModel):
+    usuario_id: int
+    usuario_tipo: str
+    acao: str
+    detalhes: str
+
+class LogAuditoriaResponse(LogAuditoriaBase):
+    id: int
+    data: datetime
     model_config = ConfigDict(from_attributes=True)
 
 class ChatIARequest(BaseModel):
@@ -67,6 +79,7 @@ class AdminSecretariaCreate(BaseModel):
     nome: str
     cpf: str
     email: EmailStr
+    telefone: Optional[str] = None
     senha: str
     secretaria_id: int
 
@@ -74,8 +87,10 @@ class AdminSecretariaResponse(BaseModel):
     id: int
     nome: str
     email: EmailStr
+    telefone: Optional[str] = None
     secretaria_id: int
     status: str = "Ativo"
+    tipo_usuario: str = "subadmin"
     model_config = ConfigDict(from_attributes=True)
 
 class AdminPasswordUpdate(BaseModel):
@@ -95,6 +110,7 @@ class AgendamentoCreate(AgendamentoBase):
 
 class AgendamentoResponse(AgendamentoBase):
     id: int
+    protocolo: Optional[str] = None
     usuario_id: int
     usuario_nome: Optional[str] = None
     status: str
@@ -102,3 +118,11 @@ class AgendamentoResponse(AgendamentoBase):
     cartao_sus: Optional[str] = None
     criado_em: datetime
     model_config = ConfigDict(from_attributes=True)
+class AdminPasswordUpdate(BaseModel):
+    user_id: int
+    source: str # 'usuario' or 'subadmin'
+    new_password: str
+
+class ForgotPasswordRequest(BaseModel):
+    identifier: str
+    method: str # 'email' or 'sms'

@@ -6,6 +6,7 @@ from ..database import Base
 
 class TipoUsuario(str, enum.Enum):
     cidadao = "cidadao"
+    subadmin = "subadmin"
     admin = "admin"
 
 class StatusOcorrencia(str, enum.Enum):
@@ -30,6 +31,7 @@ class Usuario(Base):
     senha_hash = Column(String(255), nullable=False)
     tipo_usuario = Column(Enum(TipoUsuario), default=TipoUsuario.cidadao)
     status = Column(Enum(StatusUsuario), default=StatusUsuario.pendente)
+    last_login = Column(DateTime, nullable=True)
 
     ocorrencias = relationship("Ocorrencia", back_populates="usuario")
     agendamentos = relationship("Agendamento", back_populates="usuario")
@@ -55,6 +57,7 @@ class AdminSecretaria(Base):
     endereco = Column(String(255))
     senha_hash = Column(String(255), nullable=False)
     secretaria_id = Column(Integer, ForeignKey("secretarias.id"))
+    tipo_usuario = Column(String(50), default="subadmin") # Helper to distinguish in auth
 
     secretaria = relationship("Secretaria", back_populates="admins")
     respostas = relationship("Resposta", back_populates="admin")
@@ -63,6 +66,7 @@ class Ocorrencia(Base):
     __tablename__ = "ocorrencias"
 
     id = Column(Integer, primary_key=True, index=True)
+    protocolo = Column(String(20), unique=True, index=True)
     titulo = Column(String(150), nullable=False)
     descricao = Column(Text, nullable=False)
     foto = Column(String(255), nullable=True)   # Path/URL
@@ -106,6 +110,7 @@ class Agendamento(Base):
     __tablename__ = "agendamentos"
 
     id = Column(Integer, primary_key=True, index=True)
+    protocolo = Column(String(20), unique=True, index=True)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     secretaria_id = Column(Integer, ForeignKey("secretarias.id"))
     tipo = Column(String(50)) # "Online" ou "Presencial"
@@ -120,3 +125,14 @@ class Agendamento(Base):
 
     usuario = relationship("Usuario", back_populates="agendamentos")
     secretaria = relationship("Secretaria", back_populates="agendamentos")
+
+class LogAuditoria(Base):
+    __tablename__ = "logs_auditoria"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, nullable=False) # ID of admin/subadmin
+    usuario_tipo = Column(String(50)) # "admin" or "subadmin"
+    acao = Column(String(100)) # "create_user", "update_status", etc.
+    detalhes = Column(Text)
+    data = Column(DateTime, default=datetime.datetime.utcnow)
+

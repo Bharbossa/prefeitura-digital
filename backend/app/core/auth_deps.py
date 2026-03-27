@@ -21,70 +21,69 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
         email: str = payload.get("sub")
         tipo: str = payload.get("type")
         if email is None or tipo is None:
-            print(f"DEBUG: Missing payload fields. Email: {email}, Tipo: {tipo}")
             raise credentials_exception
         token_data = TokenData(email=email, type=tipo)
-    except JWTError as e:
-        print(f"DEBUG: JWT Decode Error: {e}")
+    except JWTError:
         raise credentials_exception
     
-    if DB_MODE == "firestore":
-        if tipo == "admin":
-            # Check AdminSecretaria then fallback to general docs if needed
-            docs = db.collection("admin_secretarias").where("email", "==", token_data.email).limit(1).get()
-            if not docs:
-                docs = db.collection("usuarios").where("email", "==", token_data.email).where("tipo_usuario", "==", "admin").limit(1).get()
+    # SQLite Implementation (Neon/Postgres use this too via DB_MODE != "firestore")
+    # Try User table (Citizen or Admin)
+    user = db_sql.query(Usuario).filter(Usuario.email == token_data.email).first()
+    if not user:
+        # Try AdminSecretaria table (Sub-admin)
+        user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == token_data.email).first()
+    
+    if user:
+        # Determine actual verified type
+        if isinstance(user, Usuario):
+            # cidadao or admin
+            role = str(user.tipo_usuario).split('.')[-1] # Handle enum
         else:
-            docs = db.collection("usuarios").where("email", "==", token_data.email).limit(1).get()
-
-        if docs:
-            user_data = docs[0].to_dict()
-            user_data["id"] = docs[0].id
-            from types import SimpleNamespace
-            user = SimpleNamespace(**user_data)
-        else:
+            # AdminSecretaria is always subadmin
+            role = "subadmin"
+        
+        # Security check: Does token type match database role?
+        # If token says 'admin', but user is 'cidadao', reject.
+        if tipo == "admin" and role != "admin":
             user = None
-    else:
-        # SQLite Fallback
-        # Try both tables in order of probability
-        user = db_sql.query(Usuario).filter(Usuario.email == token_data.email).first()
-        if not user:
-            user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == token_data.email).first()
+        elif tipo == "subadmin" and role != "subadmin":
+            user = None
+        elif tipo == "cidadao" and role != "cidadao":
+            user = None
         
         if user:
-            # Ensure it matches the expected type in the token
-            u_type = str(user.tipo_usuario).split('.')[-1] if hasattr(user, 'tipo_usuario') else 'admin'
+            # Create a uniform object for routes
+            from types import SimpleNamespace
+            is_subadmin = isinstance(user, AdminSecretaria)
             
-            # Simple check: if token says admin, user must be admin (either in usuarios or admins_secretaria table)
-            if tipo == "admin" and u_type == "cidadao":
-                 user = None
-            else:
-                # Also attach type to avoid re-checking
-                try:
-                    user.tipo_usuario_verificado = tipo
-                except:
-                    # If SQLAlchemy object is immutable, create a wrapper with all fields
-                    from types import SimpleNamespace
-                    user = SimpleNamespace(
-                        id=str(user.id),
-                        email=user.email,
-                        nome=getattr(user, 'nome', ''),
-                        cpf=getattr(user, 'cpf', ''),
-                        telefone=getattr(user, 'telefone', ''),
-                        endereco=getattr(user, 'endereco', ''),
-                        status=getattr(user, 'status', 'Ativo'),
-                        tipo_usuario_verificado=tipo
-                    )
+            user_out = SimpleNamespace(
+                id=user.id,
+                email=user.email,
+                nome=user.nome,
+                cpf=user.cpf,
+                telefone=user.telefone,
+                endereco=user.endereco,
+                status=getattr(user, 'status', StatusUsuario.ativo if is_subadmin else user.status),
+                secretaria_id=getattr(user, 'secretaria_id', None),
+                tipo_usuario_verificado=role # "cidadao", "subadmin", "admin"
+            )
+            return user_out
 
-    if user is None:
-        raise credentials_exception
-    
-    return user
+    raise credentials_exception
 
 def get_current_admin(current_user = Depends(get_current_user)):
+    if current_user.tipo_usuario_verificado not in ["admin", "subadmin"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito a administradores."
+        )
+    return current_user
+
+def get_general_admin(current_user = Depends(get_current_user)):
     if current_user.tipo_usuario_verificado != "admin":
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="The user doesn't have enough privileges"
+            detail="Acesso restrito ao Administrador Geral."
         )
     return current_user
+

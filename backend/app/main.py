@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from .database import engine, Base
 import os
 
-# FastAPI Application for Leopoldina Digital
+# FastAPI Application for Colônia Digital
 # Using Neon Postgres as the primary database
 
 from slowapi import _rate_limit_exceeded_handler
@@ -14,8 +14,8 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 app = FastAPI(
-    title="Leopoldina Digital API",
-    description="API for Leopoldina Digital platform - Citizen Urban Occurrences",
+    title="Colônia Digital API",
+    description="API for Colônia Digital platform - Citizen Urban Occurrences",
     version="1.0.0"
 )
 
@@ -78,11 +78,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users, agendamentos
+from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users, agendamentos, admin_metrics
 
 @app.get("/")
 def read_root():
-    return {"message": "Welcome to Leopoldina Digital API"}
+    return {"message": "Welcome to Colônia Digital API"}
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(ocorrencias.router, prefix="/api/ocorrencias", tags=["ocorrencias"])
@@ -90,6 +90,8 @@ app.include_router(secretarias.router, prefix="/api/secretarias", tags=["secreta
 app.include_router(chat_ia.router, prefix="/api/chat-ia", tags=["chat_ia"])
 app.include_router(admin_users.router, prefix="/api/admin/users", tags=["admin_users"])
 app.include_router(agendamentos.router, prefix="/api/agendamentos", tags=["agendamentos"])
+app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["admin_metrics"])
+
 
 # Mount the 'uploads' directory to serve files (photos/videos)
 if not os.path.exists("uploads"):

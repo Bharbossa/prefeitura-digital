@@ -6,10 +6,13 @@ import uuid
 import shutil
 
 from ..database import get_db
-from ..models.schema import Ocorrencia, Resposta, AdminSecretaria
+from ..models.schema import Ocorrencia, Resposta, AdminSecretaria, LogAuditoria
 from ..core.firebase_config import db, DB_MODE
 from ..models.pydantic_schemas import OcorrenciaResponse, RespostaResponse
-from ..core.auth_deps import get_current_user
+from ..core.auth_deps import get_current_user, get_current_admin
+from ..utils.sms_service import send_status_sms, get_resolved_message
+
+from ..core.utils import generate_protocol
 from datetime import datetime
 
 router = APIRouter()
@@ -30,7 +33,7 @@ def save_upload_file(upload_file: UploadFile) -> str:
 def create_ocorrencia(
     titulo: str = Form(...),
     descricao: str = Form(...),
-    secretaria_id: str = Form(...),
+    secretaria_id: int = Form(...),
     foto: Optional[UploadFile] = File(None),
     video: Optional[UploadFile] = File(None),
     current_user = Depends(get_current_user),
@@ -38,135 +41,121 @@ def create_ocorrencia(
 ):
     foto_path = save_upload_file(foto) if foto else None
     video_path = save_upload_file(video) if video else None
+    protocolo = generate_protocol()
 
-    if DB_MODE == "firestore":
-        ocorrencia_data = {
-            "titulo": titulo, "descricao": descricao, "secretaria_id": secretaria_id,
-            "foto": foto_path, "video": video_path, "usuario_id": current_user.id,
-            "status": "Pendente", "data": datetime.utcnow()
-        }
-        doc_ref = db.collection("ocorrencias").document()
-        doc_ref.set(ocorrencia_data)
-        ocorrencia_data["id"] = doc_ref.id
-        return ocorrencia_data
-    else:
-        # SQLite Fallback
-        ocorrencia = Ocorrencia(
-            titulo=titulo, descricao=descricao, secretaria_id=int(secretaria_id),
-            foto=foto_path, video=video_path, usuario_id=current_user.id
-        )
-        db_sql.add(ocorrencia)
-        db_sql.commit()
-        db_sql.refresh(ocorrencia)
-        return ocorrencia
+    # SQL Implementation
+    ocorrencia = Ocorrencia(
+        protocolo=protocolo,
+        titulo=titulo, 
+        descricao=descricao, 
+        secretaria_id=secretaria_id,
+        foto=foto_path, 
+        video=video_path, 
+        usuario_id=current_user.id
+    )
+    db_sql.add(ocorrencia)
+    db_sql.commit()
+    db_sql.refresh(ocorrencia)
+    return ocorrencia
 
 @router.get("/", response_model=List[OcorrenciaResponse])
 def get_current_ocorrencias(
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
 ):
-    if DB_MODE == "firestore":
-        if current_user.tipo_usuario_verificado == "admin":
-            admin_docs = db.collection("admin_secretarias").document(current_user.id).get()
-            if not admin_docs.exists: return []
-            sec_id = admin_docs.to_dict().get("secretaria_id")
-            docs = db.collection("ocorrencias").where("secretaria_id", "==", sec_id).get()
+    role = current_user.tipo_usuario_verificado
+    
+    if role in ["admin", "subadmin"]:
+        # If they are tied to a secretariat, filter by it. If General Admin (no sec_id), show all.
+        sec_id = current_user.secretaria_id
+        if sec_id:
+            query = db_sql.query(Ocorrencia).filter(Ocorrencia.secretaria_id == sec_id)
         else:
-            docs = db.collection("ocorrencias").where("usuario_id", "==", current_user.id).get()
-        
-        results = []
-        for d in docs:
-            item = d.to_dict(); item["id"] = d.id
-            results.append(item)
-        return results
+            query = db_sql.query(Ocorrencia)
     else:
-        # SQLite Fallback
-        if current_user.tipo_usuario_verificado == "admin":
-            admin = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == current_user.id).first()
-            query = db_sql.query(Ocorrencia).filter(Ocorrencia.secretaria_id == admin.secretaria_id)
-        else:
-            query = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == current_user.id)
-        
-        results = []
-        for o in query.all():
-            results.append({
-                "id": str(o.id), "titulo": o.titulo, "descricao": o.descricao,
-                "status": o.status, "data": o.data, "usuario_id": str(o.usuario_id),
-                "secretaria_id": str(o.secretaria_id), "foto": o.foto, "video": o.video
-            })
-        return results
+        # Citizen: show only own
+        query = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == current_user.id)
+    
+    return query.order_by(Ocorrencia.data.desc()).all()
 
 @router.patch("/{id}/status", response_model=OcorrenciaResponse)
 def update_status(
-    id: str, 
+    id: int, 
     status: str, 
-    current_user = Depends(get_current_user),
+    current_user = Depends(get_current_admin),
     db_sql: Session = Depends(get_db)
 ):
-    if current_user.tipo_usuario_verificado != "admin":
-        raise HTTPException(status_code=403, detail="Apenas admins podem alterar status")
+    ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == id).first()
+    if not ocorrencia: 
+        raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
     
-    if DB_MODE == "firestore":
-        doc_ref = db.collection("ocorrencias").document(id)
-        doc = doc_ref.get()
-        if not doc.exists: raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
-        admin_doc = db.collection("admin_secretarias").document(current_user.id).get()
-        if doc.to_dict().get("secretaria_id") != admin_doc.to_dict().get("secretaria_id"):
-            raise HTTPException(status_code=403, detail="Sem permissão")
-        doc_ref.update({"status": status})
-        updated = doc_ref.get().to_dict(); updated["id"] = id
-        return updated
-    else:
-        # SQLite Fallback
-        ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == int(id)).first()
-        if not ocorrencia: raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
-        admin = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == current_user.id).first()
-        if ocorrencia.secretaria_id != admin.secretaria_id: raise HTTPException(status_code=403, detail="Sem permissão")
-        ocorrencia.status = status
-        db_sql.commit()
-        return {
-            "id": str(ocorrencia.id), "titulo": ocorrencia.titulo, "descricao": ocorrencia.descricao,
-            "status": ocorrencia.status, "data": ocorrencia.data, "usuario_id": str(ocorrencia.usuario_id),
-            "secretaria_id": str(ocorrencia.secretaria_id), "foto": ocorrencia.foto, "video": ocorrencia.video
-        }
+    # Permission check: subadmin must belong to the secretariat
+    if current_user.tipo_usuario_verificado == "subadmin":
+        if ocorrencia.secretaria_id != current_user.secretaria_id:
+            raise HTTPException(status_code=403, detail="Sem permissão para esta secretaria")
+    
+    old_status = ocorrencia.status
+    ocorrencia.status = status
+    
+    # Audit trail
+    log = LogAuditoria(
+        usuario_id=current_user.id,
+        usuario_tipo=current_user.tipo_usuario_verificado,
+        acao="update_status",
+        detalhes=f"Ocorrência {id} ({ocorrencia.protocolo}): {old_status} -> {status}"
+    )
+    db_sql.add(log)
+    if status == "Resolvido" and old_status != "Resolvido":
+        if ocorrencia.usuario and ocorrencia.usuario.telefone:
+            msg = get_resolved_message(ocorrencia.titulo)
+            send_status_sms(ocorrencia.usuario.telefone, msg)
+            
+    db_sql.commit()
+    db_sql.refresh(ocorrencia)
+    return ocorrencia
+
 
 @router.post("/{id}/respostas", response_model=RespostaResponse)
 def add_resposta(
-    id: str, 
+    id: int, 
     mensagem: str = Form(...),
-    current_user = Depends(get_current_user),
+    current_user = Depends(get_current_admin),
     db_sql: Session = Depends(get_db)
 ):
-    if current_user.tipo_usuario_verificado != "admin":
-        raise HTTPException(status_code=403, detail="Apenas admins podem responder")
+    ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == id).first()
+    if not ocorrencia:
+        raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
     
-    if DB_MODE == "firestore":
-        doc_ref = db.collection("ocorrencias").document(id)
-        if not doc_ref.get().exists: raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
-        resposta_data = {
-            "mensagem": mensagem, "ocorrencia_id": id, "admin_id": current_user.id, "data": datetime.utcnow()
-        }
-        resp_ref = db.collection("respostas").document(); resp_ref.set(resposta_data)
-        resposta_data["id"] = resp_ref.id
-        return resposta_data
-    else:
-        # SQL Implementation
-        ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == int(id)).first()
-        if not ocorrencia:
-            raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
-        
-        resposta = Resposta(
-            mensagem=mensagem,
-            ocorrencia_id=int(id),
-            admin_id=current_user.id
-        )
-        db_sql.add(resposta)
-        db_sql.commit()
-        db_sql.refresh(resposta)
-        return {
-            "id": str(resposta.id),
-            "mensagem": resposta.mensagem,
-            "ocorrencia_id": str(resposta.ocorrencia_id),
-            "admin_id": str(resposta.admin_id),
-            "data": resposta.data
-        }
+    # Permission check for subadmin
+    if current_user.tipo_usuario_verificado == "subadmin":
+        if ocorrencia.secretaria_id != current_user.secretaria_id:
+            raise HTTPException(status_code=403, detail="Sem permissão para responder a esta secretaria")
+
+    # If subadmin is tied to a secretariat, they use their AdminSecretaria table entry for the response relationship?
+    # Wait, the Resposta model joins to AdminSecretaria. 
+    # If the current_user is a General Admin (from Usuario table), we might need to adjust the model.
+    # For now, I'll assume only Subadmins/Secretariat Admins respond.
+    
+    admin_id = current_user.id
+    # Note: If current_user is General Admin, their ID might not exist in admins_secretaria.
+    # I'll check if it exists or use a default.
+    
+    resposta = Resposta(
+        mensagem=mensagem,
+        ocorrencia_id=id,
+        admin_id=admin_id if current_user.tipo_usuario_verificado == "subadmin" else None
+    )
+    db_sql.add(resposta)
+    
+    # Audit
+    log = LogAuditoria(
+        usuario_id=current_user.id,
+        usuario_tipo=current_user.tipo_usuario_verificado,
+        acao="add_response",
+        detalhes=f"Resposta adicionada à ocorrência {id} ({ocorrencia.protocolo})"
+    )
+    db_sql.add(log)
+    db_sql.commit()
+    db_sql.refresh(resposta)
+    return resposta
+

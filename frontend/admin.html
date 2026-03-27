@@ -3,779 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel Admin - Colônia Leopoldina - AL</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="css/style.css">
+    <title>Painel Administrativo - Colônia Digital</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="css/admin-v2.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="bg-animation-container" id="bg-animation"></div>
-
-    <nav class="navbar">
-        <div class="logo">
-            <a href="index.html" style="color: inherit;"><i class="fa-solid fa-city"></i> Painel Admin</a>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <i class="fa-solid fa-city"></i>
+            <span>COLÔNIA DIGITAL</span>
         </div>
-        <div class="hamburger">
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
-        <div class="nav-links" id="nav-links">
-            <!-- Populated via JS -->
-        </div>
-    </nav>
-
-    <div class="dashboard-container fade-in">
-        <div id="adminShortcuts" style="display: none; margin-bottom: 2rem; background: var(--card-bg); padding: 1rem; border-radius: 12px; border-left: 5px solid var(--primary-color);">
-            <h3 style="margin-bottom: 1rem; color: var(--primary-color);"><i class="fa-solid fa-crown"></i> Ferramentas do Administrador Geral</h3>
-            <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
-                <button onclick="document.getElementById('manageAdminsSection').scrollIntoView({behavior: 'smooth'})" class="btn btn-primary">
-                    <i class="fa-solid fa-users-gear"></i> Cadastrar Sub-Administradores
-                </button>
-                <button onclick="document.getElementById('manageUsersSection').scrollIntoView({behavior: 'smooth'})" class="btn btn-outline" style="border-color: var(--error); color: var(--error);">
-                    <i class="fa-solid fa-user-minus"></i> Excluir Usuários
-                </button>
-                <button onclick="document.getElementById('modalAlterarSenhaAdmin').style.display='flex'" class="btn btn-outline">
-                    <i class="fa-solid fa-key"></i> Alterar Minha Senha
-                </button>
-            </div>
-        </div>
+        <nav id="sideNav">
+            <!-- Dynamic Items Based on Role -->
+        </nav>
         
-        <div class="stats-grid">
-            <div class="stat-card">
-                <i class="fa-solid fa-clipboard-list fa-2x" style="color: var(--primary-color);"></i>
-                <h3 id="totalOc">0</h3>
-                <p>Total de Ocorrências</p>
-            </div>
-            <div class="stat-card">
-                <i class="fa-solid fa-exclamation-circle fa-2x" style="color: var(--warning);"></i>
-                <h3 id="pendentesOc">0</h3>
-                <p>Pendentes</p>
-            </div>
-            <div class="stat-card">
-                <i class="fa-solid fa-check-double fa-2x" style="color: var(--success);"></i>
-                <h3 id="resolvidasOc">0</h3>
-                <p>Resolvidas</p>
-            </div>
-            <div class="stat-card" id="cardUsuariosGeral" style="display: none;">
-                <i class="fa-solid fa-users fa-2x" style="color: var(--primary-color);"></i>
-                <h3 id="totalUsuarios">0</h3>
-                <p>Usuários Cadastrados</p>
+        <div style="margin-top: auto;">
+            <div class="nav-item" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span>Sair</span>
             </div>
         </div>
+    </aside>
 
-        <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; max-width: 600px; margin: 0 auto 2rem auto; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-            <canvas id="statusChart"></canvas>
-        </div>
-
-
-
-        <section id="manageAdminsSection" style="margin-bottom: 3rem; display: none;">
-            <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);"><i class="fa-solid fa-user-shield"></i> Sub-Administradores das Secretarias</h2>
-            <div style="background: var(--card-bg); padding: 1.5rem; border-radius: 12px; margin-bottom: 1.5rem; box-shadow: 0 2px 10px rgba(0,0,0,0.05);">
-                <form id="formNovoadmin" onsubmit="criarAdmin(event)" style="display: grid; gap: 1rem; grid-template-columns: 1fr 1fr;">
-                    <div style="grid-column: 1/-1;"><h3>Cadastrar Novo Sub-Administrador (v1.1)</h3></div>
-                    <div><label>Nome</label><input type="text" id="adminNome" class="input-field" required></div>
-                    <div><label>CPF</label><input type="text" id="adminCPF" class="input-field" required></div>
-                    <div><label>Secretaria</label><select id="adminSec" class="input-field" required></select></div>
-                    <div><label>E-mail</label><input type="email" id="adminEmail" class="input-field" required></div>
-                    <div><label>Nova Senha</label><input type="password" id="adminSenha" class="input-field" required minlength="6"></div>
-                    <div style="grid-column: 1/-1;"><button type="submit" class="btn btn-primary">Cadastrar Administrador</button></div>
-                </form>
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="header-bar">
+            <div>
+                <h2 id="pageTitle">Dashboard</h2>
+                <span style="color: var(--text-muted); font-size: 0.85rem;" id="breadcrumb">Início / Dashboard</span>
             </div>
-            <div class="ocorrencias-list" id="listaAdmins">
-                <!-- Loaded via JS -->
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="text-align: right;">
+                    <strong id="userName">Carregando...</strong>
+                    <div style="font-size: 0.75rem;"><span id="userRole" style="color: var(--primary);">Administrador</span> <span id="roleDebug" style="color: #64748b; font-size: 0.65rem;"></span></div>
+                </div>
+
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;" id="userAvatar">
+                    A
+                </div>
+            </div>
+        </header>
+
+        <!-- DASHBOARD SECTION -->
+        <section id="dashboard" class="section active">
+            <div class="stats-grid" id="statsGrid">
+                <!-- Stat Cards -->
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
+                <div class="stat-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h3>Solicitações Recentes</h3>
+                        <div id="adminQuickActions"></div>
+                    </div>
+                    <div class="ocorrencias-list" id="recentActivity"></div>
+                </div>
+
+                <div class="stat-card">
+                    <h3>Distribuição por Status</h3>
+                    <canvas id="statusChartAdmin" height="300"></canvas>
+                </div>
+            </div>
+
+            <div class="stat-card" style="margin-top: 1.5rem;" id="secChartContainer">
+                <h3>Fluxo por Secretaria (Ocorrências e Agendamentos)</h3>
+                <canvas id="secretariaChart" height="150"></canvas>
             </div>
         </section>
 
-        <section id="manageUsersSection" style="margin-bottom: 3rem; display: none;">
-            <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);"><i class="fa-solid fa-users"></i> Gestão de Cidadãos Cadastrados</h2>
-            <div class="ocorrencias-list" id="listaUsuarios">
-                <!-- Loaded via JS -->
+        <!-- OCORRENCIAS SECTION -->
+        <section id="ocorrencias" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3>Gestão de Ocorrências</h3>
+                <div style="display: flex; gap: 0.5rem;">
+                    <select id="filterOcorrenciaStatus" class="btn btn-outline" onchange="loadOcorrencias()">
+                        <option value="">Status: Todos</option>
+                        <option value="Pendente">Pendentes</option>
+                        <option value="Em atendimento">Em atendimento</option>
+                        <option value="Resolvido">Resolvidos</option>
+                    </select>
+                </div>
+            </div>
+            <div id="ocorrenciasTableContainer">
+                <!-- Table loaded via JS -->
             </div>
         </section>
 
-        <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);">Gestão de Ocorrências</h2>
-        <div class="ocorrencias-list" id="listaOcorrenciasAdmin" style="margin-bottom: 3rem;">
-            <!-- Loaded via JS -->
-        </div>
+        <!-- AGENDAMENTOS SECTION -->
+        <section id="agendamentos" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3>Agendamentos e Viagens</h3>
+            </div>
+            <div id="agendamentosTableContainer"></div>
+        </section>
 
+        <!-- USUARIOS SECTION (Cidadãos) -->
+        <section id="usuarios" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3>Gestão de Cidadãos</h3>
+            </div>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Aprovação de novos cidadãos e controle de acesso.</p>
+            <div id="usuariosTableContainer"></div>
+        </section>
 
-        <h2 style="margin-bottom: 1.5rem; color: var(--primary-color);">Gestão de Agêndamentos (Consultas/Reuniões)</h2>
-        <div class="ocorrencias-list" id="listaAgendamentosAdmin">
-            <!-- Loaded via JS -->
-        </div>
+        <!-- TODAS AS PESSOAS SECTION (Unificada) -->
+        <section id="usuarios-todos" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3>Todas as Pessoas Cadastradas</h3>
+                <div style="display: flex; gap: 0.5rem;" id="allUsersActions">
+                    <!-- Actions for Admin -->
+                </div>
+            </div>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Visão geral de todos os cidadãos, sub-administradores e administradores gerais.</p>
+            <div id="allUsersTableContainer"></div>
+        </section>
 
-        <!-- Modal: Alterar Senha do Admin Geral -->
-        <div id="modalAlterarSenhaAdmin" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
-            <div style="background: var(--card-bg); padding: 2rem; border-radius: 16px; width: 100%; max-width: 400px; margin: 1rem; box-shadow: 0 20px 60px rgba(0,0,0,0.3);">
-                <h3 style="margin-bottom: 1.5rem; color: var(--primary-color);"><i class="fa-solid fa-key"></i> Alterar Minha Senha</h3>
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <div>
-                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem;">Senha Atual</label>
-                        <input type="password" id="senhaAtualAdmin" class="input-field" placeholder="Digite a senha atual" required>
-                    </div>
-                    <div>
-                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem;">Nova Senha</label>
-                        <input type="password" id="novaSenhaAdmin" class="input-field" placeholder="Mínimo 6 caracteres" required minlength="6">
-                    </div>
-                    <div>
-                        <label style="display:block; margin-bottom:0.4rem; font-size:0.9rem;">Confirmar Nova Senha</label>
-                        <input type="password" id="confirmarSenhaAdmin" class="input-field" placeholder="Repita a nova senha" required>
-                    </div>
-                    <p id="erroSenhaAdmin" style="color:var(--error); display:none; font-size:0.88rem;"></p>
-                    <div style="display: flex; gap: 0.75rem; margin-top: 0.5rem;">
-                        <button onclick="alterarMinhaSenha()" class="btn btn-primary" style="flex:1;"><i class="fa-solid fa-check"></i> Confirmar</button>
-                        <button onclick="document.getElementById('modalAlterarSenhaAdmin').style.display='none'" class="btn btn-outline" style="flex:1;"><i class="fa-solid fa-times"></i> Cancelar</button>
+        <!-- ADMINS SECTION (Only Admin Geral) -->
+        <section id="admins" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3>Sub-Administradores (Secretarias)</h3>
+                <button class="btn btn-primary" onclick="openModal('modalNewAdmin')">
+                    <i class="fa-solid fa-plus"></i> Novo Sub-Admin
+                </button>
+            </div>
+            <div id="adminsTableContainer"></div>
+        </section>
+
+        <!-- AUDITORIA SECTION (Only Admin Geral) -->
+        <section id="auditoria" class="section">
+            <h3>Logs de Auditoria</h3>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Histórico completo de ações administrativas.</p>
+            <div id="auditLogsTableContainer"></div>
+        </section>
+
+        <!-- CONFIG SECTION -->
+        <section id="config" class="section">
+            <h3>Minha Conta</h3>
+            <div style="max-width: 500px; margin-top: 2rem;">
+                <div class="stat-card">
+                    <h4>Alterar Senha</h4>
+                    <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+                        <input type="password" id="pwCurrent" class="btn btn-outline" style="width: 100%;" placeholder="Senha Atual">
+                        <input type="password" id="pwNew" class="btn btn-outline" style="width: 100%;" placeholder="Nova Senha">
+                        <input type="password" id="pwConfirm" class="btn btn-outline" style="width: 100%;" placeholder="Confirmar Nova Senha">
+                        <button class="btn btn-primary" onclick="updatePassword()">Atualizar Senha</button>
                     </div>
                 </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- MODAL NEW ADMIN -->
+    <div id="modalNewAdmin" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
+        <div class="stat-card" style="width: 100%; max-width: 500px; padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem;">Cadastrar Sub-Administrador</h3>
+            <form id="formAdmin">
+                <input type="text" id="newAdminName" placeholder="Nome Completo" class="btn btn-outline" style="width:100%; margin-bottom:1rem;" required>
+                <input type="text" id="newAdminCPF" placeholder="CPF" class="btn btn-outline" style="width:100%; margin-bottom:1rem;" required>
+                <input type="email" id="newAdminEmail" placeholder="E-mail" class="btn btn-outline" style="width:100%; margin-bottom:1rem;" required>
+                <input type="text" id="newAdminTel" placeholder="Telefone" class="btn btn-outline" style="width:100%; margin-bottom:1rem;">
+                <input type="password" id="newAdminPass" placeholder="Senha" class="btn btn-outline" style="width:100%; margin-bottom:1rem;" required minlength="6">
+                <select id="newAdminSec" class="btn btn-outline" style="width:100%; margin-bottom:1.5rem;" required>
+                    <!-- Populated via JS -->
+                </select>
+                <div style="display:flex; gap:1rem;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Cadastrar</button>
+                    <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeModal('modalNewAdmin')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL RESPONSE/STATUS -->
+    <div id="modalResponse" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
+        <div class="stat-card" style="width: 100%; max-width: 500px; padding: 2rem;">
+            <h3 id="modalResponseTitle">Responder Ocorrência</h3>
+            <p id="modalResponseSubtitle" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;"></p>
+            <textarea id="respText" class="btn btn-outline" style="width:100%; height:150px; margin-bottom:1rem; padding:10px; font-family:inherit;" placeholder="Escreva a resposta administrativa..."></textarea>
+            <div style="display:flex; gap:1rem;">
+                <button class="btn btn-primary" id="btnConfirmResp" style="flex:1;">Confirmar RESOLVIDO</button>
+                <button class="btn btn-outline" style="flex:1;" onclick="closeModal('modalResponse')">Cancelar</button>
             </div>
         </div>
     </div>
 
+    <!-- JS Files -->
+    <!-- Modal Alterar Senha -->
+    <div id="modalAlterarSenha" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="document.getElementById('modalAlterarSenha').style.display='none'">&times;</span>
+            <h2 id="modalSenhaTitle" style="color: var(--primary-color); margin-bottom: 1.5rem;">Alterar Senha</h2>
+            <form id="formAlterarSenha">
+                <input type="hidden" id="senha_user_id">
+                <input type="hidden" id="senha_user_source">
+                
+                <div class="form-group">
+                    <label>Nova Senha</label>
+                    <input type="password" id="nova_senha_input" required placeholder="Digite a nova senha">
+                </div>
+                
+                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Confirmar Alteração</button>
+                    <button type="button" class="btn btn-outline" style="flex: 1;" onclick="document.getElementById('modalAlterarSenha').style.display='none'">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="js/main.js"></script>
-    <script>
-        if (!checkAuth(true)) throw new Error("Acesso negado - Não é admin");
-
-        let statusChartInst = null;
-        let secretariasMap = {};
-
-        async function loadSecretarias() {
-            try {
-                const res = await fetch(`${API_URL}/secretarias/`);
-                if(res.ok) {
-                    const data = await res.json();
-                    const secSelect = document.getElementById('adminSec');
-                    secSelect.innerHTML = '';
-                    data.forEach(s => {
-                        secretariasMap[s.id] = s.nome;
-                        secSelect.innerHTML += `<option value="${s.id}">${s.nome}</option>`;
-                    });
-                }
-            } catch(e) { console.error("Error loading secretarias", e); }
-        }
-
-        async function loadAdminOcorrencias() {
-            try {
-                const res = await fetch(`${API_URL}/ocorrencias/`, {
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                
-                if(res.ok) {
-                    let ocorrencias = await res.json();
-                    
-                    const user = getUserInfo();
-                    const isSubAdmin = user && user.tipo_usuario === 'admin' && user.secretaria_id;
-                    
-                    if (isSubAdmin) {
-                        ocorrencias = ocorrencias.filter(o => parseInt(o.secretaria_id) === parseInt(user.secretaria_id));
-                    }
-                    
-                    let total = ocorrencias.length;
-                    let pendentes = ocorrencias.filter(o => o.status === 'Pendente').length;
-                    let resolvidas = ocorrencias.filter(o => o.status === 'Resolvido').length;
-                    let atendimento = ocorrencias.filter(o => o.status === 'Em atendimento').length;
-
-                    document.getElementById('totalOc').innerText = total;
-                    document.getElementById('pendentesOc').innerText = pendentes;
-                    document.getElementById('resolvidasOc').innerText = resolvidas;
-
-                    renderChart(pendentes, atendimento, resolvidas);
-
-                    const container = document.getElementById('listaOcorrenciasAdmin');
-                    container.innerHTML = '';
-                    
-                    const grouped = {};
-                    ocorrencias.forEach(o => {
-                        const sId = o.secretaria_id;
-                        if(!grouped[sId]) grouped[sId] = [];
-                        grouped[sId].push(o);
-                    });
-
-                    for (const [sId, items] of Object.entries(grouped)) {
-                        const secName = secretariasMap[sId] || 'Geral';
-                        container.innerHTML += `<div style="grid-column: 1/-1; border-bottom: 2px solid var(--primary-color); padding-bottom: 0.5rem;"><h3 style="margin: 1rem 0 0 0; color: var(--primary-color);">📂 ${secName}</h3></div>`;
-                        
-                        items.forEach(o => {
-                            const statusClass = {
-                                'Pendente': 'status-pendente',
-                                'Em atendimento': 'status-atendimento',
-                                'Resolvido': 'status-resolvido'
-                            }[o.status] || 'status-pendente';
-
-                            container.innerHTML += `
-                                <div class="ocorrencia-card">
-                                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                                        <h3>${o.titulo} <span class="status-badge ${statusClass}">${o.status}</span></h3>
-                                        ${o.status === 'Resolvido' ? `
-                                            <button onclick="gerarProtocolo('${o.id}')" class="btn btn-primary" style="background: var(--success); font-size: 0.8rem; padding: 0.4rem 0.8rem;">
-                                                <i class="fa-solid fa-print"></i> Protocolo
-                                            </button>
-                                        ` : ''}
-                                    </div>
-                                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin-bottom: 0.5rem;">Cidadão ID: ${o.usuario_id} | Data: ${new Date(o.data).toLocaleDateString()}</p>
-                                    <p style="margin-bottom: 1rem;">${o.descricao}</p>
-                                    ${o.foto ? `<p><a href="${MEDIA_URL}/${o.foto}" target="_blank"><i class="fa-solid fa-image"></i> Ver Foto Anexa</a></p>` : ''}
-                                    
-                                    <div style="margin-top: 1rem;">
-                                        <select onchange="atualizarStatus('${o.id}', this.value)" style="padding:0.5rem; border-radius:5px; width:100%; border:1px solid #ddd;">
-                                            <option value="" disabled selected>Alterar Status</option>
-                                            <option value="Pendente">Pendente</option>
-                                            <option value="Em atendimento">Em atendimento</option>
-                                            <option value="Resolvido">Resolvido</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            `;
-                        });
-                    }
-                }
-            } catch(e) {}
-        }
-
-        async function atualizarStatus(id, novoStatus) {
-            try {
-                const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=${encodeURIComponent(novoStatus)}`, {
-                    method: 'PATCH',
-                    headers: { 
-                        'Authorization': `Bearer ${getToken()}`,
-                        'Accept': 'application/json'
-                    }
-                });
-                if(res.ok) {
-                    loadAdminOcorrencias();
-                } else {
-                    alert("Erro ao alterar status");
-                }
-            } catch(e) {
-                alert("Erro de conexão");
-            }
-        }
-
-        async function loadAdminAgendamentos() {
-            try {
-                const res = await fetch(`${API_URL}/agendamentos/`, {
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                if(res.ok) {
-                    let agendamentos = await res.json();
-                    
-                    const user = getUserInfo();
-                    const isSubAdmin = user && user.tipo_usuario === 'admin' && user.secretaria_id;
-                    
-                    if (isSubAdmin) {
-                        agendamentos = agendamentos.filter(a => parseInt(a.secretaria_id) === parseInt(user.secretaria_id));
-                    }
-
-                    const container = document.getElementById('listaAgendamentosAdmin');
-                    container.innerHTML = '';
-                    
-                    if(agendamentos.length === 0) {
-                        container.innerHTML = '<p>Nenhum agendamento encontrado.</p>';
-                        return;
-                    }
-
-                    agendamentos.forEach(a => {
-                        const statusClass = {
-                            'Pendente': 'status-pendente',
-                            'Confirmado': 'status-resolvido',
-                            'Cancelado': 'status-error'
-                        }[a.status] || 'status-pendente';
-
-                        container.innerHTML += `
-                            <div class="ocorrencia-card" style="border-left: 5px solid var(--success);">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                                    <h3><i class="fa-solid fa-calendar-check"></i> ${a.assunto} <span class="status-badge ${statusClass}">${a.status}</span></h3>
-                                    ${a.status === 'Confirmado' ? `
-                                        <button onclick="gerarProtocoloAgendamento('${a.id}')" class="btn btn-primary" style="background: var(--primary-color); font-size: 0.8rem; padding: 0.4rem 0.8rem;">
-                                            <i class="fa-solid fa-print"></i> Imprimir
-                                        </button>
-                                    ` : ''}
-                                </div>
-                                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-laptop-medical"></i> Tipo: <strong>${a.tipo}</strong> | Data: ${new Date(a.data_hora).toLocaleString()}</p>
-                                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-building"></i> Secretaria: <strong>${secretariasMap[a.secretaria_id] || 'Geral'}</strong></p>
-                                ${a.cartao_sus ? `<p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-address-card"></i> Cartão SUS: <strong>${a.cartao_sus}</strong></p>` : ''}
-                                ${a.motivo ? `<p style="margin-bottom: 0.5rem;"><strong><i class="fa-solid fa-circle-info"></i> Motivo:</strong> ${a.motivo}</p>` : ''}
-                                ${a.acompanhante ? `<p style="margin-bottom: 1rem;"><strong><i class="fa-solid fa-user-plus"></i> Acompanhante:</strong> ${a.acompanhante}</p>` : ''}
-                                ${a.anexo ? `<p style="margin-bottom: 1rem;"><a href="${MEDIA_URL}/${a.anexo}" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 1rem;"><i class="fa-solid fa-paperclip"></i> Ver Comprovante</a></p>` : ''}
-                                
-                                <select onchange="atualizarStatusAgendamento('${a.id}', this.value)" style="margin-top:1rem; padding:0.5rem; border-radius:5px; width:100%; border:1px solid #ddd;">
-                                    <option value="" disabled selected>Alterar Status do Agendamento</option>
-                                    <option value="Pendente">Pendente</option>
-                                    <option value="Confirmado">Confirmar Agendamento</option>
-                                    <option value="Cancelado">Cancelar Agendamento</option>
-                                </select>
-                            </div>
-                        `;
-                    });
-                }
-            } catch(e) {}
-        }
-
-        async function atualizarStatusAgendamento(id, novoStatus) {
-            try {
-                const res = await fetch(`${API_URL}/agendamentos/${id}/status?status=${encodeURIComponent(novoStatus)}`, {
-                    method: 'PATCH',
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                if(res.ok) {
-                    loadAdminAgendamentos();
-                } else {
-                    alert("Erro ao alterar status do agendamento");
-                }
-            } catch(e) {
-                alert("Erro de conexão");
-            }
-        }
-
-        function renderChart(pendentes, atendimento, resolvidas) {
-            const ctx = document.getElementById('statusChart').getContext('2d');
-            if(statusChartInst) statusChartInst.destroy();
-            
-            // Adjust text color based on theme
-            const textColor = document.documentElement.getAttribute('data-theme') === 'dark' ? '#e0e0e0' : '#212121';
-
-            statusChartInst = new Chart(ctx, {
-                type: 'pie',
-                data: {
-                    labels: ['Pendente', 'Em atendimento', 'Resolvido'],
-                    datasets: [{
-                        data: [pendentes, atendimento, resolvidas],
-                        backgroundColor: ['#f57f17', '#1565c0', '#2e7d32'],
-                        borderWidth: 0
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { labels: { color: textColor } }
-                    }
-                }
-            });
-        }
-
-        async function loadPendingUsers() {
-            try {
-                const res = await fetch(`${API_URL}/admin/users/pending`, {
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                
-                if(res.ok) {
-                    const users = await res.json();
-                    const section = document.getElementById('userRequestsSection');
-                    const container = document.getElementById('listaSolicitacoes');
-                    
-                    if (users.length > 0) {
-                        section.style.display = 'block';
-                        container.innerHTML = '';
-                        users.forEach(u => {
-                            container.innerHTML += `
-                                <div class="ocorrencia-card" style="border-left: 5px solid var(--warning);">
-                                    <h3 style="display: flex; justify-content: space-between; align-items: center;">
-                                        ${u.nome}
-                                        <div style="display: flex; gap: 0.5rem;">
-                                            <button onclick="changeUserStatus('${u.id}', 'approve')" class="btn btn-primary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; background: var(--success);">Aprovar</button>
-                                            <button onclick="changeUserStatus('${u.id}', 'reject')" class="btn btn-secondary" style="padding: 0.3rem 0.8rem; font-size: 0.8rem; background: var(--error);">Rejeitar</button>
-                                        </div>
-                                    </h3>
-                                    <p style="font-size: 0.9rem; color: var(--text-secondary);">CPF: ${u.cpf} | Email: ${u.email}</p>
-                                    <p style="font-size: 0.9rem; color: var(--text-secondary);">Endereço: ${u.endereco || 'Não informado'}</p>
-                                </div>
-                            `;
-                        });
-                    } else {
-                        section.style.display = 'none';
-                    }
-                }
-            } catch(e) {}
-        }
-
-        async function changeUserStatus(userId, action) {
-            try {
-                const res = await fetch(`${API_URL}/admin/users/${userId}/${action}`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                if(res.ok) {
-                    loadPendingUsers();
-                } else {
-                    alert("Erro ao processar solicitação");
-                }
-            } catch(e) {
-                alert("Erro de conexão");
-            }
-        }
-
-        async function loadAdmins() {
-            try {
-                const res = await fetch(`${API_URL}/admin/users/secretaria-admins`, {
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                if(res.ok) {
-                    const admins = await res.json();
-                    document.getElementById('manageAdminsSection').style.display = 'block';
-                    const shortcuts = document.getElementById('adminShortcuts');
-                    if (shortcuts) shortcuts.style.display = 'block';
-
-                    const container = document.getElementById('listaAdmins');
-                    container.innerHTML = '';
-                    admins.forEach(a => {
-                        container.innerHTML += `
-                            <div class="ocorrencia-card" style="border-left: 5px solid var(--primary-color);">
-                                <h3>${a.nome} <span class="status-badge" style="background:var(--primary-color);color:#fff;">${secretariasMap[a.secretaria_id] || 'N/A'}</span></h3>
-                                <p style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 1rem;">Email: ${a.email}</p>
-                                <div style="display: flex; gap: 0.5rem;">
-                                    <button onclick="alterarSenhaSubAdmin(${a.id})" class="btn btn-secondary" style="font-size:0.8rem; padding:0.4rem 0.8rem;">Trocar Senha</button>
-                                    <button onclick="excluirAdmin(${a.id})" class="btn btn-primary" style="font-size:0.8rem; padding:0.4rem 0.8rem; background: var(--error);">Excluir</button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                } else if(res.status === 403) {
-                    document.getElementById('manageAdminsSection').style.display = 'none';
-                }
-            } catch(e) { console.error("Erro ao carregar admins:", e); }
-        }
-
-        async function criarAdmin(e) {
-            e.preventDefault();
-            const data = {
-                nome: document.getElementById('adminNome').value,
-                cpf: document.getElementById('adminCPF').value,
-                email: document.getElementById('adminEmail').value,
-                senha: document.getElementById('adminSenha').value,
-                secretaria_id: parseInt(document.getElementById('adminSec').value)
-            };
-            try {
-                const res = await fetch(`${API_URL}/admin/users/secretaria-admins`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-                    body: JSON.stringify(data)
-                });
-                if(res.ok) {
-                    alert("Administrador cadastrado com sucesso!");
-                    document.getElementById('formNovoadmin').reset();
-                    loadAdmins();
-                } else {
-                    const err = await res.json();
-                    alert(err.detail || "Erro ao cadastrar.");
-                }
-            } catch(e) { alert("Erro de conexão."); }
-        }
-
-        async function alterarSenhaSubAdmin(id) {
-            const nova_senha = prompt("Digite a nova senha para este administrador (mínimo 6 caracteres):");
-            if(!nova_senha || nova_senha.length < 6) return alert("Senha muito curta ou procedimento cancelado.");
-            
-            try {
-                const res = await fetch(`${API_URL}/admin/users/secretaria-admins/${id}/password`, {
-                    method: 'PATCH',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
-                    body: JSON.stringify({nova_senha})
-                });
-                if(res.ok) {
-                    alert("Senha alterada com sucesso!");
-                } else {
-                    alert("Erro ao alterar senha.");
-                }
-            } catch(e) { alert("Erro de conexão."); }
-        }
-
-        async function excluirAdmin(id) {
-            if(!confirm("Tem certeza que deseja excluir permanentemente este sub-administrador?")) return;
-            
-            try {
-                const res = await fetch(`${API_URL}/admin/users/secretaria-admins/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                if(res.ok) {
-                    alert("Administrador excluído com sucesso!");
-                    loadAdmins();
-                } else {
-                    alert("Erro ao excluir.");
-                }
-            } catch(e) { alert("Erro de conexão."); }
-        }
-        async function loadUsuarios() {
-            if (!checkAuth(true)) return;
-            const user = getUserInfo();
-            if (user.tipo_usuario !== 'admin') return; // Only general admin can see this
-
-            try {
-                const res = await fetch(`${API_URL}/admin/users/`, {
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                if (res.ok) {
-                    const usuarios = await res.json();
-                    document.getElementById('manageUsersSection').style.display = 'block';
-                    document.getElementById('cardUsuariosGeral').style.display = 'block';
-                    document.getElementById('totalUsuarios').innerText = usuarios.length;
-                    
-                    const container = document.getElementById('listaUsuarios');
-                    container.innerHTML = '';
-                    
-                    if (usuarios.length === 0) {
-                        container.innerHTML = '<p style="text-align:center; padding:1rem;">Nenhum usuário cadastrado.</p>';
-                        return;
-                    }
-
-                    usuarios.forEach(u => {
-                        container.innerHTML += `
-                            <div class="ocorrencia-card" style="border-left: 5px solid ${u.status === 'Ativo' ? 'var(--primary-color)' : 'var(--error)'};">
-                                <div style="display:flex; justify-content:space-between; align-items:flex-start;">
-                                    <div>
-                                        <h3 style="margin-bottom:0.25rem;">${u.nome} <span class="status-badge" style="font-size:0.7rem;">${u.status}</span></h3>
-                                        <p style="font-size: 0.85rem; color: var(--text-secondary);">Email: ${u.email} | CPF: ${u.cpf}</p>
-                                    </div>
-                                    <button onclick="excluirUsuario(${u.id})" class="btn" style="background:var(--error); color:white; padding:0.4rem 0.8rem; font-size:0.8rem;">
-                                        <i class="fa-solid fa-trash-can"></i> Excluir
-                                    </button>
-                                </div>
-                            </div>
-                        `;
-                    });
-                }
-            } catch (e) {
-                console.error("Erro ao carregar usuários:", e);
-            }
-        }
-
-        async function excluirUsuario(id) {
-            if (!confirm("⚠️ ATENÇÃO: Esta ação excluirá PERMANENTEMENTE o usuário e todos os seus dados. Deseja continuar?")) return;
-            
-            try {
-                const res = await fetch(`${API_URL}/admin/users/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                if (res.ok) {
-                    alert("Usuário excluído com sucesso!");
-                    loadUsuarios();
-                } else {
-                    alert("Erro ao excluir usuário.");
-                }
-            } catch (e) {
-                alert("Erro de conexão ao excluir usuário.");
-            }
-        }
-
-        async function alterarMinhaSenha() {
-            const senhaAtual = document.getElementById('senhaAtualAdmin').value;
-            const novaSenha = document.getElementById('novaSenhaAdmin').value;
-            const confirmarSenha = document.getElementById('confirmarSenhaAdmin').value;
-            const erroEl = document.getElementById('erroSenhaAdmin');
-
-            if (!senhaAtual || !novaSenha || !confirmarSenha) {
-                erroEl.innerText = "Preencha todos os campos.";
-                erroEl.style.display = 'block';
-                return;
-            }
-
-            if (novaSenha.length < 6) {
-                erroEl.innerText = "A nova senha deve ter pelo menos 6 caracteres.";
-                erroEl.style.display = 'block';
-                return;
-            }
-
-            if (novaSenha !== confirmarSenha) {
-                erroEl.innerText = "As senhas não coincidem.";
-                erroEl.style.display = 'block';
-                return;
-            }
-
-            try {
-                const res = await fetch(`${API_URL}/admin/users/me/password`, {
-                    method: 'PATCH',
-                    headers: { 
-                        'Content-Type': 'application/json', 
-                        'Authorization': `Bearer ${getToken()}` 
-                    },
-                    body: JSON.stringify({
-                        senha_atual: senhaAtual,
-                        nova_senha: novaSenha
-                    })
-                });
-
-                if (res.ok) {
-                    alert("Sua senha foi alterada com sucesso!");
-                    document.getElementById('modalAlterarSenhaAdmin').style.display = 'none';
-                    // Reset fields
-                    document.getElementById('senhaAtualAdmin').value = '';
-                    document.getElementById('novaSenhaAdmin').value = '';
-                    document.getElementById('confirmarSenhaAdmin').value = '';
-                } else {
-                    const err = await res.json();
-                    erroEl.innerText = err.detail || "Erro ao alterar senha. Verifique a senha atual.";
-                    erroEl.style.display = 'block';
-                }
-            } catch (e) {
-                erroEl.innerText = "Erro de conexão ao alterar senha.";
-                erroEl.style.display = 'block';
-            }
-        }
-        async function gerarProtocoloAgendamento(id) {
-            try {
-                const res = await fetch(`${API_URL}/agendamentos/${id}`, {
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                if(res.ok) {
-                    const a = await res.json();
-                    const printWindow = window.open('', '_blank');
-                    const secName = secretariasMap[a.secretaria_id] || 'SECRETARIA MUNICIPAL';
-                    const isSaude = secName.toUpperCase().includes("SAÚDE");
-                    const titleDoc = isSaude ? "COMPROVANTE DE AGENDAMENTO" : "CONFIRMAÇÃO DE VIAGEM";
-                    const stampText = isSaude ? "CONSULTA CONFIRMADA" : "VIAGEM AUTORIZADA";
-                    
-                    printWindow.document.write(`
-                        <html>
-                        <head>
-                            <title>${titleDoc} - ${a.id}</title>
-                            <style>
-                                body { font-family: sans-serif; padding: 40px; color: #333; line-height: 1.6; }
-                                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
-                                .title { font-size: 24px; font-weight: bold; margin-bottom: 10px; text-transform: uppercase; }
-                                .info-group { margin-bottom: 15px; border-bottom: 1px dotted #eee; padding-bottom: 5px; }
-                                .label { font-weight: bold; width: 180px; display: inline-block; color: #555; }
-                                .content { border: 2px solid #333; padding: 30px; border-radius: 8px; background: #fff; }
-                                .footer { margin-top: 50px; text-align: center; font-size: 11px; color: #666; border-top: 1px solid #ccc; padding-top: 20px; }
-                                .stamp { margin-top: 30px; border: 3px solid #1a237e; color: #1a237e; display: inline-block; padding: 15px 25px; border-radius: 5px; font-weight: bold; transform: rotate(-3deg); font-size: 1.2rem; }
-                                @media print { .no-print { display: none; } }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="header">
-                                <div class="title">🎫 ${titleDoc}</div>
-                                <div>Prefeitura Municipal de Colônia Leopoldina - AL</div>
-                                <div>Secretaria: ${secName}</div>
-                            </div>
-                            
-                            <div class="content">
-                                <div class="info-group"><span class="label">Protocolo:</span> <strong>#${a.id}</strong></div>
-                                <div class="info-group"><span class="label">Cidadão:</span> ${a.usuario_nome || 'Não informado'}</div>
-                                ${a.cartao_sus ? `<div class="info-group"><span class="label">Cartão SUS:</span> ${a.cartao_sus}</div>` : ''}
-                                <div class="info-group"><span class="label">Assunto/Destino:</span> ${a.assunto}</div>
-                                <div class="info-group"><span class="label">Motivo:</span> ${a.motivo || 'Não informado'}</div>
-                                <div class="info-group"><span class="label">Acompanhante:</span> ${a.acompanhante || 'Nenhum'}</div>
-                                <div class="info-group"><span class="label">Data/Hora:</span> ${new Date(a.data_hora).toLocaleString()}</div>
-                                <div class="info-group"><span class="label">Status:</span> <strong style="color: green;">CONFIRMADO</strong></div>
-                            </div>
-
-                            <div style="text-align: right;">
-                                <div class="stamp">${stampText}</div>
-                            </div>
-
-                            <div class="footer">
-                                <p>Este documento comprova o agendamento realizado via Leopoldina Digital.</p>
-                                <p>Gerado em: ${new Date().toLocaleString()} | Colônia Leopoldina - AL</p>
-                                <button onclick="window.print()" class="no-print" style="margin-top: 20px; padding: 12px 25px; cursor: pointer; background: #333; color: #fff; border: none; border-radius: 4px;">🖨️ Imprimir Documento</button>
-                            </div>
-                        </body>
-                        </html>
-                    `);
-                    printWindow.document.close();
-                }
-            } catch(e) { 
-                console.error(e);
-                alert("Erro ao gerar confirmação."); 
-            }
-        }
-
-
-        async function gerarProtocolo(id) {
-            try {
-                const res = await fetch(`${API_URL}/ocorrencias/`, {
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
-                if(res.ok) {
-                    const ocorrencias = await res.json();
-                    const o = ocorrencias.find(item => item.id == id);
-                    if(!o) return alert("Ocorrência não encontrada.");
-
-                    const printWindow = window.open('', '_blank');
-                    const secName = secretariasMap[o.secretaria_id] || 'Geral';
-                    
-                    printWindow.document.write(`
-                        <html>
-                        <head>
-                            <title>Protocolo de Encerramento - ${o.id}</title>
-                            <style>
-                                body { font-family: sans-serif; padding: 40px; color: #333; }
-                                .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
-                                .title { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
-                                .info-group { margin-bottom: 15px; }
-                                .label { font-weight: bold; width: 150px; display: inline-block; }
-                                .content { border: 1px solid #ccc; padding: 20px; border-radius: 8px; }
-                                .footer { margin-top: 50px; text-align: center; font-size: 12px; color: #777; border-top: 1px solid #eee; padding-top: 20px; }
-                                .stamp { margin-top: 30px; border: 2px solid #2e7d32; color: #2e7d32; display: inline-block; padding: 10px 20px; border-radius: 5px; font-weight: bold; transform: rotate(-5deg); }
-                                @media print { .no-print { display: none; } }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="header">
-                                <div class="title">📄 PROTOCOLO DE CONCLUSÃO</div>
-                                <div>Prefeitura Municipal de Colônia Leopoldina - AL</div>
-                                <div>Colônia Leopoldina - AL</div>
-                            </div>
-                            
-                            <div class="content">
-                                <div class="info-group"><span class="label">Protocolo:</span> #${o.id}</div>
-                                <div class="info-group"><span class="label">Assunto:</span> ${o.titulo}</div>
-                                <div class="info-group"><span class="label">Secretaria:</span> ${secName}</div>
-                                <div class="info-group"><span class="label">Data de Abertura:</span> ${new Date(o.data).toLocaleString()}</div>
-                                <div class="info-group"><span class="label">Data de Conclusão:</span> ${new Date().toLocaleString()}</div>
-                                <div class="info-group"><span class="label">Status Final:</span> RESOLVIDO</div>
-                                <hr>
-                                <div class="info-group">
-                                    <div class="label">Descrição:</div>
-                                    <p>${o.descricao}</p>
-                                </div>
-                            </div>
-
-                            <div style="text-align: right;">
-                                <div class="stamp">CONCLUÍDO E VALIDADO</div>
-                            </div>
-
-                            <div class="footer">
-                                <p>Este documento é uma confirmação digital de encerramento de chamado.</p>
-                                <p>Gerado em: ${new Date().toLocaleString()} - Autenticidade verificada via ID #${o.id}</p>
-                                <button onclick="window.print()" class="no-print" style="margin-top: 20px; padding: 10px 20px; cursor: pointer;">🖨️ Imprimir agora</button>
-                            </div>
-                        </body>
-                        </html>
-                    `);
-                    printWindow.document.close();
-                }
-            } catch(e) { alert("Erro ao gerar protocolo."); }
-        }
-
-        async function loadDashboard() {
-            await loadSecretarias();
-            await loadAdminOcorrencias();
-            const user = getUserInfo();
-            // Somente o Administrador Geral (sem secretaria_id) tem acesso total
-            const isGeneralAdmin = user && user.tipo_usuario === 'admin' && !user.secretaria_id;
-            
-            if (isGeneralAdmin) {
-                if (document.getElementById('adminShortcuts')) document.getElementById('adminShortcuts').style.display = 'block';
-                await loadAdmins();
-                await loadUsuarios();
-            } else {
-                if (document.getElementById('adminShortcuts')) document.getElementById('adminShortcuts').style.display = 'none';
-                if (document.getElementById('manageAdminsSection')) document.getElementById('manageAdminsSection').style.display = 'none';
-                if (document.getElementById('manageUsersSection')) document.getElementById('manageUsersSection').style.display = 'none';
-                if (document.getElementById('cardUsuariosGeral')) document.getElementById('cardUsuariosGeral').style.display = 'none';
-            }
-            await loadAdminAgendamentos();
-        }
-
-        loadDashboard();
-        initBackgroundAnimation('bg-animation');
-    </script>
-
-    <footer class="footer">
-        <p>Todos direitos reservados ao Desenvolvedor Barbosa Nunes</p>
-    </footer>
+    <script src="js/admin-v2.js"></script>
 </body>
 </html>

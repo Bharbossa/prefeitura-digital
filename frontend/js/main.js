@@ -52,7 +52,7 @@ function checkAuth(requireAdmin = false) {
         return false;
     }
     
-    if (requireAdmin && user.tipo_usuario !== 'admin') {
+    if (requireAdmin && user.tipo_usuario === 'user') {
         window.location.href = 'dashboard.html';
         return false;
     }
@@ -66,7 +66,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const user = getUserInfo();
     if (user) {
-        let dashboardLink = user.tipo_usuario === 'admin' ? 'admin.html' : 'dashboard.html';
+        let dashboardLink = (user.tipo_usuario === 'admin' || user.tipo_usuario === 'subadmin') ? 'admin.html' : 'dashboard.html';
         navLinks.innerHTML = `
             <a href="index.html">Início</a>
             <a href="${dashboardLink}">Meu Painel</a>
@@ -74,6 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
             <button onclick="logout()" class="btn btn-outline">Sair</button>
         `;
     }
+
 
     // Hamburger Menu Toggle
     const hamburger = document.querySelector('.hamburger');
