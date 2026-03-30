@@ -42,6 +42,30 @@ def startup_db_init():
         print("Initializing database...")
         Base.metadata.create_all(bind=engine)
         
+        # Sincronizar colunas novas (Migração Manual para MySQL/Render)
+        from sqlalchemy import text
+        with engine.begin() as conn:
+            # Ocorrencias
+            for col in [
+                "ADD COLUMN protocolo VARCHAR(20)",
+                "ADD COLUMN foto VARCHAR(255)",
+                "ADD COLUMN video VARCHAR(255)"
+            ]:
+                try: conn.execute(text(f"ALTER TABLE ocorrencias {col}"))
+                except Exception: pass
+                
+            # Agendamentos
+            for col in [
+                "ADD COLUMN protocolo VARCHAR(20)",
+                "ADD COLUMN motivo TEXT",
+                "ADD COLUMN acompanhante VARCHAR(100)",
+                "ADD COLUMN cartao_sus VARCHAR(50)",
+                "ADD COLUMN anexo VARCHAR(255)",
+                "ADD COLUMN criado_em DATETIME"
+            ]:
+                try: conn.execute(text(f"ALTER TABLE agendamentos {col}"))
+                except Exception: pass
+        
         # Seed secretarias if empty
         from .database import SessionLocal
         from .models.schema import Secretaria
