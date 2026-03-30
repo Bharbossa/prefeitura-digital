@@ -3,7 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models.schema import Usuario, AdminSecretaria
+from ..models.schema import Usuario, AdminSecretaria, StatusUsuario
 from ..core.firebase_config import db, DB_MODE
 from ..models.pydantic_schemas import TokenData
 from .security import SECRET_KEY, ALGORITHM

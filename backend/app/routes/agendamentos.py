@@ -28,8 +28,6 @@ def save_upload_file(upload_file: UploadFile) -> str:
         shutil.copyfileobj(upload_file.file, buffer)
     return file_path
 
-router = APIRouter()
-
 @router.post("", response_model=AgendamentoResponse)
 def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
     if getattr(current_user, "tipo_usuario_verificado", "") != "cidadao":
