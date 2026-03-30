@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 from ..database import get_db
-from ..models.schema import Usuario, StatusUsuario, AdminSecretaria, LogAuditoria
+from ..models.schema import Usuario, StatusUsuario, AdminSecretaria, LogAuditoria, TipoUsuario
 from ..models.pydantic_schemas import (
     UsuarioResponse, 
     AdminSecretariaCreate, 
@@ -157,7 +157,7 @@ def get_all_combined_users(current_admin = Depends(get_general_admin), db_sql: S
             "id": u.id,
             "nome": u.nome,
             "email": u.email,
-            "tipo": "admin" if u.tipo_usuario == TipoUsuario.admin else "cidadao",
+            "tipo": "admin" if str(u.tipo_usuario).split('.')[-1] == "admin" else "cidadao",
             "status": u.status,
             "source": "usuario"
         })

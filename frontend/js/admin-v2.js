@@ -62,16 +62,16 @@ function setupSidebar() {
     if (currentRole === 'admin') {
         html += `
             <div class="nav-item" onclick="showSection('usuarios', this)">
-                <i class="fa-solid fa-users"></i><span>Cidadãos</span>
+                <i class="fa-solid fa-users"></i><span>Gestão de Cidadãos</span>
             </div>
             <div class="nav-item" onclick="showSection('admins', this)">
-                <i class="fa-solid fa-user-shield"></i><span>Sub-Admins</span>
+                <i class="fa-solid fa-user-shield"></i><span>Gerenciar Sub-Admins</span>
             </div>
             <div class="nav-item" onclick="showSection('auditoria', this)">
-                <i class="fa-solid fa-fingerprint"></i><span>Auditoria</span>
+                <i class="fa-solid fa-fingerprint"></i><span>Auditoria Global</span>
             </div>
             <div class="nav-item" onclick="showSection('usuarios-todos', this)">
-                <i class="fa-solid fa-users-gear"></i><span>Todas as Pessoas</span>
+                <i class="fa-solid fa-users-gear"></i><span>Gestão de Todos Usuários</span>
             </div>
         `;
     }
@@ -102,13 +102,13 @@ function showSection(sectionId, element) {
     
     // Breadcrumbs
     const titles = {
-        'dashboard': 'Dashboard',
-        'ocorrencias': 'Gestão de Ocorrências',
-        'agendamentos': 'Agendamentos e Viagens',
+        'dashboard': 'Dashboard Geral',
+        'ocorrencias': 'Todas Ocorrências (Global)',
+        'agendamentos': 'Todos Agendamentos (Global)',
         'usuarios': 'Gestão de Cidadãos',
         'admins': 'Sub-Administradores',
         'auditoria': 'Logs de Auditoria',
-        'usuarios-todos': 'Todas as Pessoas',
+        'usuarios-todos': 'Gestão de Todos os Usuários',
         'config': 'Minha Conta'
     };
     document.getElementById('pageTitle').innerText = titles[sectionId];
