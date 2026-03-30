@@ -349,6 +349,8 @@ input:checked + .slider:before {
 .status-pendente { background-color: #fff3e0; color: #e65100; }
 .status-atendimento { background-color: #e3f2fd; color: #1565c0; }
 .status-resolvido { background-color: #e8f5e9; color: #2e7d32; }
+.status-confirmado { background-color: #e8f5e9; color: #2e7d32; }
+.status-error { background-color: #ffebee; color: #c62828; }
 
 /* AI Chat Blob */
 .chat-widget {

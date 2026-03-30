@@ -30,7 +30,7 @@ class Usuario(Base):
     endereco = Column(String(255))
     senha_hash = Column(String(255), nullable=False)
     tipo_usuario = Column(Enum(TipoUsuario), default=TipoUsuario.cidadao)
-    status = Column(Enum(StatusUsuario), default=StatusUsuario.pendente)
+    status = Column(Enum(StatusUsuario), default=StatusUsuario.ativo)
     last_login = Column(DateTime, nullable=True)
 
     ocorrencias = relationship("Ocorrencia", back_populates="usuario")

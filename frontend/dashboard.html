@@ -366,7 +366,7 @@
                     data.forEach(a => {
                         const statusClass = {
                             'Pendente': 'status-pendente',
-                            'Confirmado': 'status-resolvido',
+                            'Confirmado': 'status-confirmado',
                             'Cancelado': 'status-error'
                         }[a.status] || 'status-pendente';
 
@@ -616,6 +616,15 @@
             await loadOcorrencias();
             await loadAgendamentos();
             initBackgroundAnimation('bg-animation');
+            
+            // Atendimento em tempo real: Atualiza as listas a cada 60 segundos
+            if (!window.dashboardInterval) {
+                window.dashboardInterval = setInterval(async () => {
+                    console.log('Atualizando dados do painel...');
+                    await loadOcorrencias();
+                    await loadAgendamentos();
+                }, 60000);
+            }
         }
         init();
     </script>

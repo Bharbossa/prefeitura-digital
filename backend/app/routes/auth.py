@@ -89,20 +89,22 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Check if user is active (Admins and Approved users only)
+    # Check if user is active (Subadmins need approval, Citizens are auto-active except if rejected)
     user_status = user_data.get("status")
-    # If it's a string from Firestore or an Enum from SQL
     if hasattr(user_status, "value"): user_status = user_status.value
     
-    if user_type != "admin" and user_status != "Ativo" and user_status != StatusUsuario.ativo:
-        status_msg = "Sua conta está aguardando aprovação administrativa."
+    if user_type == "cidadao":
         if user_status == "Rejeitado" or user_status == StatusUsuario.rejeitado:
-            status_msg = "Sua solicitação de acesso foi rejeitada."
-        
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=status_msg
-        )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Sua solicitação de acesso foi rejeitada."
+            )
+    elif user_type == "subadmin":
+        if user_status != "Ativo" and user_status != StatusUsuario.ativo:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Sua conta de administrador está aguardando ativação ou foi suspensa."
+            )
     
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
