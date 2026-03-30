@@ -603,6 +603,26 @@ async function createSubAdmin(e) {
     } catch(e) {}
 }
 
+async function deleteAdmin(id) {
+    if (!confirm("Tem certeza que deseja excluir este sub-administrador?")) return;
+    try {
+        const res = await fetch(`${ADMIN_API}/users/secretaria-admins/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            loadAdmins();
+            loadDashboard();
+            alert("Administrador excluído com sucesso.");
+        } else {
+            const err = await res.json();
+            alert(err.detail || "Erro ao excluir administrador.");
+        }
+    } catch(e) {
+        alert("Erro de conexão.");
+    }
+}
+
 async function loadAllCombinedUsers() {
     try {
         const res = await fetch(`${ADMIN_API}/users/all-combined`, {
