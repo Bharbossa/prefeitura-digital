@@ -44,7 +44,7 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
         motivo=agend.motivo,
         acompanhante=agend.acompanhante,
         cartao_sus=agend.cartao_sus,
-        data_hora=agend.data_hora
+        data_hora=agend.data_hora.replace(tzinfo=None)
     )
     db_sql.add(novo_agendamento)
     db_sql.commit()
