@@ -204,6 +204,28 @@
             document.getElementById('ag_comprovante').required = false;
         }
 
+        function toggleSusField() {
+            const secSelect = document.getElementById('ag_secretaria');
+            const selectedText = secSelect.options[secSelect.selectedIndex]?.text || '';
+            const tipo = document.getElementById('ag_tipo').value;
+            
+            const isSaude = selectedText.toUpperCase().includes('SAÚDE') || tipo === 'Consulta Presencial';
+            const susGroup = document.getElementById('group_sus');
+            const susInput = document.getElementById('ag_cartao_sus');
+
+            if (isSaude) {
+                susGroup.style.display = 'block';
+                susInput.required = true;
+            } else {
+                susGroup.style.display = 'none';
+                susInput.required = false;
+                susInput.value = '';
+            }
+        }
+
+        document.getElementById('ag_secretaria').addEventListener('change', toggleSusField);
+        document.getElementById('ag_tipo').addEventListener('change', toggleSusField);
+
         function abrirModalAtendimento() {
             document.getElementById('modalNovoAgendamento').style.display = 'block';
             document.getElementById('modalAgTitle').innerText = 'Agendar Atendimento Presencial';

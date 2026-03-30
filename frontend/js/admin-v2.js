@@ -452,9 +452,12 @@ async function loadAgendamentos() {
                         <td>${new Date(a.data_hora).toLocaleString()}</td>
                         <td><span class="badge badge-${a.status === 'Confirmado' ? 'done' : (a.status === 'Cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
                         <td>
-                            <div style="display: flex; gap: 0.5rem;">
-                                ${a.status === 'Pendente' ? `<button class="btn btn-primary" onclick="updateAgendamento('${a.id}', 'Confirmado')">Confirmar</button>` : ''}
-                                ${a.status === 'Confirmado' ? `<button class="btn btn-outline" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>` : ''}
+                            <div style="display: flex; flex-direction: column; gap: 0.2rem;">
+                                ${a.cartao_sus ? `<div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;"><i class="fa-solid fa-address-card"></i> SUS: ${a.cartao_sus}</div>` : ''}
+                                <div style="display: flex; gap: 0.5rem;">
+                                    ${a.status === 'Pendente' ? `<button class="btn btn-primary" onclick="updateAgendamento('${a.id}', 'Confirmado')">Confirmar</button>` : ''}
+                                    ${a.status === 'Confirmado' ? `<button class="btn btn-outline" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>` : ''}
+                                </div>
                             </div>
                         </td>
                     </tr>

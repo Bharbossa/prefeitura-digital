@@ -45,6 +45,7 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
         assunto=agend.assunto,
         motivo=agend.motivo,
         acompanhante=agend.acompanhante,
+        cartao_sus=agend.cartao_sus,
         data_hora=agend.data_hora
     )
     db_sql.add(novo_agendamento)
@@ -84,6 +85,7 @@ def criar_agendamento_viagem(
         motivo=motivo,
         acompanhante=acompanhante,
         data_hora=data_obj,
+        cartao_sus=None, # Trips don't usually use it but good for consistency
         anexo=arquivo_path
     )
     db_sql.add(novo_agendamento)
