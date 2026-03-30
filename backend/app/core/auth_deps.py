@@ -61,9 +61,9 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
                 email=user.email,
                 nome=user.nome,
                 cpf=user.cpf,
-                telefone=user.telefone,
-                endereco=user.endereco,
-                status=getattr(user, 'status', StatusUsuario.ativo if is_subadmin else user.status),
+                telefone=getattr(user, 'telefone', ""),
+                endereco=getattr(user, 'endereco', ""),
+                status=getattr(user, 'status', getattr(StatusUsuario, 'ativo', 'Ativo') if is_subadmin else getattr(user, 'status', 'Ativo')),
                 secretaria_id=getattr(user, 'secretaria_id', None),
                 tipo_usuario_verificado=role # "cidadao", "subadmin", "admin"
             )
