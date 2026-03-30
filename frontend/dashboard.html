@@ -287,7 +287,7 @@
 
         async function loadSecretarias() {
             try {
-                const res = await fetch(`${API_URL}/secretarias/`);
+                const res = await fetch(`${API_URL}/secretarias`);
                 if(res.ok) {
                     const secs = await res.json();
                     const select = document.getElementById('oc_secretaria');
@@ -303,7 +303,7 @@
         }
            async function loadOcorrencias() {
             try {
-                const res = await fetch(`${API_URL}/ocorrencias/user/`, {
+                const res = await fetch(`${API_URL}/ocorrencias/user`, {
                     headers: { 'Authorization': `Bearer ${getToken()}` }
                 });
                 if(res.ok) {
@@ -348,7 +348,7 @@
 
         async function loadAgendamentos() {
             try {
-                const res = await fetch(`${API_URL}/agendamentos/user/`, {
+                const res = await fetch(`${API_URL}/agendamentos/user`, {
                     headers: { 'Authorization': `Bearer ${getToken()}` }
                 });
                 if(res.ok) {
@@ -404,7 +404,7 @@
             }
 
             try {
-                const res = await fetch(`${API_URL}/ocorrencias/`, {
+                const res = await fetch(`${API_URL}/ocorrencias`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${getToken()}` },
                     body: formData
@@ -488,7 +488,7 @@
                 };
 
                 try {
-                    const res = await fetch(`${API_URL}/agendamentos/`, {
+                    const res = await fetch(`${API_URL}/agendamentos`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
                         body: JSON.stringify(data)
@@ -507,7 +507,7 @@
 
          async function gerarProtocolo(id) {
             try {
-                const res = await fetch(`${API_URL}/ocorrencias/user/`, {
+                const res = await fetch(`${API_URL}/ocorrencias/user`, {
                     headers: { 'Authorization': `Bearer ${getToken()}` }
                 });
                 if(res.ok) {
@@ -561,7 +561,7 @@
 
         async function gerarProtocoloAgendamento(id) {
             try {
-                const res = await fetch(`${API_URL}/agendamentos/user/`, {
+                const res = await fetch(`${API_URL}/agendamentos/user`, {
                     headers: { 'Authorization': `Bearer ${getToken()}` }
                 });
                 if(res.ok) {

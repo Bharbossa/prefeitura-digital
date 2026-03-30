@@ -256,7 +256,7 @@ function renderDashboardChart(oc) {
 
 async function loadRecentActivity() {
     try {
-        const res = await fetch(`${API_URL}/ocorrencias/`, {
+        const res = await fetch(`${API_URL}/ocorrencias`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
         if (res.ok) {
@@ -285,7 +285,7 @@ async function loadRecentActivity() {
 
 async function loadOcorrencias() {
     const status = document.getElementById('filterOcorrenciaStatus').value;
-    const url = `${API_URL}/ocorrencias/${status ? '?status='+status : ''}`;
+    const url = `${API_URL}/ocorrencias${status ? '?status='+status : ''}`;
     
     try {
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${getToken()}` } });
@@ -372,7 +372,7 @@ async function confirmResolution(id) {
 async function imprimirProtocolo(id) {
     // Reusing the same printing logic from main.js but with clean styles
     try {
-        const res = await fetch(`${API_URL}/ocorrencias/`, {
+        const res = await fetch(`${API_URL}/ocorrencias`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
         if(res.ok) {
@@ -431,7 +431,7 @@ function logout() { localStorage.clear(); window.location.href = 'index.html'; }
 
 async function loadAgendamentos() {
     try {
-        const res = await fetch(`${API_URL}/agendamentos/`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        const res = await fetch(`${API_URL}/agendamentos`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
         if (res.ok) {
             let list = await res.json();
             if (currentSecId) list = list.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
@@ -471,7 +471,7 @@ async function loadAgendamentos() {
 
 async function loadUsers() {
     try {
-        const res = await fetch(`${ADMIN_API}/users/`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        const res = await fetch(`${ADMIN_API}/users`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
         if (res.ok) {
             const list = await res.json();
             const container = document.getElementById('usuariosTableContainer');
@@ -542,7 +542,7 @@ async function loadAdmins() {
             const container = document.getElementById('adminsTableContainer');
             
             // Need secretarias map for display
-            const sRes = await fetch(`${API_URL}/secretarias/`);
+            const sRes = await fetch(`${API_URL}/secretarias`);
             const secs = await sRes.json();
             const sMap = {}; secs.forEach(s => sMap[s.id] = s.nome);
             

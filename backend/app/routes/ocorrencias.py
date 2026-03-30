@@ -29,7 +29,7 @@ def save_upload_file(upload_file: UploadFile) -> str:
         shutil.copyfileobj(upload_file.file, buffer)
     return file_path
 
-@router.post("/", response_model=OcorrenciaResponse)
+@router.post("", response_model=OcorrenciaResponse)
 def create_ocorrencia(
     titulo: str = Form(...),
     descricao: str = Form(...),
@@ -58,7 +58,7 @@ def create_ocorrencia(
     db_sql.refresh(ocorrencia)
     return ocorrencia
 
-@router.get("/", response_model=List[OcorrenciaResponse])
+@router.get("", response_model=List[OcorrenciaResponse])
 def get_current_ocorrencias(
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)

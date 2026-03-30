@@ -12,7 +12,7 @@ class SecretariaResponse(BaseModel):
     id: str
     nome: str
 
-@router.get("/", response_model=List[SecretariaResponse])
+@router.get("", response_model=List[SecretariaResponse])
 def get_secretarias(db_sql: Session = Depends(get_db)):
     try:
         if DB_MODE == "firestore":

@@ -30,7 +30,7 @@ def save_upload_file(upload_file: UploadFile) -> str:
 
 router = APIRouter()
 
-@router.post("/", response_model=AgendamentoResponse)
+@router.post("", response_model=AgendamentoResponse)
 def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
     if getattr(current_user, "tipo_usuario_verificado", "") != "cidadao":
         # Subadmins/Admins can create too? Maybe later. For now, keep as per user rules.
@@ -94,7 +94,7 @@ def criar_agendamento_viagem(
     return novo_agendamento
 
 
-@router.get("/", response_model=List[AgendamentoResponse])
+@router.get("", response_model=List[AgendamentoResponse])
 def listar_meus_agendamentos(current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
     role = current_user.tipo_usuario_verificado
     query = db_sql.query(Agendamento).options(joinedload(Agendamento.usuario))
