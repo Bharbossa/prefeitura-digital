@@ -73,6 +73,17 @@ def delete_user(user_id: int, current_admin = Depends(get_general_admin), db_sql
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
     
+    from ..models.schema import Agendamento, Ocorrencia, Resposta
+    
+    # 1. Delete all Agendamentos
+    db_sql.query(Agendamento).filter(Agendamento.usuario_id == user_id).delete()
+    
+    # 2. Delete all Ocorrencias and their Respostas
+    ocorrencias = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == user_id).all()
+    for oco in ocorrencias:
+        db_sql.query(Resposta).filter(Resposta.ocorrencia_id == oco.id).delete()
+        db_sql.delete(oco)
+    
     email = user.email
     db_sql.delete(user)
     
@@ -128,6 +139,12 @@ def delete_secretaria_admin(admin_id: int, current_admin = Depends(get_general_a
     if not admin_to_delete:
         raise HTTPException(status_code=404, detail="Administrador de secretaria não encontrado.")
     
+    # 1. Handle foreign keys: Unlink their responses from the deleted admin
+    from ..models.schema import Resposta
+    respostas = db_sql.query(Resposta).filter(Resposta.admin_id == admin_id).all()
+    for resp in respostas:
+        resp.admin_id = None
+        
     email = admin_to_delete.email
     db_sql.delete(admin_to_delete)
     
