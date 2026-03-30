@@ -35,7 +35,7 @@ class TokenData(BaseModel):
 class OcorrenciaBase(BaseModel):
     titulo: str
     descricao: str
-    secretaria_id: str
+    secretaria_id: int
 
 class OcorrenciaCreate(OcorrenciaBase):
     pass # foto and video are handled via Form data in endpoints
