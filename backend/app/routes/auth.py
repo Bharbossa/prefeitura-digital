@@ -94,13 +94,13 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
     if hasattr(user_status, "value"): user_status = user_status.value
     
     if user_type == "cidadao":
-        if user_status == "Rejeitado" or user_status == StatusUsuario.rejeitado:
+        if str(user_status).lower() == "rejeitado" or user_status == StatusUsuario.rejeitado:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Sua solicitação de acesso foi rejeitada."
             )
     elif user_type == "subadmin":
-        if user_status != "Ativo" and user_status != StatusUsuario.ativo:
+        if str(user_status).lower() != "ativo" and user_status != StatusUsuario.ativo:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Sua conta de administrador está aguardando ativação ou foi suspensa."

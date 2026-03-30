@@ -321,10 +321,10 @@
                     }
                     data.forEach(o => {
                         const statusClass = {
-                            'Pendente': 'status-pendente',
-                            'Em atendimento': 'status-atendimento',
-                            'Resolvido': 'status-resolvida'
-                        }[o.status] || 'status-pendente';
+                            'pendente': 'status-pendente',
+                            'em_atendimento': 'status-atendimento',
+                            'resolvido': 'status-resolvida'
+                        }[o.status.toLowerCase()] || 'status-pendente';
 
                         container.innerHTML += `
                             <div class="ocorrencia-card">
@@ -365,10 +365,10 @@
                     }
                     data.forEach(a => {
                         const statusClass = {
-                            'Pendente': 'status-pendente',
-                            'Confirmado': 'status-confirmado',
-                            'Cancelado': 'status-error'
-                        }[a.status] || 'status-pendente';
+                            'pendente': 'status-pendente',
+                            'confirmado': 'status-confirmado',
+                            'cancelado': 'status-error'
+                        }[a.status.toLowerCase()] || 'status-pendente';
 
                         container.innerHTML += `
                             <div class="ocorrencia-card" style="border-left: 5px solid var(--success);">

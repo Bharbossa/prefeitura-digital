@@ -10,14 +10,14 @@ class TipoUsuario(str, enum.Enum):
     admin = "admin"
 
 class StatusOcorrencia(str, enum.Enum):
-    pendente = "Pendente"
-    em_atendimento = "Em atendimento"
-    resolvido = "Resolvido"
+    pendente = "pendente"
+    em_atendimento = "em_atendimento"
+    resolvido = "resolvido"
 
 class StatusUsuario(str, enum.Enum):
-    pendente = "Pendente"
-    ativo = "Ativo"
-    rejeitado = "Rejeitado"
+    pendente = "pendente"
+    ativo = "ativo"
+    rejeitado = "rejeitado"
 
 class Usuario(Base):
     __tablename__ = "usuarios"

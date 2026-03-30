@@ -268,14 +268,15 @@ async function loadRecentActivity() {
             container.innerHTML = '';
             
             list.slice(0, 5).forEach(o => {
-                const status = o.status === 'Resolvido' ? 'done' : (o.status === 'Em atendimento' ? 'progress' : 'pending');
+                const s = o.status.toLowerCase();
+                const statusType = s === 'resolvido' ? 'done' : (s === 'em_atendimento' ? 'progress' : 'pending');
                 container.innerHTML += `
                     <div style="padding: 1rem 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <div style="font-weight: 600; font-size: 0.9rem;">${o.titulo}</div>
                             <div style="font-size: 0.8rem; color: var(--text-muted);">#${o.protocolo || o.id} • ${new Date(o.data).toLocaleDateString()}</div>
                         </div>
-                        <span class="badge badge-${status}">${o.status}</span>
+                        <span class="badge badge-${statusType}">${o.status}</span>
                     </div>
                 `;
             });
@@ -315,7 +316,8 @@ async function loadOcorrencias() {
             `;
 
             list.forEach(o => {
-                const statusBtn = o.status === 'Resolvido' ? 
+                const s = o.status.toLowerCase();
+                const statusBtn = s === 'resolvido' ? 
                     `<button class="btn btn-outline" onclick="imprimirProtocolo('${o.id}')"><i class="fa-solid fa-print"></i></button>` :
                     `<button class="btn btn-primary" onclick="openResponseModal('${o.id}', '${o.titulo}')">Resolver</button>`;
 
@@ -325,7 +327,7 @@ async function loadOcorrencias() {
                         <td>${o.titulo}</td>
                         ${currentRole==='admin' ? `<td>${o.secretaria_nome || 'N/A'}</td>` : ''}
                         <td>${new Date(o.data).toLocaleDateString()}</td>
-                        <td><span class="badge badge-${o.status === 'Resolvido' ? 'done' : (o.status === 'Em atendimento' ? 'progress' : 'pending')}">${o.status}</span></td>
+                        <td><span class="badge badge-${s === 'resolvido' ? 'done' : (s === 'em_atendimento' ? 'progress' : 'pending')}">${o.status}</span></td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
                                 ${statusBtn}
@@ -444,19 +446,20 @@ async function loadAgendamentos() {
 
             let html = `<table class="data-table"><thead><tr><th>Protocolo</th><th>Assunto</th><th>Cidadão</th><th>Data/Hora</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(a => {
+                const s = a.status.toLowerCase();
                 html += `
                     <tr>
                         <td><strong>${a.protocolo || a.id}</strong></td>
                         <td>${a.assunto}</td>
                         <td>${a.usuario_nome || 'N/A'}</td>
                         <td>${new Date(a.data_hora).toLocaleString()}</td>
-                        <td><span class="badge badge-${a.status === 'Confirmado' ? 'done' : (a.status === 'Cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
+                        <td><span class="badge badge-${s === 'confirmado' ? 'done' : (s === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
                         <td>
                             <div style="display: flex; flex-direction: column; gap: 0.2rem;">
                                 ${a.cartao_sus ? `<div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;"><i class="fa-solid fa-address-card"></i> SUS: ${a.cartao_sus}</div>` : ''}
                                 <div style="display: flex; gap: 0.5rem;">
-                                    ${a.status === 'Pendente' ? `<button class="btn btn-primary" onclick="updateAgendamento('${a.id}', 'Confirmado')">Confirmar</button>` : ''}
-                                    ${a.status === 'Confirmado' ? `<button class="btn btn-outline" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>` : ''}
+                                    ${s === 'pendente' ? `<button class="btn btn-primary" onclick="updateAgendamento('${a.id}', 'Confirmado')">Confirmar</button>` : ''}
+                                    ${s === 'confirmado' ? `<button class="btn btn-outline" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>` : ''}
                                 </div>
                             </div>
                         </td>
@@ -478,15 +481,16 @@ async function loadUsers() {
             
             let html = `<table class="data-table"><thead><tr><th>ID</th><th>Nome</th><th>CPF</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(u => {
+                const s = u.status.toLowerCase();
                 html += `
                     <tr>
                         <td>#${u.id}</td>
                         <td>${u.nome}</td>
                         <td>${u.cpf}</td>
-                        <td><span class="badge badge-${u.status === 'Ativo' ? 'done' : 'pending'}">${u.status}</span></td>
+                        <td><span class="badge badge-${s === 'ativo' ? 'done' : 'pending'}">${u.status}</span></td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
-                                ${u.status === 'Pendente' ? `<button class="btn btn-primary" onclick="userAction('${u.id}', 'approve')">Aprovar</button>` : ''}
+                                ${s === 'pendente' ? `<button class="btn btn-primary" onclick="userAction('${u.id}', 'approve')">Aprovar</button>` : ''}
                                 <button class="btn btn-outline" style="color: var(--danger);" onclick="userAction('${u.id}', 'delete')"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </td>
@@ -611,12 +615,13 @@ async function loadAllCombinedUsers() {
             let html = `<table class="data-table"><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(u => {
                 const color = u.tipo === 'admin' ? '#ef4444' : (u.tipo === 'subadmin' ? '#f59e0b' : '#22c55e');
-                html += `
+                        const s = u.status.toLowerCase();
+                        html += `
                     <tr>
                         <td><strong>${u.nome}</strong></td>
                         <td>${u.email}</td>
                         <td><span style="padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; background: ${color}20; color: ${color}; font-weight: 600;">${u.tipo.toUpperCase()}</span></td>
-                        <td><span class="badge badge-${u.status === 'ativo' || u.status === 'ativo' ? 'done' : 'pending'}">${u.status}</span></td>
+                        <td><span class="badge badge-${s === 'ativo' ? 'done' : 'pending'}">${u.status}</span></td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
                                 <button class="btn btn-primary" style="font-size: 0.7rem; padding: 4px 10px;" onclick="openPasswordModal('${u.id}', '${u.source}', '${u.nome}')"><i class="fa-solid fa-key"></i> Trocar Senha</button>
