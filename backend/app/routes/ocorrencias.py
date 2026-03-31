@@ -82,6 +82,7 @@ def get_current_ocorrencias(
 def update_status(
     id: int, 
     status: str, 
+    resposta: Optional[str] = None,
     current_user = Depends(get_current_admin),
     db_sql: Session = Depends(get_db)
 ):
@@ -96,6 +97,16 @@ def update_status(
     
     old_status = ocorrencia.status
     ocorrencia.status = status
+    
+    # Save the typed resolution 'resposta' if provided
+    if resposta:
+        # Create Resposta object
+        nova_resposta = Resposta(
+            mensagem=resposta,
+            ocorrencia_id=id,
+            admin_id=current_user.id if current_user.tipo_usuario_verificado == "subadmin" else None
+        )
+        db_sql.add(nova_resposta)
     
     # Audit trail
     log = LogAuditoria(
