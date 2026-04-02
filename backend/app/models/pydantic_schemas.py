@@ -126,3 +126,7 @@ class AdminPasswordUpdate(BaseModel):
 class ForgotPasswordRequest(BaseModel):
     identifier: str
     method: str # 'email' or 'sms'
+
+class ChangePasswordRequest(BaseModel):
+    senha_atual: str
+    nova_senha: str

@@ -7,7 +7,7 @@ from ..core.firebase_config import db, DB_MODE
 from ..database import get_db
 from ..models.schema import Usuario, AdminSecretaria, StatusUsuario
 from sqlalchemy.orm import Session
-from ..models.pydantic_schemas import UsuarioCreate, UsuarioResponse, Token, ForgotPasswordRequest
+from ..models.pydantic_schemas import UsuarioCreate, UsuarioResponse, Token, ForgotPasswordRequest, ChangePasswordRequest
 from ..core.security import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from ..core.auth_deps import get_current_user
 
@@ -165,6 +165,27 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
         print(f"----------------------------------------")
     
     return {"message": f"Uma nova senha foi gerada e enviada para {masked_dest} via {data.method.upper()}."}
+
+@router.patch("/change-password")
+def change_password(data: ChangePasswordRequest, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+    if not verify_password(data.senha_atual, current_user.senha_hash):
+        raise HTTPException(status_code=401, detail="Senha atual incorreta.")
+    
+    current_user.senha_hash = get_password_hash(data.nova_senha)
+    db_sql.commit()
+    
+    # Audit log
+    from ..models.schema import LogAuditoria
+    log = LogAuditoria(
+        usuario_id=current_user.id,
+        usuario_tipo="cidadao",
+        acao="self_change_password",
+        detalhes=f"Usuário {current_user.email} alterou sua própria senha"
+    )
+    db_sql.add(log)
+    db_sql.commit()
+    
+    return {"message": "Senha alterada com sucesso!"}
 
 @router.get("/me", response_model=UsuarioResponse)
 def read_users_me(current_user = Depends(get_current_user)):

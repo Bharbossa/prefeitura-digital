@@ -71,7 +71,10 @@ document.addEventListener('DOMContentLoaded', () => {
             <a href="index.html">Início</a>
             <a href="${dashboardLink}">Meu Painel</a>
             <span style="display: block; color: var(--text-secondary)">Olá, ${user.nome.split(' ')[0]}</span>
-            <button onclick="logout()" class="btn btn-outline">Sair</button>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button onclick="abrirModalTrocaSenha()" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;"><i class="fa-solid fa-key"></i></button>
+                <button onclick="logout()" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">Sair</button>
+            </div>
         `;
     }
 

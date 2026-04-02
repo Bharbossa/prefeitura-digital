@@ -64,6 +64,18 @@ def startup_db_init():
             ]:
                 try: conn.execute(text(f"ALTER TABLE agendamentos {col}"))
                 except Exception: pass
+            
+            # Reset e Ativação de Conta (Produção) - Forçar Ativo
+            from .core.security import get_password_hash
+            email_res = "alexandregilberto1994@gmail.com"
+            hashed = get_password_hash("123456")
+            try:
+                # Update password and status for ciudadano
+                conn.execute(text("UPDATE usuarios SET senha_hash = :h, status = 'ativo' WHERE email = :e"), {"h": hashed, "e": email_res})
+                # Check sub-admins too
+                conn.execute(text("UPDATE admins_secretaria SET senha_hash = :h WHERE email = :e"), {"h": hashed, "e": email_res})
+            except Exception as e:
+                print(f"Erro no reset temporario: {e}")
         
         # Seed secretarias if empty
         from .database import SessionLocal
