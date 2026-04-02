@@ -78,7 +78,7 @@ def get_current_ocorrencias(
     
     return query.order_by(Ocorrencia.data.desc()).all()
 
-@router.patch("/{id}/status", response_model=OcorrenciaResponse)
+@router.patch("/{id}/status")
 def update_status(
     id: int, 
     status: str, 
@@ -86,44 +86,56 @@ def update_status(
     current_user = Depends(get_current_admin),
     db_sql: Session = Depends(get_db)
 ):
-    ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == id).first()
-    if not ocorrencia: 
-        raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
-    
-    # Permission check: subadmin must belong to the secretariat
-    if current_user.tipo_usuario_verificado == "subadmin":
-        if ocorrencia.secretaria_id != current_user.secretaria_id:
-            raise HTTPException(status_code=403, detail="Sem permissão para esta secretaria")
-    
-    old_status = ocorrencia.status
-    ocorrencia.status = status
-    
-    # Save the typed resolution 'resposta' if provided
-    if resposta:
-        # Create Resposta object
-        nova_resposta = Resposta(
-            mensagem=resposta,
-            ocorrencia_id=id,
-            admin_id=current_user.id if current_user.tipo_usuario_verificado == "subadmin" else None
+    import traceback
+    try:
+        ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == id).first()
+        if not ocorrencia: 
+            raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
+        
+        # Permission check: subadmin must belong to the secretariat
+        if current_user.tipo_usuario_verificado == "subadmin":
+            if ocorrencia.secretaria_id != current_user.secretaria_id:
+                raise HTTPException(status_code=403, detail="Sem permissão para esta secretaria")
+        
+        old_status = ocorrencia.status
+        ocorrencia.status = status
+        
+        # Save the typed resolution 'resposta' if provided
+        if resposta:
+            nova_resposta = Resposta(
+                mensagem=resposta,
+                ocorrencia_id=id,
+                admin_id=current_user.id if current_user.tipo_usuario_verificado == "subadmin" else None
+            )
+            db_sql.add(nova_resposta)
+        
+        # Audit trail
+        log = LogAuditoria(
+            usuario_id=current_user.id,
+            usuario_tipo=current_user.tipo_usuario_verificado,
+            acao="update_status",
+            detalhes=f"Ocorrência {id} ({ocorrencia.protocolo}): {old_status} -> {status}"
         )
-        db_sql.add(nova_resposta)
-    
-    # Audit trail
-    log = LogAuditoria(
-        usuario_id=current_user.id,
-        usuario_tipo=current_user.tipo_usuario_verificado,
-        acao="update_status",
-        detalhes=f"Ocorrência {id} ({ocorrencia.protocolo}): {old_status} -> {status}"
-    )
-    db_sql.add(log)
-    if status == "Resolvido" and old_status != "Resolvido":
-        if ocorrencia.usuario and ocorrencia.usuario.telefone:
-            msg = get_resolved_message(ocorrencia.titulo)
-            send_status_sms(ocorrencia.usuario.telefone, msg)
-            
-    db_sql.commit()
-    db_sql.refresh(ocorrencia)
-    return ocorrencia
+        db_sql.add(log)
+        
+        # SMS notification
+        try:
+            if status == "Resolvido" and old_status != "Resolvido":
+                if ocorrencia.usuario and ocorrencia.usuario.telefone:
+                    msg = get_resolved_message(ocorrencia.titulo)
+                    send_status_sms(ocorrencia.usuario.telefone, msg)
+        except Exception:
+            pass  # SMS failure should not block resolution
+                
+        db_sql.commit()
+        
+        return {"message": "Status atualizado com sucesso", "id": id, "status": status}
+    except HTTPException:
+        raise
+    except Exception as e:
+        db_sql.rollback()
+        print(f"ERRO update_status: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/{id}/respostas", response_model=RespostaResponse)

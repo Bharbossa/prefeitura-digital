@@ -368,9 +368,13 @@ async function confirmResolution(id) {
         if (res.ok) {
             closeModal('modalResponse');
             loadOcorrencias();
+            loadDashboard();
             alert("Ocorrência resolvida com sucesso!");
+        } else {
+            const err = await res.json().catch(() => ({}));
+            alert("Erro ao resolver: " + (err.detail || res.statusText));
         }
-    } catch(e) { alert("Erro ao salvar."); }
+    } catch(e) { alert("Erro de conexão: " + e.message); }
 }
 
 async function imprimirProtocolo(id) {
