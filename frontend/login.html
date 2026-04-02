@@ -125,7 +125,7 @@
 
         document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const identifier = document.getElementById('forgotIdentifier').value;
+            const identifier = document.getElementById('forgotIdentifier').value.trim();
             const method = document.querySelector('input[name="recoveryMethod"]:checked').value;
             const statusMsg = document.getElementById('forgotStatusMsg');
 

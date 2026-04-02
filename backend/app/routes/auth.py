@@ -115,38 +115,56 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
 
 @router.post("/forgot-password")
 def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_db)):
-    import secrets, string
+    import secrets, string, re
     from ..utils.sms_service import send_password_sms
     
-    # 1. Find user by email or CPF
-    user = db_sql.query(Usuario).filter((Usuario.email == data.identifier) | (Usuario.cpf == data.identifier)).first()
+    # 1. Normalize identifier (if CPF)
+    raw_id = data.identifier.strip()
+    # If it's mostly digits and has dots/dashes, strip them
+    if re.match(r'^[0-9.\-\s/]+$', raw_id) and len(re.sub(r'\D', '', raw_id)) >= 11:
+        clean_id = re.sub(r'\D', '', raw_id)
+    else:
+        clean_id = raw_id
+
+    # 2. Find user by email or CPF
+    user = db_sql.query(Usuario).filter((Usuario.email == clean_id) | (Usuario.cpf == clean_id)).first()
     if not user:
         # Check sub-admins too
-        user = db_sql.query(AdminSecretaria).filter((AdminSecretaria.email == data.identifier) | (AdminSecretaria.cpf == data.identifier)).first()
+        user = db_sql.query(AdminSecretaria).filter((AdminSecretaria.email == clean_id) | (AdminSecretaria.cpf == clean_id)).first()
     
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado com os dados informados.")
     
-    # 2. Generate random password (8 chars)
+    # 3. Generate random password (8 chars)
     alphabet = string.ascii_letters + string.digits
     new_pw = ''.join(secrets.choice(alphabet) for _ in range(8))
     
-    # 3. Update in DB
+    # 4. Update in DB
     user.senha_hash = get_password_hash(new_pw)
     db_sql.commit()
     
-    # 4. Send
+    # 5. Mask destination for feedback
+    masked_dest = ""
     if data.method == "sms":
-        if not hasattr(user, 'telefone') or not user.telefone:
-            raise HTTPException(status_code=400, detail="Número de telefone não encontrado para este usuário.")
-        send_password_sms(user.telefone, new_pw)
+        phone = getattr(user, 'telefone', '')
+        if not phone:
+            raise HTTPException(status_code=400, detail="Número de telefone não cadastrado.")
+        
+        # Format for SMS and masking
+        clean_phone = re.sub(r'\D', '', phone)
+        masked_dest = f"({clean_phone[:2]}) *****-{clean_phone[-4:]}"
+        send_password_sms(phone, new_pw)
     else:
-        # Email (simulated since we don't have a mailer yet)
-        print(f"--- EMAIL SIMULADO PARA {user.email} ---")
+        email = user.email
+        parts = email.split('@')
+        masked_dest = f"{parts[0][0]}***@{parts[1]}"
+        
+        # Email (simulated)
+        print(f"--- EMAIL SIMULADO PARA {email} ---")
         print(f"Sua nova senha é: {new_pw}")
         print(f"----------------------------------------")
     
-    return {"message": f"Uma nova senha foi gerada e enviada por {data.method.upper()}."}
+    return {"message": f"Uma nova senha foi gerada e enviada para {masked_dest} via {data.method.upper()}."}
 
 @router.get("/me", response_model=UsuarioResponse)
 def read_users_me(current_user = Depends(get_current_user)):
