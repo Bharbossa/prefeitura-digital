@@ -64,15 +64,6 @@ def startup_db_init():
             ]:
                 try: conn.execute(text(f"ALTER TABLE agendamentos {col}"))
                 except Exception: pass
-            
-            # Reset de Senha Temporário (Produção)
-            from .core.security import get_password_hash
-            email_res = "alexandregilberto1994@gmail.com"
-            hashed = get_password_hash("123456")
-            try:
-                conn.execute(text("UPDATE usuarios SET senha = :h WHERE email = :e"), {"h": hashed, "e": email_res})
-                conn.execute(text("UPDATE secretaria_admins SET senha = :h WHERE email = :e"), {"h": hashed, "e": email_res})
-            except Exception: pass
         
         # Seed secretarias if empty
         from .database import SessionLocal
