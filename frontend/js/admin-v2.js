@@ -392,7 +392,7 @@ async function imprimirProtocolo(id) {
             printWindow.document.write(`
                 <html>
                 <head>
-                    <title>Protocolo Colônia Digital - ${o.protocolo}</title>
+                    <title>Protocolo - PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA -AL - ${o.protocolo}</title>
                     <style>
                         body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; color: #1e293b; }
                         .header { text-align: center; margin-bottom: 40px; border-bottom: 4px solid #2563eb; padding-bottom: 20px; }
@@ -407,7 +407,7 @@ async function imprimirProtocolo(id) {
                 <body>
                     <div class="header">
                         <h1>📌 CERTIFICADO DE CONCLUSÃO</h1>
-                        <p>Colônia Digital</p>
+                        <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA -AL</p>
                     </div>
                     <div class="content">
                         <div class="row"><span class="label">PROTOCOLO:</span> <strong>${o.protocolo}</strong></div>
@@ -564,7 +564,7 @@ async function imprimirAgendamento(id) {
                 <body>
                     <div class="header">
                         <h1>📌 COMPROVANTE DE AGENDAMENTO</h1>
-                        <p>Colônia Digital</p>
+                        <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA -AL</p>
                     </div>
                     <div class="content">
                         <div class="row"><span class="label">PROTOCOLO:</span> <strong>${a.protocolo || a.id}</strong></div>
