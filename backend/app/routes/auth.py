@@ -191,6 +191,27 @@ def change_password(data: ChangePasswordRequest, current_user = Depends(get_curr
     
     return {"message": "Senha alterada com sucesso!"}
 
+@router.get("/diagnostic/user/{email}")
+def diagnostic_user(email: str, db_sql: Session = Depends(get_db)):
+    # NOT SECURE FOR PRODUCTION - TEMPORARY FOR DEBUGGING
+    clean_email = email.lower().strip()
+    u = db_sql.query(Usuario).filter(Usuario.email == clean_email).first()
+    a = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == clean_email).first()
+    
+    return {
+        "usuario": {
+            "exists": u is not None,
+            "status": u.status if u else None,
+            "email_db": u.email if u else None,
+            "id": u.id if u else None
+        } if u else None,
+        "admin": {
+            "exists": a is not None,
+            "email_db": a.email if a else None,
+            "id": a.id if a else None
+        } if a else None
+    }
+
 @router.get("/me", response_model=UsuarioResponse)
 def read_users_me(current_user = Depends(get_current_user)):
     tipo = getattr(current_user, "tipo_usuario_verificado", "admin")
