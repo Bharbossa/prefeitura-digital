@@ -128,6 +128,10 @@ app.include_router(admin_users.router, prefix="/api/admin/users", tags=["admin_u
 app.include_router(agendamentos.router, prefix="/api/agendamentos", tags=["agendamentos"])
 app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["admin_metrics"])
 
+@app.get("/api/test-debug")
+def test_debug():
+    return {"status": "ok", "message": "API context is working"}
+
 
 # Mount the 'uploads' directory to serve files (photos/videos)
 if not os.path.exists("uploads"):
