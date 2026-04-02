@@ -7,6 +7,7 @@ from ..core.firebase_config import db, DB_MODE
 from ..database import get_db
 from ..models.schema import Usuario, AdminSecretaria, StatusUsuario
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 from ..models.pydantic_schemas import UsuarioCreate, UsuarioResponse, Token, ForgotPasswordRequest, ChangePasswordRequest
 from ..core.security import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from ..core.auth_deps import get_current_user
@@ -69,7 +70,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
     else:
         # SQLite / MySQL Fallback
         clean_username = form_data.username.lower().strip()
-        user = db_sql.query(Usuario).filter(Usuario.email == clean_username).first()
+        user = db_sql.query(Usuario).filter(func.lower(Usuario.email) == clean_username).first()
         if user:
             user_type = user.tipo_usuario
             if hasattr(user_type, "value"):
@@ -80,7 +81,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
             
             user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id, "status": user.status}
         else:
-            user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == clean_username).first()
+            user = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == clean_username).first()
             if user:
                 user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id, "status": getattr(user, "status", "Ativo")}
                 user_type = "subadmin"
@@ -130,11 +131,11 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
     else:
         clean_id = raw_id
 
-    # 2. Find user by email or CPF
-    user = db_sql.query(Usuario).filter((Usuario.email == clean_id) | (Usuario.cpf == clean_id)).first()
+    # 2. Find user by email or CPF - case insensitive for email
+    user = db_sql.query(Usuario).filter((func.lower(Usuario.email) == clean_id) | (Usuario.cpf == clean_id)).first()
     if not user:
         # Check sub-admins too
-        user = db_sql.query(AdminSecretaria).filter((AdminSecretaria.email == clean_id) | (AdminSecretaria.cpf == clean_id)).first()
+        user = db_sql.query(AdminSecretaria).filter((func.lower(AdminSecretaria.email) == clean_id) | (AdminSecretaria.cpf == clean_id)).first()
     
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado com os dados informados.")
@@ -195,8 +196,8 @@ def change_password(data: ChangePasswordRequest, current_user = Depends(get_curr
 def diagnostic_user(email: str, db_sql: Session = Depends(get_db)):
     # NOT SECURE FOR PRODUCTION - TEMPORARY FOR DEBUGGING
     clean_email = email.lower().strip()
-    u = db_sql.query(Usuario).filter(Usuario.email == clean_email).first()
-    a = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == clean_email).first()
+    u = db_sql.query(Usuario).filter(func.lower(Usuario.email) == clean_email).first()
+    a = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == clean_email).first()
     
     return {
         "usuario": {
