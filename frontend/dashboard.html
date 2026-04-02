@@ -358,7 +358,7 @@
                             <div class="ocorrencia-card">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                                     <h3><i class="fa-solid fa-triangle-exclamation"></i> ${o.titulo}</h3>
-                                    ${o.status === 'Resolvido' ? `
+                                    ${o.status.toLowerCase() === 'resolvido' ? `
                                         <button onclick="gerarProtocolo('${o.id}')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: var(--success);">
                                             <i class="fa-solid fa-print"></i> Protocolo
                                         </button>
@@ -402,7 +402,7 @@
                             <div class="ocorrencia-card" style="border-left: 5px solid var(--success);">
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                                     <h3><i class="fa-solid fa-calendar"></i> ${a.assunto}</h3>
-                                    ${a.status === 'Confirmado' ? `
+                                    ${a.status.toLowerCase() === 'confirmado' ? `
                                         <button onclick="gerarProtocoloAgendamento('${a.id}')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: var(--primary-color);">
                                             <i class="fa-solid fa-print"></i> Protocolo
                                         </button>
