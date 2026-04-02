@@ -88,6 +88,12 @@ def update_status(
 ):
     import traceback
     try:
+        # Normalize status to lowercase to match PostgreSQL enum
+        status = status.lower().strip()
+        valid_statuses = ["pendente", "em_atendimento", "resolvido"]
+        if status not in valid_statuses:
+            raise HTTPException(status_code=400, detail=f"Status inválido. Use: {valid_statuses}")
+        
         ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == id).first()
         if not ocorrencia: 
             raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
@@ -120,7 +126,7 @@ def update_status(
         
         # SMS notification
         try:
-            if status == "Resolvido" and old_status != "Resolvido":
+            if status == "resolvido" and str(old_status).lower() != "resolvido":
                 if ocorrencia.usuario and ocorrencia.usuario.telefone:
                     msg = get_resolved_message(ocorrencia.titulo)
                     send_status_sms(ocorrencia.usuario.telefone, msg)

@@ -361,7 +361,7 @@ async function confirmResolution(id) {
     if (!resp) return alert("Por favor, digite uma resposta para o cidadão.");
     
     try {
-        const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=Resolvido&resposta=${encodeURIComponent(resp)}`, {
+        const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=resolvido&resposta=${encodeURIComponent(resp)}`, {
             method: 'PATCH',
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
@@ -418,7 +418,7 @@ async function imprimirProtocolo(id) {
                         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
                         <div>
                             <span class="label">RESPOSTA ADM:</span>
-                            <p>${o.resposta_admin || 'Serviço concluído com sucesso.'}</p>
+                            <p>${(o.respostas && o.respostas.length > 0) ? o.respostas[o.respostas.length-1].mensagem : 'Serviço concluído com sucesso.'}</p>
                         </div>
                     </div>
                     <div class="stamp"><div class="badge">SERVIÇO FINALIZADO</div></div>
