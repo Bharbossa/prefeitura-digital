@@ -70,10 +70,11 @@ def startup_db_init():
             email_res = "alexandregilberto1994@gmail.com"
             hashed = get_password_hash("123456")
             try:
-                # Update password and status for ciudadano
-                conn.execute(text("UPDATE usuarios SET senha_hash = :h, status = 'ativo' WHERE email = :e"), {"h": hashed, "e": email_res})
+                # Update password and status for ciudadano - Case-insensitive match
+                conn.execute(text("UPDATE usuarios SET senha_hash = :h, status = 'ativo' WHERE LOWER(email) = LOWER(:e)"), {"h": hashed, "e": email_res})
                 # Check sub-admins too
-                conn.execute(text("UPDATE admins_secretaria SET senha_hash = :h WHERE email = :e"), {"h": hashed, "e": email_res})
+                conn.execute(text("UPDATE admins_secretaria SET senha_hash = :h WHERE LOWER(email) = LOWER(:e)"), {"h": hashed, "e": email_res})
+                print(f"Reset emergencial executado para {email_res}")
             except Exception as e:
                 print(f"Erro no reset temporario: {e}")
         

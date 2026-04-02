@@ -135,10 +135,12 @@
             statusMsg.style.display = "block";
 
             try {
+                // Ensure identifier is cleaned before sending
+                const cleanIdentifier = identifier.includes('@') ? identifier.toLowerCase().trim() : identifier.trim();
                 const res = await fetch(`${API_URL}/auth/forgot-password`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ identifier, method })
+                    body: JSON.stringify({ identifier: cleanIdentifier, method })
                 });
 
                 if (res.ok) {
@@ -166,7 +168,7 @@
 
         document.getElementById('loginForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const email = document.getElementById('email').value;
+            const email = document.getElementById('email').value.toLowerCase().trim();
             const password = document.getElementById('password').value;
             const errorMsg = document.getElementById('errorMsg');
 

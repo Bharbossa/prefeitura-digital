@@ -34,13 +34,15 @@ def register(user_in: UsuarioCreate, db_sql: Session = Depends(get_db)) -> Any:
         return user_data
     else:
         # SQL Fallback (MySQL/SQLite)
-        user_email = db_sql.query(Usuario).filter(Usuario.email == user_in.email).first()
-        user_cpf = db_sql.query(Usuario).filter(Usuario.cpf == user_in.cpf).first()
+        # Normalize email/cpf before check
+        normalized_email = user_in.email.lower().strip()
+        user_email = db_sql.query(Usuario).filter(Usuario.email == normalized_email).first()
+        user_cpf = db_sql.query(Usuario).filter(Usuario.cpf == user_in.cpf.strip()).first()
         if user_email or user_cpf:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Já existe um usuário registrado com este CPF ou E-mail")
         hashed_password = get_password_hash(user_in.senha)
         db_user = Usuario(
-            nome=user_in.nome, cpf=user_in.cpf, email=user_in.email, 
+            nome=user_in.nome, cpf=user_in.cpf.strip(), email=normalized_email, 
             senha_hash=hashed_password, status=StatusUsuario.ativo
         )
         db_sql.add(db_user)
@@ -65,8 +67,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
                 user_data["id"] = admin_docs[0].id
                 user_type = "subadmin"
     else:
-        # SQLite Fallback
-        user = db_sql.query(Usuario).filter(Usuario.email == form_data.username).first()
+        # SQLite / MySQL Fallback
+        clean_username = form_data.username.lower().strip()
+        user = db_sql.query(Usuario).filter(Usuario.email == clean_username).first()
         if user:
             user_type = user.tipo_usuario
             if hasattr(user_type, "value"):
@@ -77,7 +80,7 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
             
             user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id, "status": user.status}
         else:
-            user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == form_data.username).first()
+            user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == clean_username).first()
             if user:
                 user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id, "status": getattr(user, "status", "Ativo")}
                 user_type = "subadmin"
@@ -118,10 +121,11 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
     import secrets, string, re
     from ..utils.sms_service import send_password_sms
     
-    # 1. Normalize identifier (if CPF)
+    # 1. Normalize identifier (if email, lowercase it; if CPF, strip formatting)
     raw_id = data.identifier.strip()
-    # If it's mostly digits and has dots/dashes, strip them
-    if re.match(r'^[0-9.\-\s/]+$', raw_id) and len(re.sub(r'\D', '', raw_id)) >= 11:
+    if "@" in raw_id:
+        clean_id = raw_id.lower()
+    elif re.match(r'^[0-9.\-\s/]+$', raw_id) and len(re.sub(r'\D', '', raw_id)) >= 11:
         clean_id = re.sub(r'\D', '', raw_id)
     else:
         clean_id = raw_id
