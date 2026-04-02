@@ -41,10 +41,10 @@ class OcorrenciaCreate(OcorrenciaBase):
     pass # foto and video are handled via Form data in endpoints
 
 class RespostaResponse(BaseModel):
-    id: str
+    id: int
     mensagem: str
     data: datetime
-    admin_id: str
+    admin_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
 class OcorrenciaResponse(OcorrenciaBase):

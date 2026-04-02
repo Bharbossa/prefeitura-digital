@@ -331,7 +331,9 @@ async function loadOcorrencias() {
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
                                 ${statusBtn}
-                                <button class="btn btn-outline" onclick="alert('${o.descricao}')"><i class="fa-solid fa-eye"></i></button>
+                                <button class="btn btn-outline" title="Ver Detalhes" onclick="alert('${o.descricao.replace(/'/g, "\\'")}')"><i class="fa-solid fa-eye"></i></button>
+                                ${o.foto ? `<button class="btn btn-outline" title="Ver Foto" onclick="window.open('${MEDIA_URL}/${o.foto.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-image"></i></button>` : ''}
+                                ${o.video ? `<button class="btn btn-outline" title="Ver Vídeo" onclick="window.open('${MEDIA_URL}/${o.video.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-video"></i></button>` : ''}
                             </div>
                         </td>
                     </tr>
@@ -459,7 +461,8 @@ async function loadAgendamentos() {
                                 ${a.cartao_sus ? `<div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;"><i class="fa-solid fa-address-card"></i> SUS: ${a.cartao_sus}</div>` : ''}
                                 <div style="display: flex; gap: 0.5rem;">
                                     ${s === 'pendente' ? `<button class="btn btn-primary" onclick="updateAgendamento('${a.id}', 'Confirmado')">Confirmar</button>` : ''}
-                                    ${s === 'confirmado' ? `<button class="btn btn-outline" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>` : ''}
+                                    ${s === 'confirmado' ? `<button class="btn btn-outline" title="Imprimir Recibo" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>` : ''}
+                                    ${a.anexo ? `<button class="btn btn-outline" title="Ver Comprovante" onclick="window.open('${MEDIA_URL}/${a.anexo.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-paperclip"></i></button>` : ''}
                                 </div>
                             </div>
                         </td>
@@ -470,6 +473,117 @@ async function loadAgendamentos() {
             container.innerHTML = html;
         }
     } catch(e) {}
+}
+
+async function updateOcorrenciaStatus(id, status) {
+    if (!confirm(`Mudar status para ${status}?`)) return;
+    try {
+        const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=${status}`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            alert("Status atualizado!");
+            loadOcorrencias();
+            loadDashboard();
+        } else {
+            alert("Erro ao atualizar status.");
+        }
+    } catch(e) { alert("Erro de conexão."); }
+}
+
+async function resolveOcorrencia(id) {
+    const resp = prompt("Digite a resposta ou parecer para o cidadão:");
+    if (resp === null) return;
+    
+    try {
+        const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=Resolvido&resposta=${encodeURIComponent(resp)}`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            alert("Ocorrência resolvida com sucesso!");
+            loadOcorrencias();
+            loadDashboard();
+        } else {
+            alert("Erro ao resolver ocorrência.");
+        }
+    } catch(e) { alert("Erro de conexão."); }
+}
+
+async function updateAgendamento(id, status) {
+    if (!confirm(`Deseja alterar o status para ${status}?`)) return;
+    try {
+        const res = await fetch(`${API_URL}/agendamentos/${id}/status?status=${status}`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            alert("Status atualizado com sucesso!");
+            loadAgendamentos();
+            loadDashboard(); // Update metrics too
+        } else {
+            const err = await res.json();
+            alert("Falha ao atualizar status: " + (err.detail || ""));
+        }
+    } catch(e) { 
+        alert("Erro de conexão."); 
+    }
+}
+
+async function imprimirAgendamento(id) {
+    try {
+        const res = await fetch(`${API_URL}/agendamentos`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if(res.ok) {
+            const data = await res.json();
+            const a = data.find(i => i.id == id);
+            if (!a) return;
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html>
+                <head>
+                    <title>Protocolo de Agendamento - ${a.protocolo || a.id}</title>
+                    <style>
+                        body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; color: #1e293b; }
+                        .header { text-align: center; margin-bottom: 40px; border-bottom: 4px solid #10b981; padding-bottom: 20px; }
+                        .content { background: #f8fafc; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; }
+                        .row { display: flex; margin-bottom: 15px; }
+                        .label { width: 140px; font-weight: 700; color: #64748b; }
+                        .stamp { margin-top: 40px; text-align: right; }
+                        .badge { padding: 10px 20px; border: 2px solid #10b981; color: #10b981; font-weight: 800; border-radius: 8px; display: inline-block; transform: rotate(-5deg); }
+                        @media print { .no-print { display: none; } }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        <h1>📌 COMPROVANTE DE AGENDAMENTO</h1>
+                        <p>Colônia Digital</p>
+                    </div>
+                    <div class="content">
+                        <div class="row"><span class="label">PROTOCOLO:</span> <strong>${a.protocolo || a.id}</strong></div>
+                        <div class="row"><span class="label">CIDADÃO:</span> ${a.usuario_nome || 'N/A'}</div>
+                        <div class="row"><span class="label">ASSUNTO:</span> ${a.assunto}</div>
+                        ${a.motivo ? `<div class="row"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
+                        ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
+                        ${a.acompanhante ? `<div class="row"><span class="label">ACOMPANHANTE:</span> ${a.acompanhante}</div>` : ''}
+                        <div class="row"><span class="label">DATA / HORA:</span> <strong>${new Date(a.data_hora).toLocaleString()}</strong></div>
+                        <div class="row"><span class="label">SITUAÇÃO:</span> CONFIRMADO</div>
+                    </div>
+                    <div class="stamp"><div class="badge">AGENDAMENTO CONFIRMADO</div></div>
+                    <div style="text-align: center; margin-top: 40px;">
+                        <button onclick="window.print()" class="no-print" style="padding: 10px 30px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer;">Imprimir</button>
+                    </div>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        }
+    } catch(e) {
+        alert("Erro ao gerar impressão.");
+    }
 }
 
 async function loadUsers() {
