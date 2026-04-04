@@ -16,60 +16,64 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+    import traceback
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        email: str = payload.get("sub")
-        tipo: str = payload.get("type")
-        if email is None or tipo is None:
+        try:
+            payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+            email: str = payload.get("sub")
+            tipo: str = payload.get("type")
+            if email is None or tipo is None:
+                raise credentials_exception
+            token_data = TokenData(email=email, type=tipo)
+        except JWTError:
             raise credentials_exception
-        token_data = TokenData(email=email, type=tipo)
-    except JWTError:
-        raise credentials_exception
-    
-    # SQLite Implementation (Neon/Postgres use this too via DB_MODE != "firestore")
-    # Try User table (Citizen or Admin)
-    user = db_sql.query(Usuario).filter(Usuario.email == token_data.email).first()
-    if not user:
-        # Try AdminSecretaria table (Sub-admin)
-        user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == token_data.email).first()
-    
-    if user:
-        # Determine actual verified type
-        if isinstance(user, Usuario):
-            # cidadao or admin
-            role = str(user.tipo_usuario).split('.')[-1] # Handle enum
-        else:
-            # AdminSecretaria is always subadmin
-            role = "subadmin"
         
-        # Security check: Does token type match database role?
-        # If token says 'admin', but user is 'cidadao', reject.
-        if tipo == "admin" and role != "admin":
-            user = None
-        elif tipo == "subadmin" and role != "subadmin":
-            user = None
-        elif tipo == "cidadao" and role != "cidadao":
-            user = None
+        # SQLite Implementation (Neon/Postgres use this too via DB_MODE != "firestore")
+        # Try User table (Citizen or Admin)
+        user = db_sql.query(Usuario).filter(Usuario.email == token_data.email).first()
+        if not user:
+            # Try AdminSecretaria table (Sub-admin)
+            user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == token_data.email).first()
         
         if user:
-            # Create a uniform object for routes
-            from types import SimpleNamespace
-            is_subadmin = isinstance(user, AdminSecretaria)
+            # Determine actual verified type
+            if isinstance(user, Usuario):
+                # cidadao or admin
+                role = str(user.tipo_usuario).split('.')[-1] # Handle enum
+            else:
+                # AdminSecretaria is always subadmin
+                role = "subadmin"
             
-            user_out = SimpleNamespace(
-                id=int(user.id),
-                email=user.email,
-                nome=user.nome,
-                cpf=user.cpf,
-                telefone=getattr(user, 'telefone', ""),
-                endereco=getattr(user, 'endereco', ""),
-                status=getattr(user, 'status', getattr(StatusUsuario, 'ativo', 'Ativo') if is_subadmin else getattr(user, 'status', 'Ativo')),
-                secretaria_id=getattr(user, 'secretaria_id', None),
-                tipo_usuario_verificado=role # "cidadao", "subadmin", "admin"
-            )
-            return user_out
+            # Security check: Does token type match database role?
+            if tipo == "admin" and role != "admin":
+                user = None
+            elif tipo == "subadmin" and role != "subadmin":
+                user = None
+            elif tipo == "cidadao" and role != "cidadao":
+                user = None
+            
+            if user:
+                # Create a uniform object for routes
+                from types import SimpleNamespace
+                is_subadmin = isinstance(user, AdminSecretaria)
+                
+                user_out = SimpleNamespace(
+                    id=int(user.id),
+                    email=user.email,
+                    nome=user.nome,
+                    cpf=user.cpf,
+                    telefone=getattr(user, 'telefone', ""),
+                    endereco=getattr(user, 'endereco', ""),
+                    status=getattr(user, 'status', "ativo"),
+                    secretaria_id=getattr(user, 'secretaria_id', None),
+                    tipo_usuario_verificado=role # "cidadao", "subadmin", "admin"
+                )
+                return user_out
 
-    raise credentials_exception
+        raise credentials_exception
+    except Exception as e:
+        print(f"ERROR IN get_current_user: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Auth error: {str(e)}")
 
 def get_current_admin(current_user = Depends(get_current_user)):
     if current_user.tipo_usuario_verificado not in ["admin", "subadmin"]:
