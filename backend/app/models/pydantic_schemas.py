@@ -5,7 +5,7 @@ from .schema import TipoUsuario, StatusOcorrencia, StatusUsuario
 
 class UsuarioBase(BaseModel):
     nome: str
-    cpf: str
+    cpf: Optional[str] = None
     email: EmailStr
     telefone: Optional[str] = None
     endereco: Optional[str] = None
