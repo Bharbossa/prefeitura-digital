@@ -37,7 +37,7 @@ class OcorrenciaBase(BaseModel):
     descricao: str
     rua: Optional[str] = None
     ponto_referencia: Optional[str] = None
-    secretaria_id: int
+    secretaria_id: Optional[int] = None
 
 class OcorrenciaCreate(OcorrenciaBase):
     pass # foto and video are handled via Form data in endpoints
@@ -59,7 +59,8 @@ class OcorrenciaResponse(OcorrenciaBase):
     foto_resolucao: Optional[str] = None
     status: str
     data: datetime
-    usuario_id: int
+    usuario_id: Optional[int] = None
+    secretaria_nome: Optional[str] = None
     respostas: List[RespostaResponse] = []
     model_config = ConfigDict(from_attributes=True)
 

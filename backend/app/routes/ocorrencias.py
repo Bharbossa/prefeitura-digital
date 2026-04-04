@@ -6,7 +6,7 @@ import uuid
 import shutil
 
 from ..database import get_db
-from ..models.schema import Ocorrencia, Resposta, AdminSecretaria, LogAuditoria
+from ..models.schema import Ocorrencia, Resposta, AdminSecretaria, LogAuditoria, Secretaria
 from ..core.firebase_config import db, DB_MODE
 from ..models.pydantic_schemas import OcorrenciaResponse, RespostaResponse
 from ..core.auth_deps import get_current_user, get_current_admin
@@ -80,17 +80,20 @@ def get_current_ocorrencias(
     role = current_user.tipo_usuario_verificado
     
     if role in ["admin", "subadmin"]:
-        # If they are tied to a secretariat, filter by it. If General Admin (no sec_id), show all.
         sec_id = current_user.secretaria_id
+        # Use join to get secretaria name for Admin visibility
+        query = db_sql.query(Ocorrencia)
         if sec_id:
-            query = db_sql.query(Ocorrencia).filter(Ocorrencia.secretaria_id == sec_id)
-        else:
-            query = db_sql.query(Ocorrencia)
+            query = query.filter(Ocorrencia.secretaria_id == sec_id)
     else:
         # Citizen: show only own
         query = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == current_user.id)
     
-    return query.order_by(Ocorrencia.data.desc()).all()
+    ocorrencias = query.order_by(Ocorrencia.data.desc()).all()
+    # for o in ocorrencias:
+    #     if o.secretaria:
+    #         o.secretaria_nome = o.secretaria.nome
+    return ocorrencias
 
 @router.patch("/{id}/status")
 async def update_status(
