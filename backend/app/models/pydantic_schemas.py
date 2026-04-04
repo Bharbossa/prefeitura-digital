@@ -59,7 +59,7 @@ class OcorrenciaResponse(OcorrenciaBase):
     data: Optional[datetime] = None
     usuario_id: Optional[int] = None
     secretaria_nome: Optional[str] = None
-    respostas: List[RespostaResponse] = []
+    respostas: Optional[List[RespostaResponse]] = []
     model_config = ConfigDict(from_attributes=True)
 
 class LogAuditoriaBase(BaseModel):
