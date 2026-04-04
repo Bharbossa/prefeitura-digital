@@ -95,7 +95,10 @@ def get_current_ocorrencias(
     #         o.secretaria_nome = o.secretaria.nome
     return ocorrencias
 
-@router.patch("/{id}/status")
+@router.get("/debug-raw")
+def get_debug_raw(db_sql: Session = Depends(get_db)):
+    ocorrencias = db_sql.query(Ocorrencia).all()
+    return [{"id": o.id, "status": o.status, "data": str(o.data), "sec_id": o.secretaria_id} for o in ocorrencias]
 async def update_status(
     id: int, 
     status: str, 
