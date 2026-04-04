@@ -77,23 +77,29 @@ def get_current_ocorrencias(
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
 ):
-    role = current_user.tipo_usuario_verificado
-    
-    if role in ["admin", "subadmin"]:
-        sec_id = current_user.secretaria_id
-        # Use join to get secretaria name for Admin visibility
-        query = db_sql.query(Ocorrencia)
-        if sec_id:
-            query = query.filter(Ocorrencia.secretaria_id == sec_id)
-    else:
-        # Citizen: show only own
-        query = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == current_user.id)
-    
-    ocorrencias = query.order_by(Ocorrencia.data.desc()).all()
-    for o in ocorrencias:
-        if o.secretaria:
-            o.secretaria_nome = o.secretaria.nome
-    return ocorrencias
+    import traceback
+    try:
+        role = current_user.tipo_usuario_verificado
+        
+        if role in ["admin", "subadmin"]:
+            sec_id = current_user.secretaria_id
+            # Use join to get secretaria name for Admin visibility
+            query = db_sql.query(Ocorrencia)
+            if sec_id:
+                query = query.filter(Ocorrencia.secretaria_id == sec_id)
+        else:
+            # Citizen: show only own
+            query = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == current_user.id)
+        
+        ocorrencias = query.order_by(Ocorrencia.data.desc()).all()
+        for o in ocorrencias:
+            if o.secretaria:
+                o.secretaria_nome = o.secretaria.nome
+        return ocorrencias
+    except Exception as e:
+        print("ERROR IN get_current_ocorrencias:")
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("/debug-raw")
 def get_debug_raw(db_sql: Session = Depends(get_db)):
