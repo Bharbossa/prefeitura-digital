@@ -146,6 +146,16 @@ def test_debug():
         "debug_logs": log_content
     }
 
+from .models.schema import Ocorrencia
+@app.get("/api/ocorrencias/all-debug-open")
+def all_debug_open(db_sql: Session = Depends(get_db)):
+    try:
+        from sqlalchemy.orm import joinedload
+        oc = db_sql.query(Ocorrencia).limit(10).all()
+        return [{"id": o.id, "titulo": o.titulo, "status": o.status} for o in oc]
+    except Exception as e:
+        return {"error": str(e)}
+
 
 # Mount the 'uploads' directory to serve files (photos/videos)
 if not os.path.exists("uploads"):
