@@ -144,6 +144,14 @@
                         <option value="POSTO JOSÉ ACIOLY MACIEL (PSF 08)">POSTO JOSÉ ACIOLY MACIEL (PSF 08)</option>
                     </select>
                 </div>
+                <div class="form-group" id="group_profissional" style="display: none;">
+                    <label>Profissional</label>
+                    <select id="ag_profissional">
+                        <option value="">Selecione...</option>
+                        <option value="Médico">Médico</option>
+                        <option value="Dentista">Dentista</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label id="ag_assunto_label">Assunto</label>
                     <input type="text" id="ag_assunto" placeholder="" required>
@@ -230,8 +238,12 @@
             }
             secSelect.disabled = true; // Força para a Secretaria de Saúde
 
-            document.getElementById('ag_assunto_label').innerText = 'Assunto (Qual médico deseja agendar? E o Motivo?)';
-            document.getElementById('ag_assunto').placeholder = 'Ex: Consulta com Clínico Geral, Pediatra, etc.';
+            document.getElementById('ag_assunto_label').innerText = 'Motivo da Consulta (Opcional)';
+            document.getElementById('ag_assunto').placeholder = 'Ex: Dor de cabeça, check-up, etc.';
+            document.getElementById('ag_assunto').required = false; 
+
+            document.getElementById('group_profissional').style.display = 'block';
+            document.getElementById('ag_profissional').required = true;
             
             document.getElementById('group_posto').style.display = 'block';
             document.getElementById('ag_posto').required = true;
@@ -282,6 +294,10 @@
 
             document.getElementById('ag_assunto_label').innerText = 'Assunto (Para qual assunto/secretário deseja agendar?)';
             document.getElementById('ag_assunto').placeholder = 'Ex: Reunião sobre alvará, Falar com Secretário de Obras, etc.';
+            document.getElementById('ag_assunto').required = true; 
+            
+            document.getElementById('group_profissional').style.display = 'none';
+            document.getElementById('ag_profissional').required = false;
             
             document.getElementById('group_posto').style.display = 'none';
             document.getElementById('ag_posto').required = false;
@@ -314,6 +330,10 @@
 
             document.getElementById('ag_assunto_label').innerText = 'Destino da Viagem';
             document.getElementById('ag_assunto').placeholder = 'Ex: Juiz de Fora, Belo Horizonte, etc.';
+            document.getElementById('ag_assunto').required = true; 
+
+            document.getElementById('group_profissional').style.display = 'none';
+            document.getElementById('ag_profissional').required = false;
             
             document.getElementById('group_posto').style.display = 'none';
             document.getElementById('ag_posto').required = false;
@@ -486,6 +506,14 @@
             const dataObjeto = new Date(`${dataDate}T${dataTime}`);
             
             let assuntoFinal = document.getElementById('ag_assunto').value;
+            if (document.getElementById('group_profissional').style.display !== 'none') {
+                const prof = document.getElementById('ag_profissional').value;
+                if (!prof) {
+                    alert("Selecione o Profissional.");
+                    return;
+                }
+                assuntoFinal = prof + (assuntoFinal ? ': ' + assuntoFinal : '');
+            }
             if (document.getElementById('group_posto').style.display !== 'none') {
                 const posto = document.getElementById('ag_posto').value;
                 if (!posto) {
