@@ -92,10 +92,26 @@ def get_current_ocorrencias(
             query = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == current_user.id)
         
         ocorrencias = query.order_by(Ocorrencia.data.desc()).all()
+        
+        result_list = []
         for o in ocorrencias:
-            if o.secretaria:
-                o.secretaria_nome = o.secretaria.nome
-        return ocorrencias
+            result_list.append({
+                "id": o.id,
+                "protocolo": o.protocolo,
+                "titulo": o.titulo,
+                "descricao": o.descricao,
+                "rua": o.rua,
+                "ponto_referencia": o.ponto_referencia,
+                "status": o.status,
+                "data": o.data.isoformat() if hasattr(o.data, "isoformat") else str(o.data),
+                "foto": o.foto,
+                "video": o.video,
+                "foto_resolucao": o.foto_resolucao,
+                "usuario_id": o.usuario_id,
+                "secretaria_id": o.secretaria_id,
+                "secretaria_nome": o.secretaria.nome if o.secretaria else None
+            })
+        return result_list
     except Exception as e:
         print("ERROR IN get_current_ocorrencias:")
         traceback.print_exc()
