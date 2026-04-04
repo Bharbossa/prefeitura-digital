@@ -66,8 +66,11 @@ async def create_ocorrencia(
         )
         db_sql.add(ocorrencia)
         db_sql.commit()
-    db_sql.refresh(ocorrencia)
-    return ocorrencia
+        db_sql.refresh(ocorrencia)
+        return ocorrencia
+    except Exception as e:
+        db_sql.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("", response_model=List[OcorrenciaResponse])
 def get_current_ocorrencias(
