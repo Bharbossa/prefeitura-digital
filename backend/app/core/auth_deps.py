@@ -35,11 +35,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
             # Try AdminSecretaria table (Sub-admin)
             user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == token_data.email).first()
         
-        if user:
-            # Determine actual verified type
             if isinstance(user, Usuario):
                 # cidadao or admin
-                role = str(user.tipo_usuario).split('.')[-1] # Handle enum
+                raw_role = str(user.tipo_usuario).split('.')[-1]
+                role = "admin" if raw_role == "admin" else "cidadao"
             else:
                 # AdminSecretaria is always subadmin
                 role = "subadmin"
