@@ -234,3 +234,11 @@ def read_users_me(current_user = Depends(get_current_user)):
         "status": status_val,
         "secretaria_id": getattr(current_user, "secretaria_id", None)
     }
+
+@router.get("/debug-logs-view")
+def view_debug_logs():
+    try:
+        with open("uploads/debug.log", "r") as f:
+            return {"logs": f.read()}
+    except Exception as e:
+        return {"error": str(e)}
