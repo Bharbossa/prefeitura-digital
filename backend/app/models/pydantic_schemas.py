@@ -33,8 +33,8 @@ class TokenData(BaseModel):
     type: Optional[str] = None
 
 class OcorrenciaBase(BaseModel):
-    titulo: str
-    descricao: str
+    titulo: Optional[str] = None
+    descricao: Optional[str] = None
     rua: Optional[str] = None
     ponto_referencia: Optional[str] = None
     secretaria_id: Optional[int] = None
