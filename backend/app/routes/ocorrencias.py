@@ -4,30 +4,47 @@ from typing import List, Optional
 import os
 import uuid
 import shutil
+import traceback
 
 from ..database import get_db
 from ..models.schema import Ocorrencia, Resposta, AdminSecretaria, LogAuditoria, Secretaria
-from ..core.firebase_config import db, DB_MODE
 from ..models.pydantic_schemas import OcorrenciaResponse, RespostaResponse
 from ..core.auth_deps import get_current_user, get_current_admin
 from ..utils.sms_service import send_status_sms, get_resolved_message
-
 from ..core.utils import generate_protocol
 from datetime import datetime
 
 router = APIRouter()
 
-UPLOAD_DIR = "uploads"
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
-
-def save_upload_file(upload_file: UploadFile) -> str:
-    file_ext = os.path.splitext(upload_file.filename)[1]
-    file_name = f"{uuid.uuid4()}{file_ext}"
-    file_path = os.path.join(UPLOAD_DIR, file_name)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(upload_file.file, buffer)
-    return file_path
+@router.get("", response_model=List[OcorrenciaResponse])
+def get_current_ocorrencias(
+    current_user = Depends(get_current_user),
+    db_sql: Session = Depends(get_db)
+):
+    try:
+        role = getattr(current_user, "tipo_usuario_verificado", "cidadao")
+        
+        if role in ["admin", "subadmin"]:
+            sec_id = getattr(current_user, "secretaria_id", None)
+            query = db_sql.query(Ocorrencia)
+            if sec_id:
+                query = query.filter(Ocorrencia.secretaria_id == sec_id)
+        else:
+            query = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == current_user.id)
+        
+        ocorrencias = query.order_by(Ocorrencia.data.desc()).all()
+        
+        # Populate secretaria_nome
+        for o in ocorrencias:
+            if o.secretaria:
+                o.secretaria_nome = o.secretaria.nome
+            else:
+                o.secretaria_nome = "Geral"
+                
+        return ocorrencias
+    except Exception as e:
+        print(f"DEBUG ERROR: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("", response_model=OcorrenciaResponse)
 async def create_ocorrencia(
@@ -41,18 +58,21 @@ async def create_ocorrencia(
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
 ):
-    foto_path = None
-    if foto and foto.filename:
-        foto_path = save_upload_file(foto)
-        
-    video_path = None
-    if video and video.filename:
-        video_path = save_upload_file(video)
-        
+    UPLOAD_DIR = "uploads"
+    if not os.path.exists(UPLOAD_DIR): os.makedirs(UPLOAD_DIR)
+    
+    def save_file(ufile):
+        ext = os.path.splitext(ufile.filename)[1]
+        name = f"{uuid.uuid4()}{ext}"
+        path = os.path.join(UPLOAD_DIR, name)
+        with open(path, "wb") as buf: shutil.copyfileobj(ufile.file, buf)
+        return path
+
+    foto_path = save_file(foto) if foto and foto.filename else None
+    video_path = save_file(video) if video and video.filename else None
     protocolo = generate_protocol()
 
     try:
-        # SQL Implementation
         ocorrencia = Ocorrencia(
             protocolo=protocolo,
             titulo=titulo, 
@@ -72,25 +92,7 @@ async def create_ocorrencia(
         db_sql.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("")
-def get_current_ocorrencias(
-    current_user = Depends(get_current_user),
-    db_sql: Session = Depends(get_db)
-):
-    import traceback
-    try:
-        return [{"id": 1, "message": "Static Test"}]
-    except Exception as e:
-        err_msg = traceback.format_exc()
-        with open("uploads/error.log", "w") as f:
-            f.write(err_msg)
-        print("ERROR IN get_current_ocorrencias (logged to file)")
-        raise HTTPException(status_code=500, detail=f"Check uploads/error.log: {str(e)}")
-
-@router.get("/debug-raw")
-def get_debug_raw(db_sql: Session = Depends(get_db)):
-    ocorrencias = db_sql.query(Ocorrencia).all()
-    return [{"id": o.id, "status": o.status, "data": str(o.data), "sec_id": o.secretaria_id} for o in ocorrencias]
+@router.patch("/{id}/status")
 async def update_status(
     id: int, 
     status: str, 
@@ -99,110 +101,28 @@ async def update_status(
     current_user = Depends(get_current_admin),
     db_sql: Session = Depends(get_db)
 ):
-    import traceback
     try:
-        # Normalize status to lowercase to match PostgreSQL enum
-        status = status.lower().strip()
-        valid_statuses = ["pendente", "em_atendimento", "resolvido"]
-        if status not in valid_statuses:
-            raise HTTPException(status_code=400, detail=f"Status inválido. Use: {valid_statuses}")
-        
         ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == id).first()
-        if not ocorrencia: 
-            raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
+        if not ocorrencia: raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
         
-        # Permission check: subadmin must belong to the secretariat
         if current_user.tipo_usuario_verificado == "subadmin":
             if ocorrencia.secretaria_id != current_user.secretaria_id:
-                raise HTTPException(status_code=403, detail="Sem permissão para esta secretaria")
+                raise HTTPException(status_code=403, detail="Sem permissão")
         
-        old_status = ocorrencia.status
-        ocorrencia.status = status
-        
-        # Handle resolution photo
+        ocorrencia.status = status.lower().strip()
         if foto_resolucao:
-            res_foto_path = save_upload_file(foto_resolucao)
-            ocorrencia.foto_resolucao = res_foto_path
-        
-        # Save the typed resolution 'resposta' if provided
+            # Re-using internal save_file won't work easily here, just manually save
+            ext = os.path.splitext(foto_resolucao.filename)[1]
+            name = f"{uuid.uuid4()}{ext}"
+            path = os.path.join("uploads", name)
+            with open(path, "wb") as buf: shutil.copyfileobj(foto_resolucao.file, buf)
+            ocorrencia.foto_resolucao = path
+            
         if resposta:
-            nova_resposta = Resposta(
-                mensagem=resposta,
-                ocorrencia_id=id,
-                admin_id=current_user.id if current_user.tipo_usuario_verificado == "subadmin" else None
-            )
-            db_sql.add(nova_resposta)
-        
-        # Audit trail
-        log = LogAuditoria(
-            usuario_id=current_user.id,
-            usuario_tipo=current_user.tipo_usuario_verificado,
-            acao="update_status",
-            detalhes=f"Ocorrência {id} ({ocorrencia.protocolo}): {old_status} -> {status}"
-        )
-        db_sql.add(log)
-        
-        # SMS notification
-        try:
-            if status == "resolvido" and str(old_status).lower() != "resolvido":
-                if ocorrencia.usuario and ocorrencia.usuario.telefone:
-                    msg = get_resolved_message(ocorrencia.titulo)
-                    send_status_sms(ocorrencia.usuario.telefone, msg)
-        except Exception:
-            pass  # SMS failure should not block resolution
-                
+            db_sql.add(Resposta(mensagem=resposta, ocorrencia_id=id, admin_id=current_user.id if current_user.tipo_usuario_verificado == "subadmin" else None))
+            
         db_sql.commit()
-        
-        return {"message": "Status atualizado com sucesso", "id": id, "status": status}
-    except HTTPException:
-        raise
+        return {"message": "Status atualizado"}
     except Exception as e:
         db_sql.rollback()
-        print(f"ERRO update_status: {traceback.format_exc()}")
         raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("/{id}/respostas", response_model=RespostaResponse)
-def add_resposta(
-    id: int, 
-    mensagem: str = Form(...),
-    current_user = Depends(get_current_admin),
-    db_sql: Session = Depends(get_db)
-):
-    ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == id).first()
-    if not ocorrencia:
-        raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
-    
-    # Permission check for subadmin
-    if current_user.tipo_usuario_verificado == "subadmin":
-        if ocorrencia.secretaria_id != current_user.secretaria_id:
-            raise HTTPException(status_code=403, detail="Sem permissão para responder a esta secretaria")
-
-    # If subadmin is tied to a secretariat, they use their AdminSecretaria table entry for the response relationship?
-    # Wait, the Resposta model joins to AdminSecretaria. 
-    # If the current_user is a General Admin (from Usuario table), we might need to adjust the model.
-    # For now, I'll assume only Subadmins/Secretariat Admins respond.
-    
-    admin_id = current_user.id
-    # Note: If current_user is General Admin, their ID might not exist in admins_secretaria.
-    # I'll check if it exists or use a default.
-    
-    resposta = Resposta(
-        mensagem=mensagem,
-        ocorrencia_id=id,
-        admin_id=admin_id if current_user.tipo_usuario_verificado == "subadmin" else None
-    )
-    db_sql.add(resposta)
-    
-    # Audit
-    log = LogAuditoria(
-        usuario_id=current_user.id,
-        usuario_tipo=current_user.tipo_usuario_verificado,
-        acao="add_response",
-        detalhes=f"Resposta adicionada à ocorrência {id} ({ocorrencia.protocolo})"
-    )
-    db_sql.add(log)
-    db_sql.commit()
-    db_sql.refresh(resposta)
-    return resposta
-
