@@ -11,7 +11,7 @@ from ..models.schema import Usuario, AdminSecretaria, Agendamento, LogAuditoria
 from ..models.pydantic_schemas import AgendamentoCreate, AgendamentoResponse
 from ..core.auth_deps import get_current_user, get_current_admin
 from ..utils.sms_service import send_status_sms, get_confirmed_message
-from ..core.utils import generate_protocol
+from ..core.utils import generate_protocol, get_brasilia_time
 from sqlalchemy.orm import joinedload
 
 router = APIRouter()
@@ -44,7 +44,8 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
         motivo=agend.motivo,
         acompanhante=agend.acompanhante,
         cartao_sus=agend.cartao_sus,
-        data_hora=agend.data_hora.replace(tzinfo=None)
+        data_hora=agend.data_hora.replace(tzinfo=None),
+        criado_em=get_brasilia_time()
     )
     db_sql.add(novo_agendamento)
     db_sql.commit()
@@ -84,7 +85,8 @@ def criar_agendamento_viagem(
         acompanhante=acompanhante,
         data_hora=data_obj,
         cartao_sus=None, # Trips don't usually use it but good for consistency
-        anexo=arquivo_path
+        anexo=arquivo_path,
+        criado_em=get_brasilia_time()
     )
     db_sql.add(novo_agendamento)
     db_sql.commit()

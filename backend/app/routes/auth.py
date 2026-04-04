@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta, datetime
+from datetime import timedelta
+from ..core.utils import get_brasilia_time
 from typing import Any
 
 from ..core.firebase_config import db, DB_MODE
@@ -27,7 +28,7 @@ def register(user_in: UsuarioCreate, db_sql: Session = Depends(get_db)) -> Any:
         user_data = {
             "nome": user_in.nome, "cpf": user_in.cpf, "email": user_in.email,
             "senha_hash": hashed_password, "tipo_usuario": "cidadao", 
-            "status": StatusUsuario.ativo, "criado_em": datetime.utcnow()
+            "status": StatusUsuario.ativo, "criado_em": get_brasilia_time()
         }
         doc_ref = db.collection("usuarios").document()
         doc_ref.set(user_data)

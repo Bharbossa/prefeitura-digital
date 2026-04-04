@@ -4,7 +4,8 @@ from sqlalchemy import func
 from ..database import get_db
 from ..models.schema import Ocorrencia, Agendamento, Usuario, StatusUsuario, StatusOcorrencia
 from ..core.auth_deps import get_current_admin, get_general_admin
-from datetime import datetime, timedelta
+from datetime import timedelta
+from ..core.utils import get_brasilia_time
 
 router = APIRouter()
 
@@ -79,7 +80,7 @@ def get_secretaria_breakdown(current_user = Depends(get_general_admin), db_sql: 
 def get_chart_data(current_user = Depends(get_current_admin), db_sql: Session = Depends(get_db)):
 
     # Simple last 7 days metrics
-    today = datetime.utcnow()
+    today = get_brasilia_time().replace(tzinfo=None)
     last_week = today - timedelta(days=7)
     
     sec_id = current_user.secretaria_id

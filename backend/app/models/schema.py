@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship
 import enum
 import datetime
 from ..database import Base
+from ..core.utils import get_brasilia_time
 
 class TipoUsuario(str, enum.Enum):
     cidadao = "cidadao"
@@ -72,7 +73,7 @@ class Ocorrencia(Base):
     foto = Column(String(255), nullable=True)   # Path/URL
     video = Column(String(255), nullable=True)  # Path/URL
     status = Column(Enum(StatusOcorrencia), default=StatusOcorrencia.pendente)
-    data = Column(DateTime, default=datetime.datetime.utcnow)
+    data = Column(DateTime, default=get_brasilia_time)
     
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     secretaria_id = Column(Integer, ForeignKey("secretarias.id"))
@@ -86,7 +87,7 @@ class Resposta(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     mensagem = Column(Text, nullable=False)
-    data = Column(DateTime, default=datetime.datetime.utcnow)
+    data = Column(DateTime, default=get_brasilia_time)
 
     ocorrencia_id = Column(Integer, ForeignKey("ocorrencias.id"))
     admin_id = Column(Integer, ForeignKey("admins_secretaria.id"))
@@ -100,7 +101,7 @@ class ChatIA(Base):
     id = Column(Integer, primary_key=True, index=True)
     mensagem_usuario = Column(Text, nullable=False)
     resposta_ia = Column(Text, nullable=False)
-    data = Column(DateTime, default=datetime.datetime.utcnow)
+    data = Column(DateTime, default=get_brasilia_time)
     
     usuario_id = Column(Integer, ForeignKey("usuarios.id"), nullable=True) # Optional link to user if logged in
 
@@ -121,7 +122,7 @@ class Agendamento(Base):
     data_hora = Column(DateTime)
     status = Column(String(50), default="Pendente") # Pendente, Confirmado, Cancelado
     anexo = Column(String(255), nullable=True) # Path/URL for the uploaded proof
-    criado_em = Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+    criado_em = Column(DateTime, default=get_brasilia_time)
 
     usuario = relationship("Usuario", back_populates="agendamentos")
     secretaria = relationship("Secretaria", back_populates="agendamentos")
@@ -134,5 +135,5 @@ class LogAuditoria(Base):
     usuario_tipo = Column(String(50)) # "admin" or "subadmin"
     acao = Column(String(100)) # "create_user", "update_status", etc.
     detalhes = Column(Text)
-    data = Column(DateTime, default=datetime.datetime.utcnow)
+    data = Column(DateTime, default=get_brasilia_time)
 
