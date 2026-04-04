@@ -1,8 +1,10 @@
+import random
+import string
 from datetime import datetime, timezone, timedelta
 
 def get_brasilia_time():
-    """Returns the current time in Brasília (GMT-3)"""
-    return datetime.now(timezone(timedelta(hours=-3)))
+    """Returns the current naive time in Brasília (GMT-3)"""
+    return datetime.now(timezone(timedelta(hours=-3))).replace(tzinfo=None)
 
 def generate_protocol():
     """Generates a unique protocol number like COL-2026-XXXXX"""
