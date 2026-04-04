@@ -193,13 +193,16 @@ def change_password(data: ChangePasswordRequest, current_user = Depends(get_curr
     
     return {"message": "Senha alterada com sucesso!"}
 
-@router.get("/diagnostic/user/{email}")
-def diagnostic_user(email: str, db_sql: Session = Depends(get_db)):
-    # NOT SECURE FOR PRODUCTION - TEMPORARY FOR DEBUGGING
-    clean_email = email.lower().strip()
-    u = db_sql.query(Usuario).filter(func.lower(Usuario.email) == clean_email).first()
-    a = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == clean_email).first()
-    
+    log_content = ""
+    try:
+        if os.path.exists("uploads/debug.log"):
+            with open("uploads/debug.log", "r") as f:
+                log_content = f.read()
+        else:
+            log_content = "Log file not found."
+    except Exception as e:
+        log_content = f"Error reading log: {str(e)}"
+
     return {
         "usuario": {
             "exists": u is not None,
@@ -211,7 +214,8 @@ def diagnostic_user(email: str, db_sql: Session = Depends(get_db)):
             "exists": a is not None,
             "email_db": a.email if a else None,
             "id": a.id if a else None
-        } if a else None
+        } if a else None,
+        "debug_logs": log_content
     }
 
 @router.get("/me", response_model=UsuarioResponse)
