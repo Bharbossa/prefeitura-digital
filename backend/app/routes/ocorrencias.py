@@ -79,39 +79,7 @@ def get_current_ocorrencias(
 ):
     import traceback
     try:
-        role = current_user.tipo_usuario_verificado
-        
-        if role in ["admin", "subadmin"]:
-            sec_id = current_user.secretaria_id
-            # Use join to get secretaria name for Admin visibility
-            query = db_sql.query(Ocorrencia)
-            if sec_id:
-                query = query.filter(Ocorrencia.secretaria_id == sec_id)
-        else:
-            # Citizen: show only own
-            query = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == current_user.id)
-        
-        ocorrencias = query.order_by(Ocorrencia.data.desc()).all()
-        
-        result_list = []
-        for o in ocorrencias:
-            result_list.append({
-                "id": o.id,
-                "protocolo": o.protocolo,
-                "titulo": o.titulo,
-                "descricao": o.descricao,
-                "rua": o.rua,
-                "ponto_referencia": o.ponto_referencia,
-                "status": o.status,
-                "data": o.data.isoformat() if hasattr(o.data, "isoformat") else str(o.data),
-                "foto": o.foto,
-                "video": o.video,
-                "foto_resolucao": o.foto_resolucao,
-                "usuario_id": o.usuario_id,
-                "secretaria_id": o.secretaria_id,
-                "secretaria_nome": o.secretaria.nome if o.secretaria else None
-            })
-        return result_list
+        return [{"id": 1, "message": "Static Test"}]
     except Exception as e:
         print("ERROR IN get_current_ocorrencias:")
         traceback.print_exc()
