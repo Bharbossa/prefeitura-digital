@@ -306,6 +306,7 @@ async function loadOcorrencias() {
                         <tr>
                             <th>Protocolo</th>
                             <th>Título</th>
+                            <th style="min-width: 150px;">Local</th>
                             ${currentRole==='admin' ? '<th>Secretaria</th>' : ''}
                             <th>Data</th>
                             <th>Status</th>
@@ -325,8 +326,9 @@ async function loadOcorrencias() {
                     <tr>
                         <td><strong>${o.protocolo || o.id}</strong></td>
                         <td>${o.titulo}</td>
+                        <td style="font-size: 0.85rem;">${o.rua || 'N/A'}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}</td>
                         ${currentRole==='admin' ? `<td>${o.secretaria_nome || 'N/A'}</td>` : ''}
-                        <td>${new Date(o.data).toLocaleDateString()}</td>
+                        <td>${new Date(o.data).toLocaleString()}</td>
                         <td><span class="badge badge-${s === 'resolvido' ? 'done' : (s === 'em_atendimento' ? 'progress' : 'pending')}">${o.status}</span></td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
@@ -360,13 +362,23 @@ async function confirmResolution(id) {
     const resp = document.getElementById('respText').value;
     if (!resp) return alert("Por favor, digite uma resposta para o cidadão.");
     
+    const formData = new FormData();
+    formData.append('resposta', resp);
+    
+    const fotoInput = document.getElementById('respFoto');
+    if (fotoInput && fotoInput.files.length > 0) {
+        formData.append('foto_resolucao', fotoInput.files[0]);
+    }
+    
     try {
-        const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=resolvido&resposta=${encodeURIComponent(resp)}`, {
+        const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=resolvido`, {
             method: 'PATCH',
-            headers: { 'Authorization': `Bearer ${getToken()}` }
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+            body: formData
         });
         if (res.ok) {
             closeModal('modalResponse');
+            if (document.getElementById('respFoto')) document.getElementById('respFoto').value = "";
             loadOcorrencias();
             loadDashboard();
             alert("Ocorrência resolvida com sucesso!");
@@ -413,12 +425,19 @@ async function imprimirProtocolo(id) {
                         <div class="row"><span class="label">PROTOCOLO:</span> <strong>${o.protocolo}</strong></div>
                         <div class="row"><span class="label">CIDADÃO:</span> ${o.usuario_nome || 'N/A'}</div>
                         <div class="row"><span class="label">ASSUNTO:</span> ${o.titulo}</div>
+                        <div class="row"><span class="label">LOCAL:</span> ${o.rua || 'N/A'}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}</div>
                         <div class="row"><span class="label">DATA:</span> ${new Date(o.data).toLocaleString()}</div>
                         <div class="row"><span class="label">SITUAÇÃO:</span> RESOLVIDO</div>
                         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
                         <div>
                             <span class="label">RESPOSTA ADM:</span>
                             <p>${(o.respostas && o.respostas.length > 0) ? o.respostas[o.respostas.length-1].mensagem : 'Serviço concluído com sucesso.'}</p>
+                            ${o.foto_resolucao ? `
+                                <div style="margin-top: 15px; text-align: center;">
+                                    <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 5px;">FOTO DA SOLUÇÃO:</p>
+                                    <img src="${MEDIA_URL}/${o.foto_resolucao}" style="max-width: 100%; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                     <div class="stamp"><div class="badge">SERVIÇO FINALIZADO</div></div>
@@ -573,7 +592,7 @@ async function imprimirAgendamento(id) {
                         ${a.motivo ? `<div class="row"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
                         ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
                         ${a.acompanhante ? `<div class="row"><span class="label">ACOMPANHANTE:</span> ${a.acompanhante}</div>` : ''}
-                        <div class="row"><span class="label">DATA / HORA:</span> <strong>${new Date(a.data_hora).toLocaleString()}</strong></div>
+                        <div class="row" style="background: #dcfce7; padding: 10px; border-radius: 8px;"><span class="label">HORÁRIO MARCADO:</span> <strong style="font-size: 1.2rem; color: #166534;">${new Date(a.data_hora).toLocaleString()}</strong></div>
                         <div class="row"><span class="label">SITUAÇÃO:</span> CONFIRMADO</div>
                     </div>
                     <div class="stamp"><div class="badge">AGENDAMENTO CONFIRMADO</div></div>

@@ -182,8 +182,14 @@
         <div class="stat-card" style="width: 100%; max-width: 500px; padding: 2rem;">
             <h3 id="modalResponseTitle">Responder Ocorrência</h3>
             <p id="modalResponseSubtitle" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;"></p>
-            <textarea id="respText" class="btn btn-outline" style="width:100%; height:150px; margin-bottom:1rem; padding:10px; font-family:inherit;" placeholder="Escreva a resposta administrativa..."></textarea>
-            <div style="display:flex; gap:1rem;">
+             <textarea id="respText" class="btn btn-outline" style="width:100%; height:150px; margin-bottom:1rem; padding:10px; font-family:inherit;" placeholder="Escreva a resposta administrativa..."></textarea>
+             
+             <div style="margin-bottom: 1.5rem;">
+                 <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-muted);">Foto da Solução (Opcional):</label>
+                 <input type="file" id="respFoto" accept="image/*" class="btn btn-outline" style="width: 100%; padding: 8px;">
+             </div>
+
+             <div style="display:flex; gap:1rem;">
                 <button class="btn btn-primary" id="btnConfirmResp" style="flex:1;">Confirmar RESOLVIDO</button>
                 <button class="btn btn-outline" style="flex:1;" onclick="closeModal('modalResponse')">Cancelar</button>
             </div>

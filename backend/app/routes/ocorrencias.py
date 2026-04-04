@@ -30,31 +30,42 @@ def save_upload_file(upload_file: UploadFile) -> str:
     return file_path
 
 @router.post("", response_model=OcorrenciaResponse)
-def create_ocorrencia(
+async def create_ocorrencia(
     titulo: str = Form(...),
     descricao: str = Form(...),
     secretaria_id: int = Form(...),
+    rua: Optional[str] = Form(None),
+    ponto_referencia: Optional[str] = Form(None),
     foto: Optional[UploadFile] = File(None),
     video: Optional[UploadFile] = File(None),
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
 ):
-    foto_path = save_upload_file(foto) if foto else None
-    video_path = save_upload_file(video) if video else None
+    foto_path = None
+    if foto and foto.filename:
+        foto_path = save_upload_file(foto)
+        
+    video_path = None
+    if video and video.filename:
+        video_path = save_upload_file(video)
+        
     protocolo = generate_protocol()
 
-    # SQL Implementation
-    ocorrencia = Ocorrencia(
-        protocolo=protocolo,
-        titulo=titulo, 
-        descricao=descricao, 
-        secretaria_id=secretaria_id,
-        foto=foto_path, 
-        video=video_path, 
-        usuario_id=current_user.id
-    )
-    db_sql.add(ocorrencia)
-    db_sql.commit()
+    try:
+        # SQL Implementation
+        ocorrencia = Ocorrencia(
+            protocolo=protocolo,
+            titulo=titulo, 
+            descricao=descricao, 
+            rua=rua,
+            ponto_referencia=ponto_referencia,
+            secretaria_id=secretaria_id,
+            foto=foto_path, 
+            video=video_path, 
+            usuario_id=current_user.id
+        )
+        db_sql.add(ocorrencia)
+        db_sql.commit()
     db_sql.refresh(ocorrencia)
     return ocorrencia
 
@@ -79,10 +90,11 @@ def get_current_ocorrencias(
     return query.order_by(Ocorrencia.data.desc()).all()
 
 @router.patch("/{id}/status")
-def update_status(
+async def update_status(
     id: int, 
     status: str, 
     resposta: Optional[str] = None,
+    foto_resolucao: Optional[UploadFile] = File(None),
     current_user = Depends(get_current_admin),
     db_sql: Session = Depends(get_db)
 ):
@@ -105,6 +117,11 @@ def update_status(
         
         old_status = ocorrencia.status
         ocorrencia.status = status
+        
+        # Handle resolution photo
+        if foto_resolucao:
+            res_foto_path = save_upload_file(foto_resolucao)
+            ocorrencia.foto_resolucao = res_foto_path
         
         # Save the typed resolution 'resposta' if provided
         if resposta:

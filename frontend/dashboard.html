@@ -103,8 +103,22 @@
                     <textarea id="oc_descricao" rows="4" required></textarea>
                 </div>
                 <div class="form-group">
-                    <label>Foto (Opcional)</label>
-                    <input type="file" id="oc_foto" accept="image/*">
+                    <label>Rua onde está o problema</label>
+                    <input type="text" id="oc_rua" placeholder="Nome da rua, número..." required>
+                </div>
+                <div class="form-group">
+                    <label>Ponto de Referência</label>
+                    <input type="text" id="oc_ponto_referencia" placeholder="Ex: Próximo à padaria, em frente ao posto...">
+                </div>
+                <div class="form-group" style="display: flex; gap: 1rem;">
+                    <div style="flex: 1;">
+                        <label>Foto (Opcional)</label>
+                        <input type="file" id="oc_foto" accept="image/*">
+                    </div>
+                    <div style="flex: 1;">
+                        <label>Vídeo (Opcional)</label>
+                        <input type="file" id="oc_video" accept="video/*">
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary" style="width: 100%;">Enviar</button>
             </form>
@@ -397,9 +411,16 @@
                                         </button>
                                     ` : ''}
                                 </div>
-                                <p style="color: var(--text-secondary); margin-bottom: 1rem;">${o.descricao}</p>
+                                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">${o.descricao}</p>
+                                <p style="font-size: 0.85rem; color: var(--primary-color); margin-bottom: 1rem;">
+                                    <i class="fa-solid fa-location-dot"></i> <strong>Local:</strong> ${o.rua}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}
+                                </p>
                                 <span class="status-badge ${statusClass}">${o.status}</span>
-                                ${o.foto ? `<p style="margin-top: 1rem;"><a href="${MEDIA_URL}/${o.foto}" target="_blank" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 1rem;"><i class="fa-solid fa-image"></i> Ver Foto</a></p>` : ''}
+                                <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    ${o.foto ? `<a href="${MEDIA_URL}/${o.foto}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem;"><i class="fa-solid fa-image"></i> Ver Foto</a>` : ''}
+                                    ${o.video ? `<a href="${MEDIA_URL}/${o.video}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: #ef4444; color: #ef4444;"><i class="fa-solid fa-video"></i> Ver Vídeo</a>` : ''}
+                                    ${o.foto_resolucao ? `<a href="${MEDIA_URL}/${o.foto_resolucao}" target="_blank" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; background: #10b981;"><i class="fa-solid fa-check-circle"></i> Ver Solução</a>` : ''}
+                                </div>
                             </div>
                         `;
                     });
@@ -443,7 +464,11 @@
                                 </div>
                                 <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-laptop-medical"></i> Tipo: <strong>${a.tipo}</strong></p>
                                 ${a.cartao_sus ? `<p style="margin-bottom: 0.5rem;"><strong>Cartão SUS:</strong> ${a.cartao_sus}</p>` : ''}
-                                <p style="color: var(--text-secondary); margin-bottom: 1rem;"><i class="fa-regular fa-clock"></i> Para: ${new Date(a.data_hora).toLocaleString()}</p>
+                                <div style="background: var(--bg-body); padding: 0.8rem; border-radius: 8px; border: 1px dashed var(--primary-color); margin-bottom: 1rem;">
+                                    <p style="color: var(--primary-color); font-weight: 700; margin-bottom: 0;">
+                                        <i class="fa-solid fa-clock"></i> AGENDADO PARA: ${new Date(a.data_hora).toLocaleString()}
+                                    </p>
+                                </div>
                                 <span class="status-badge ${statusClass}">${a.status}</span>
                             </div>
                         `;
@@ -454,39 +479,63 @@
 
         document.getElementById('formOcorrencia').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const tituloSelect = document.getElementById('oc_titulo_select').value;
-            const tituloCustom = document.getElementById('oc_titulo_custom').value;
-            const tituloFinal = tituloSelect === 'Outro' ? tituloCustom : tituloSelect;
-
-            if (!tituloFinal) {
-                alert("Por favor, informe o título ou selecione um problema.");
-                return;
-            }
-
-            formData.append('titulo', tituloFinal);
-            formData.append('descricao', document.getElementById('oc_descricao').value);
-            formData.append('secretaria_id', document.getElementById('oc_secretaria').value);
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerText;
             
-            const fileInput = document.getElementById('oc_foto');
-            if(fileInput.files.length > 0) {
-                formData.append('foto', fileInput.files[0]);
-            }
-
             try {
+                btn.disabled = true;
+                btn.innerText = "Enviando...";
+                
+                const formData = new FormData();
+                const tituloSelect = document.getElementById('oc_titulo_select').value;
+                const tituloCustom = document.getElementById('oc_titulo_custom').value;
+                const tituloFinal = tituloSelect === 'Outro' ? tituloCustom : tituloSelect;
+
+                if (!tituloFinal) {
+                    alert("Por favor, informe o título ou selecione um problema.");
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                    return;
+                }
+
+                formData.append('titulo', tituloFinal);
+                formData.append('descricao', document.getElementById('oc_descricao').value);
+                formData.append('rua', document.getElementById('oc_rua').value);
+                formData.append('ponto_referencia', document.getElementById('oc_ponto_referencia').value);
+                formData.append('secretaria_id', document.getElementById('oc_secretaria').value);
+                
+                const fileInput = document.getElementById('oc_foto');
+                if(fileInput && fileInput.files.length > 0) {
+                    formData.append('foto', fileInput.files[0]);
+                }
+
+                const videoInput = document.getElementById('oc_video');
+                if(videoInput && videoInput.files.length > 0) {
+                    formData.append('video', videoInput.files[0]);
+                }
+
                 const res = await fetch(`${API_URL}/ocorrencias`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${getToken()}` },
                     body: formData
                 });
+
                 if(res.ok) {
-                    alert('Ocorrência registrada!');
+                    alert('Ocorrência registrada com sucesso!');
                     document.getElementById('modalNovaOcorrencia').style.display='none';
                     e.target.reset();
                     loadOcorrencias();
                 } else {
-                    alert('Erro ao registrar.');
+                    const errorData = await res.json().catch(() => ({}));
+                    alert('Erro ao registrar: ' + (errorData.detail || 'Verifique os campos.'));
                 }
-            } catch(e) { alert('Erro de conexao.'); }
+            } catch(err) { 
+                console.error('Erro na submissão:', err);
+                alert('Erro de conexão: ' + err.message); 
+            } finally {
+                btn.disabled = false;
+                btn.innerText = originalText;
+            }
         });
 
         document.getElementById('formAgendamento').addEventListener('submit', async (e) => {
@@ -616,12 +665,19 @@
                             <div class="content">
                                 <div class="row"><span class="label">PROTOCOLO:</span> <strong>${o.protocolo || o.id}</strong></div>
                                 <div class="row"><span class="label">ASSUNTO:</span> ${o.titulo}</div>
-                                <div class="row"><span class="label">DATA:</span> ${new Date(o.data).toLocaleString()}</div>
+                                <div class="row"><span class="label">LOCAL:</span> ${o.rua}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}</div>
+                                <div class="row"><span class="label">DATA REGISTRO:</span> ${new Date(o.data).toLocaleString()}</div>
                                 <div class="row"><span class="label">SITUAÇÃO:</span> RESOLVIDO</div>
                                 <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
                                 <div>
                                     <span class="label">RESPOSTA ADM:</span>
-                                    <p>${o.resposta_admin || 'O serviço foi concluído com êxito pela secretaria responsável.'}</p>
+                                    <p>${(o.respostas && o.respostas.length > 0) ? o.respostas[o.respostas.length-1].mensagem : 'Serviço concluído com sucesso.'}</p>
+                                    ${o.foto_resolucao ? `
+                                        <div style="margin-top: 15px; text-align: center;">
+                                            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 5px;">FOTO DA SOLUÇÃO:</p>
+                                            <img src="${MEDIA_URL}/${o.foto_resolucao}" style="max-width: 100%; border-radius: 8px; border: 1px solid #e2e8f0;">
+                                        </div>
+                                    ` : ''}
                                 </div>
                             </div>
                             <div class="stamp"><div class="badge">SERVIÇO FINALIZADO</div></div>
@@ -670,7 +726,7 @@
                             <div class="content">
                                 <div class="row"><span class="label">PROTOCOLO:</span> <strong>${a.protocolo || a.id}</strong></div>
                                 <div class="row"><span class="label">ASSUNTO:</span> ${a.assunto}</div>
-                                <div class="row"><span class="label">DATA/HORA:</span> ${new Date(a.data_hora).toLocaleString()}</div>
+                                <div class="row" style="background: #dcfce7; padding: 10px; border-radius: 8px;"><span class="label">HORÁRIO MARCADO:</span> <strong style="font-size: 1.2rem; color: #166534;">${new Date(a.data_hora).toLocaleString()}</strong></div>
                                 <div class="row"><span class="label">SITUAÇÃO:</span> CONFIRMADO</div>
                                 <div class="row"><span class="label">TIPO:</span> ${a.tipo}</div>
                                 ${a.cartao_sus ? `<div class="row"><span class="label">SUS:</span> ${a.cartao_sus}</div>` : ''}

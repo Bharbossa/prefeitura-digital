@@ -72,6 +72,9 @@ class Ocorrencia(Base):
     descricao = Column(Text, nullable=False)
     foto = Column(String(255), nullable=True)   # Path/URL
     video = Column(String(255), nullable=True)  # Path/URL
+    rua = Column(String(255), nullable=True)
+    ponto_referencia = Column(String(255), nullable=True)
+    foto_resolucao = Column(String(255), nullable=True)
     status = Column(Enum(StatusOcorrencia), default=StatusOcorrencia.pendente)
     data = Column(DateTime, default=get_brasilia_time)
     

@@ -35,6 +35,8 @@ class TokenData(BaseModel):
 class OcorrenciaBase(BaseModel):
     titulo: str
     descricao: str
+    rua: Optional[str] = None
+    ponto_referencia: Optional[str] = None
     secretaria_id: int
 
 class OcorrenciaCreate(OcorrenciaBase):
@@ -52,6 +54,9 @@ class OcorrenciaResponse(OcorrenciaBase):
     protocolo: Optional[str] = None
     foto: Optional[str] = None
     video: Optional[str] = None
+    rua: Optional[str] = None
+    ponto_referencia: Optional[str] = None
+    foto_resolucao: Optional[str] = None
     status: str
     data: datetime
     usuario_id: int
