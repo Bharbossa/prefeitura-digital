@@ -129,33 +129,9 @@ app.include_router(admin_users.router, prefix="/api/admin/users", tags=["admin_u
 app.include_router(agendamentos.router, prefix="/api/agendamentos", tags=["agendamentos"])
 app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["admin_metrics"])
 
-@app.get("/api/test-debug")
-def test_debug():
-    log_content = ""
-    try:
-        if os.path.exists("uploads/debug.log"):
-            with open("uploads/debug.log", "r") as f:
-                log_content = f.read()
-        else:
-            log_content = "Log file not found."
-    except Exception as e:
-        log_content = f"Error reading log: {str(e)}"
-    
-    return {
-        "status": "ok", 
-        "message": "API context is working",
-        "debug_logs": log_content
-    }
-
-from .models.schema import Ocorrencia
-@app.get("/api/ocorrencias/all-debug-open")
-def all_debug_open(db_sql: Session = Depends(get_db)):
-    try:
-        from sqlalchemy.orm import joinedload
-        oc = db_sql.query(Ocorrencia).limit(10).all()
-        return [{"id": o.id, "titulo": o.titulo, "status": o.status} for o in oc]
-    except Exception as e:
-        return {"error": str(e)}
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok", "version": "stable-1.0.5"}
 
 
 # Mount the 'uploads' directory to serve files (photos/videos)
