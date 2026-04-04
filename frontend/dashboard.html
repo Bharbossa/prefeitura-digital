@@ -76,8 +76,21 @@
             <h3 style="margin-bottom: 1.5rem;">Registrar Problema</h3>
             <form id="formOcorrencia">
                 <div class="form-group">
-                    <label>Título</label>
-                    <input type="text" id="oc_titulo" required>
+                    <label>Tipo de Problema</label>
+                    <select id="oc_titulo_select" required onchange="handleOcorrenciaTitleChange()">
+                        <option value="">Selecione o problema...</option>
+                        <option value="Buraco na rua">Buraco na rua</option>
+                        <option value="Lâmpada queimada">Lâmpada queimada</option>
+                        <option value="Lixo na rua / Limpeza urbana">Lixo na rua / Limpeza urbana</option>
+                        <option value="Vazamento de água / esgoto">Vazamento de água / esgoto</option>
+                        <option value="Poda de árvore">Poda de árvore</option>
+                        <option value="Limpeza de bueiro">Limpeza de bueiro</option>
+                        <option value="Outro">Outro (Descrever abaixo)</option>
+                    </select>
+                </div>
+                <div class="form-group" id="group_custom_titulo" style="display: none;">
+                    <label>Título Personalizado</label>
+                    <input type="text" id="oc_titulo_custom" placeholder="Ex: Poste caído, Som alto, etc.">
                 </div>
                 <div class="form-group">
                     <label>Secretaria Responsável</label>
@@ -421,8 +434,16 @@
 
         document.getElementById('formOcorrencia').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const formData = new FormData();
-            formData.append('titulo', document.getElementById('oc_titulo').value);
+            const tituloSelect = document.getElementById('oc_titulo_select').value;
+            const tituloCustom = document.getElementById('oc_titulo_custom').value;
+            const tituloFinal = tituloSelect === 'Outro' ? tituloCustom : tituloSelect;
+
+            if (!tituloFinal) {
+                alert("Por favor, informe o título ou selecione um problema.");
+                return;
+            }
+
+            formData.append('titulo', tituloFinal);
             formData.append('descricao', document.getElementById('oc_descricao').value);
             formData.append('secretaria_id', document.getElementById('oc_secretaria').value);
             
@@ -642,6 +663,31 @@
             document.getElementById('modalAlterarSenha').style.display = 'block';
             document.getElementById('pw_status').style.display = 'none';
             document.getElementById('formTrocaSenha').reset();
+        }
+
+        function handleOcorrenciaTitleChange() {
+            const select = document.getElementById('oc_titulo_select');
+            const customGroup = document.getElementById('group_custom_titulo');
+            const customInput = document.getElementById('oc_titulo_custom');
+            const secSelect = document.getElementById('oc_secretaria');
+
+            if (select.value === 'Outro') {
+                customGroup.style.display = 'block';
+                customInput.required = true;
+            } else {
+                customGroup.style.display = 'none';
+                customInput.required = false;
+                
+                // Auto-selecionar Secretaria de Infraestrutura para problemas comuns
+                if (select.value !== "") {
+                    for (let i = 0; i < secSelect.options.length; i++) {
+                        if (secSelect.options[i].text.toUpperCase().includes("INFRAESTRUTURA")) {
+                            secSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                }
+            }
         }
 
         document.getElementById('formTrocaSenha').addEventListener('submit', async (e) => {
