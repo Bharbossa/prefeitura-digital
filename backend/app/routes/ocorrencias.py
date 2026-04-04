@@ -90,9 +90,9 @@ def get_current_ocorrencias(
         query = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == current_user.id)
     
     ocorrencias = query.order_by(Ocorrencia.data.desc()).all()
-    # for o in ocorrencias:
-    #     if o.secretaria:
-    #         o.secretaria_nome = o.secretaria.nome
+    for o in ocorrencias:
+        if o.secretaria:
+            o.secretaria_nome = o.secretaria.nome
     return ocorrencias
 
 @router.get("/debug-raw")

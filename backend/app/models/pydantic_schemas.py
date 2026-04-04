@@ -50,15 +50,13 @@ class RespostaResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 class OcorrenciaResponse(OcorrenciaBase):
-    id: int # Changed to int to match Postgres model
+    id: Optional[int] = None
     protocolo: Optional[str] = None
     foto: Optional[str] = None
     video: Optional[str] = None
-    rua: Optional[str] = None
-    ponto_referencia: Optional[str] = None
     foto_resolucao: Optional[str] = None
-    status: str
-    data: datetime
+    status: Optional[str] = None
+    data: Optional[datetime] = None
     usuario_id: Optional[int] = None
     secretaria_nome: Optional[str] = None
     respostas: List[RespostaResponse] = []
