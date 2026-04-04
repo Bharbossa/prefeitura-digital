@@ -130,7 +130,21 @@ app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["adm
 
 @app.get("/api/test-debug")
 def test_debug():
-    return {"status": "ok", "message": "API context is working"}
+    log_content = ""
+    try:
+        if os.path.exists("uploads/debug.log"):
+            with open("uploads/debug.log", "r") as f:
+                log_content = f.read()
+        else:
+            log_content = "Log file not found."
+    except Exception as e:
+        log_content = f"Error reading log: {str(e)}"
+    
+    return {
+        "status": "ok", 
+        "message": "API context is working",
+        "debug_logs": log_content
+    }
 
 
 # Mount the 'uploads' directory to serve files (photos/videos)
