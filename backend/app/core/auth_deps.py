@@ -57,7 +57,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
             is_subadmin = isinstance(user, AdminSecretaria)
             
             user_out = SimpleNamespace(
-                id=user.id,
+                id=int(user.id),
                 email=user.email,
                 nome=user.nome,
                 cpf=user.cpf,
