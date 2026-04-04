@@ -72,7 +72,7 @@ async def create_ocorrencia(
         db_sql.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("", response_model=List[OcorrenciaResponse])
+@router.get("")
 def get_current_ocorrencias(
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
