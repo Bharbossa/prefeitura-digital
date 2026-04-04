@@ -14,6 +14,7 @@ from .core.rate_limit import limiter
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
+# Forced redeploy at 2026-04-04 14:18
 app = FastAPI(
     title="Colônia Digital API",
     description="API for Colônia Digital platform - Citizen Urban Occurrences",
