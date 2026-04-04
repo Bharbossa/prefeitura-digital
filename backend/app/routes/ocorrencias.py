@@ -29,6 +29,8 @@ def get_current_ocorrencias(
             query = db_sql.query(Ocorrencia)
             if sec_id:
                 query = query.filter(Ocorrencia.secretaria_id == sec_id)
+            else:
+                query = query.limit(5) # Debug: only 5 for admin
         else:
             query = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == current_user.id)
         
