@@ -94,6 +94,14 @@ async def create_ocorrencia(
         db_sql.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/test-open")
+def test_open(db_sql: Session = Depends(get_db)):
+    try:
+        ocorrencias = db_sql.query(Ocorrencia).limit(5).all()
+        return [{"id": o.id, "titulo": o.titulo} for o in ocorrencias]
+    except Exception as e:
+        return {"error": str(e)}
+
 @router.patch("/{id}/status")
 async def update_status(
     id: int, 
