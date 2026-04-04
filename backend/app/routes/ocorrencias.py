@@ -81,9 +81,11 @@ def get_current_ocorrencias(
     try:
         return [{"id": 1, "message": "Static Test"}]
     except Exception as e:
-        print("ERROR IN get_current_ocorrencias:")
-        traceback.print_exc()
-        raise HTTPException(status_code=500, detail=str(e))
+        err_msg = traceback.format_exc()
+        with open("uploads/error.log", "w") as f:
+            f.write(err_msg)
+        print("ERROR IN get_current_ocorrencias (logged to file)")
+        raise HTTPException(status_code=500, detail=f"Check uploads/error.log: {str(e)}")
 
 @router.get("/debug-raw")
 def get_debug_raw(db_sql: Session = Depends(get_db)):
