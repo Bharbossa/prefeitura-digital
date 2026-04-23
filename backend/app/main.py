@@ -141,7 +141,7 @@ app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["adm
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "version": "1.0.6-FIXED"}
+    return {"status": "ok", "version": "2.0.0-CHANNEL_FIX"}
 
 
 # Mount the 'uploads' directory to serve files (photos/videos)
