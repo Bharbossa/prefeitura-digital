@@ -50,6 +50,17 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
     db_sql.add(novo_agendamento)
     db_sql.commit()
     db_sql.refresh(novo_agendamento)
+
+    try:
+        subadmins = db_sql.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == agend.secretaria_id).all()
+        if subadmins:
+            msg = f"COLÔNIA DIGITAL: Novo Agendamento ({protocolo}) solicitado em sua secretaria. Verifique o painel!"
+            for sa in subadmins:
+                if sa.telefone:
+                    send_status_sms(sa.telefone, msg)
+    except Exception as sms_err:
+        print(f"Erro ao disparar SMS de novo agendamento: {sms_err}")
+
     return novo_agendamento
 
 @router.post("/viagem", response_model=AgendamentoResponse)
@@ -91,6 +102,17 @@ def criar_agendamento_viagem(
     db_sql.add(novo_agendamento)
     db_sql.commit()
     db_sql.refresh(novo_agendamento)
+
+    try:
+        subadmins = db_sql.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
+        if subadmins:
+            msg = f"COLÔNIA DIGITAL: Novo Agendamento de Viagem ({protocolo}) solicitado. Verifique o painel!"
+            for sa in subadmins:
+                if sa.telefone:
+                    send_status_sms(sa.telefone, msg)
+    except Exception as sms_err:
+        print(f"Erro ao disparar SMS de novo agendamento de viagem: {sms_err}")
+
     return novo_agendamento
 
 

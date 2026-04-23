@@ -116,7 +116,7 @@
         // If already logged in as admin, redirect directly
         const existingUser = getUserInfo();
         const existingToken = getToken();
-        if (existingUser && existingToken && existingUser.tipo_usuario === 'admin') {
+        if (existingUser && existingToken && (existingUser.tipo_usuario === 'admin' || existingUser.tipo_usuario === 'subadmin')) {
             window.location.href = '../admin.html';
         }
 
@@ -153,8 +153,8 @@
                     if (userRes.ok) {
                         const userData = await userRes.json();
 
-                        // Only allow admin users
-                        if (userData.tipo_usuario !== 'admin') {
+                        // Only allow admin and subadmin users
+                        if (userData.tipo_usuario !== 'admin' && userData.tipo_usuario !== 'subadmin') {
                             localStorage.removeItem('access_token');
                             errorMsg.innerText = 'Acesso negado. Esta área é restrita a administradores.';
                             errorMsg.style.display = 'block';

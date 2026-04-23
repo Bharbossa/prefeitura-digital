@@ -27,8 +27,9 @@ class Usuario(Base):
     nome = Column(String(150), nullable=False)
     cpf = Column(String(20), unique=True, index=True, nullable=False)
     email = Column(String(150), unique=True, index=True, nullable=False)
-    telefone = Column(String(20))
-    endereco = Column(String(255))
+    telefone = Column(String(20), nullable=False)
+    whatsapp = Column(String(20), nullable=False)
+    endereco = Column(String(255), nullable=False)
     senha_hash = Column(String(255), nullable=False)
     tipo_usuario = Column(Enum(TipoUsuario), default=TipoUsuario.cidadao)
     status = Column(Enum(StatusUsuario), default=StatusUsuario.ativo)
@@ -72,6 +73,7 @@ class Ocorrencia(Base):
     descricao = Column(Text, nullable=False)
     foto = Column(String(255), nullable=True)   # Path/URL
     video = Column(String(255), nullable=True)  # Path/URL
+    documento = Column(String(255), nullable=True) # Path/URL for PDF
     rua = Column(String(255), nullable=True)
     ponto_referencia = Column(String(255), nullable=True)
     foto_resolucao = Column(String(255), nullable=True)

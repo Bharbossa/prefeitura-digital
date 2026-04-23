@@ -5,10 +5,11 @@ from .schema import TipoUsuario, StatusOcorrencia, StatusUsuario
 
 class UsuarioBase(BaseModel):
     nome: str
-    cpf: Optional[str] = None
+    cpf: str
     email: EmailStr
-    telefone: Optional[str] = None
-    endereco: Optional[str] = None
+    telefone: str
+    whatsapp: str
+    endereco: str
 
 class UsuarioCreate(UsuarioBase):
     senha: str
@@ -54,10 +55,12 @@ class OcorrenciaResponse(OcorrenciaBase):
     protocolo: Optional[str] = None
     foto: Optional[str] = None
     video: Optional[str] = None
+    documento: Optional[str] = None
     foto_resolucao: Optional[str] = None
     status: Optional[str] = None
     data: Optional[datetime] = None
     usuario_id: Optional[int] = None
+    usuario_nome: Optional[str] = None
     secretaria_nome: Optional[str] = None
     respostas: Optional[List[RespostaResponse]] = []
     model_config = ConfigDict(from_attributes=True)

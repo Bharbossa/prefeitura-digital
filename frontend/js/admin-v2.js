@@ -12,6 +12,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     initAdmin();
+
+    // Mobile menu toggle logic
+    const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+    if (mobileMenuBtn) {
+        mobileMenuBtn.addEventListener('click', () => {
+            const sidebar = document.querySelector('.sidebar');
+            if (sidebar) sidebar.classList.toggle('active');
+        });
+    }
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', (e) => {
+        const sidebar = document.querySelector('.sidebar');
+        if (!sidebar) return;
+        const isClickInsideSidebar = sidebar.contains(e.target);
+        const isClickOnToggle = mobileMenuBtn && mobileMenuBtn.contains(e.target);
+        if (!isClickInsideSidebar && !isClickOnToggle && window.innerWidth <= 768) {
+            sidebar.classList.remove('active');
+        }
+    });
 });
 
 async function initAdmin() {
@@ -122,6 +142,12 @@ function showSection(sectionId, element) {
     if (sectionId === 'admins') loadAdmins();
     if (sectionId === 'auditoria') loadAuditLogs();
     if (sectionId === 'usuarios-todos') loadAllCombinedUsers();
+
+    // Close sidebar on mobile after selection
+    if (window.innerWidth <= 768) {
+        const sidebar = document.querySelector('.sidebar');
+        if (sidebar) sidebar.classList.remove('active');
+    }
 }
 
 
@@ -274,14 +300,17 @@ async function loadRecentActivity() {
                     <div style="padding: 1rem 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <div style="font-weight: 600; font-size: 0.9rem;">${o.titulo}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">#${o.protocolo || o.id} • ${new Date(o.data).toLocaleDateString()}</div>
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">#${o.protocolo || o.id} • ${new Date(o.data).toLocaleDateString()}${o.usuario_nome ? ' • Cidadão: ' + o.usuario_nome : ''}</div>
                         </div>
-                        <span class="badge badge-${statusType}">${o.status}</span>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span class="badge badge-${statusType}">${o.status}</span>
+                            ${currentRole==='admin' && s !== 'resolvido' ? `<button class="btn" style="background-color: #ef4444; color: white; border: none; font-weight: bold; margin-left: 8px; padding: 4px 10px; border-radius: 6px; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4); display: flex; align-items: center; gap: 5px; font-size: 0.75rem;" title="Cobrar Secretaria URGENTE" onclick="cobrarSecretaria('${o.id}')"><i class="fa-solid fa-bell fa-shake"></i> Cobrar</button>` : ''}
+                        </div>
                     </div>
                 `;
             });
         }
-    } catch(e) {}
+    } catch(e) { console.error(e); }
 }
 
 async function loadOcorrencias() {
@@ -306,6 +335,7 @@ async function loadOcorrencias() {
                         <tr>
                             <th>Protocolo</th>
                             <th>Título</th>
+                            <th>Cidadão</th>
                             <th style="min-width: 150px;">Local</th>
                             ${currentRole==='admin' ? '<th>Secretaria</th>' : ''}
                             <th>Data</th>
@@ -326,16 +356,18 @@ async function loadOcorrencias() {
                     <tr>
                         <td><strong>${o.protocolo || o.id}</strong></td>
                         <td>${o.titulo}</td>
+                        <td>${o.usuario_nome || 'N/A'}</td>
                         <td style="font-size: 0.85rem;">${o.rua || 'N/A'}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}</td>
                         ${currentRole==='admin' ? `<td>${o.secretaria_nome || 'N/A'}</td>` : ''}
                         <td>${new Date(o.data).toLocaleString()}</td>
                         <td><span class="badge badge-${s === 'resolvido' ? 'done' : (s === 'em_atendimento' ? 'progress' : 'pending')}">${o.status}</span></td>
-                        <td>
                             <div style="display: flex; gap: 0.5rem;">
                                 ${statusBtn}
-                                <button class="btn btn-outline" title="Ver Detalhes" onclick="alert('${o.descricao.replace(/'/g, "\\'")}')"><i class="fa-solid fa-eye"></i></button>
+                                <button class="btn btn-outline" title="Ver Detalhes" onclick="alert(decodeURIComponent('${encodeURIComponent(o.descricao || '')}'))"><i class="fa-solid fa-eye"></i></button>
                                 ${o.foto ? `<button class="btn btn-outline" title="Ver Foto" onclick="window.open('${MEDIA_URL}/${o.foto.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-image"></i></button>` : ''}
                                 ${o.video ? `<button class="btn btn-outline" title="Ver Vídeo" onclick="window.open('${MEDIA_URL}/${o.video.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-video"></i></button>` : ''}
+                                ${o.documento ? `<button class="btn btn-outline" title="Ver PDF" style="border-color: #8b5cf6; color: #8b5cf6;" onclick="window.open('${MEDIA_URL}/${o.documento.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-file-pdf"></i></button>` : ''}
+                                ${currentRole==='admin' && s !== 'resolvido' ? `<button class="btn" style="background-color: #ef4444; color: white; border: none; font-weight: bold; margin-left: 8px; padding: 6px 12px; border-radius: 6px; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4); display: flex; align-items: center; gap: 5px;" title="Cobrar Secretaria URGENTE" onclick="cobrarSecretaria('${o.id}')"><i class="fa-solid fa-bell fa-shake"></i> Cobrar</button>` : ''}
                             </div>
                         </td>
                     </tr>
@@ -344,7 +376,7 @@ async function loadOcorrencias() {
             html += '</tbody></table>';
             container.innerHTML = html;
         }
-    } catch(e) {}
+    } catch(e) { console.error("Error loading ocorrencias:", e); }
 }
 
 // ... Additional list loaders (Agendamentos, Users, Admins, Logs) follow similar patterns ...
@@ -387,6 +419,24 @@ async function confirmResolution(id) {
             alert("Erro ao resolver: " + (err.detail || res.statusText));
         }
     } catch(e) { alert("Erro de conexão: " + e.message); }
+}
+
+async function cobrarSecretaria(id) {
+    if (!confirm("Deseja enviar um alerta SMS para a secretaria responsável cobrando uma resolução rápida?")) return;
+    try {
+        const res = await fetch(`${API_URL}/ocorrencias/${id}/cobrar`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            alert("Alerta de cobrança enviado com sucesso para a secretaria!");
+        } else {
+            const err = await res.json().catch(() => ({}));
+            alert("Erro ao enviar alerta: " + (err.detail || res.statusText));
+        }
+    } catch(e) {
+        alert("Erro de conexão.");
+    }
 }
 
 async function imprimirProtocolo(id) {
@@ -841,3 +891,24 @@ document.getElementById('formAlterarSenha').addEventListener('submit', async fun
         alert("Erro de conexão.");
     }
 });
+
+// Universal Real-time Search Filter for Tables
+function filterTable(containerId, query) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    const table = container.querySelector('table');
+    if (!table) return;
+    
+    const term = query.toLowerCase().trim();
+    const rows = table.querySelectorAll('tbody tr');
+    
+    rows.forEach(row => {
+        const textContext = row.textContent.toLowerCase();
+        if (textContext.includes(term)) {
+            row.style.display = '';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+

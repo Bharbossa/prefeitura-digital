@@ -1,9 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from typing import Optional
 from sqlalchemy.orm import Session
 from ..database import get_db
-from ..models.schema import ChatIA
+from ..models.schema import ChatIA, Usuario
 from ..models.pydantic_schemas import ChatIARequest, ChatIAResponse
-from ..core.auth_deps import get_current_user
+from ..core.security import SECRET_KEY, ALGORITHM
+from jose import jwt
+from sqlalchemy import func
 import google.generativeai as genai
 import os
 
@@ -13,8 +17,24 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 if GOOGLE_API_KEY:
     genai.configure(api_key=GOOGLE_API_KEY)
 
+security = HTTPBearer(auto_error=False)
+
+def get_optional_user_id(credentials: Optional[HTTPAuthorizationCredentials] = Depends(security), db: Session = Depends(get_db)):
+    if not credentials:
+        return None
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("sub")
+        if email:
+            user = db.query(Usuario).filter(func.lower(Usuario.email) == func.lower(email)).first()
+            if user: return user.id
+    except:
+        pass
+    return None
+
+
 @router.post("/", response_model=ChatIAResponse)
-async def chat_with_ia(request: ChatIARequest, current_user = Depends(get_current_user), db: Session = Depends(get_db)):
+async def chat_with_ia(request: ChatIARequest, user_id: Optional[int] = Depends(get_optional_user_id), db: Session = Depends(get_db)):
     mensagem_usuario = request.mensagem
     resposta_ia = ""
     
@@ -30,8 +50,6 @@ async def chat_with_ia(request: ChatIARequest, current_user = Depends(get_curren
             )
             
             # Gera a resposta
-            # Por ser um endpoint stateless, enviamos apenas a mensagem atual.
-            # Se desejar histórico, seria necessário passar o chat_log anterior no prompt ou usar chat session.
             response = model.generate_content(mensagem_usuario)
             resposta_ia = response.text
             
@@ -43,7 +61,7 @@ async def chat_with_ia(request: ChatIARequest, current_user = Depends(get_curren
     chat_entry = ChatIA(
         mensagem_usuario=mensagem_usuario,
         resposta_ia=resposta_ia,
-        usuario_id=current_user.id
+        usuario_id=user_id
     )
     db.add(chat_entry)
     db.commit()

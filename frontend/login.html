@@ -28,8 +28,8 @@
 
         <form id="loginForm">
             <div class="form-group">
-                <label for="email">E-mail</label>
-                <input type="email" id="email" required>
+                <label for="email">E-mail ou CPF</label>
+                <input type="text" id="email" required placeholder="Digite seu e-mail ou CPF">
             </div>
             
             <div class="form-group">
@@ -50,6 +50,11 @@
         
         <div style="text-align: center; margin-top: 2rem; color: var(--text-secondary);">
             Ainda não tem conta? <a href="register.html">Cadastre-se</a>
+        </div>
+
+        <!-- Opção de Reset de Emergência -->
+        <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem;">
+            <a href="#" onclick="resetSession()" style="color: var(--text-muted); text-decoration: underline;">Problemas com login? Limpar sessão</a>
         </div>
     </div>
 
@@ -118,6 +123,16 @@
 
     <script src="js/main.js"></script>
     <script>
+        // Check for session errors
+        window.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('error') === 'session_expired') {
+                const errorMsg = document.getElementById('errorMsg');
+                errorMsg.innerText = "Sua sessão expirou por segurança. Por favor, entre novamente.";
+                errorMsg.style.display = "block";
+            }
+        });
+
         function abrirEsqueciSenha() {
             document.getElementById('modalEsqueciSenha').style.display = 'block';
             document.getElementById('forgotStatusMsg').style.display = 'none';
@@ -196,20 +211,24 @@
                         const userData = await userRes.json();
                         localStorage.setItem('user_info', JSON.stringify(userData));
                         if(userData.tipo_usuario === 'admin' || userData.tipo_usuario === 'subadmin') {
-                            window.location.href = 'admin.html';
+                            localStorage.removeItem('access_token');
+                            localStorage.removeItem('user_info');
+                            errorMsg.innerText = "Administrador, utilize o portal restrito: /admin/";
+                            errorMsg.style.display = "block";
                         } else {
                             window.location.href = 'dashboard.html';
                         }
-
-
                     }
+                } else if (response.status === 401) {
+                    errorMsg.innerText = "E-mail ou senha incorretos.";
+                    errorMsg.style.display = "block";
                 } else {
-                    const errorData = await response.json();
-                    errorMsg.innerText = errorData.detail || "Credenciais inválidas.";
+                    const errorData = await response.json().catch(() => ({detail: "Erro de servidor"}));
+                    errorMsg.innerText = errorData.detail || "Erro ao fazer login.";
                     errorMsg.style.display = "block";
                 }
             } catch (err) {
-                errorMsg.innerText = `Erro de Conexão/CORS. Verifique se a API backend está respondendo. Detalhe: ${err.message}`;
+                errorMsg.innerText = `Erro de Conexão. Verifique sua internet.`;
                 errorMsg.style.display = "block";
             }
         });

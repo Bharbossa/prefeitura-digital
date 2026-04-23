@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import os
 import uuid
@@ -26,22 +26,22 @@ def get_current_ocorrencias(
         
         if role in ["admin", "subadmin"]:
             sec_id = getattr(current_user, "secretaria_id", None)
-            query = db_sql.query(Ocorrencia)
+            query = db_sql.query(Ocorrencia).options(joinedload(Ocorrencia.usuario), joinedload(Ocorrencia.secretaria))
             if sec_id:
                 query = query.filter(Ocorrencia.secretaria_id == sec_id)
-            else:
-                query = query.limit(5) # Debug: only 5 for admin
+            # Administrador global (sem sec_id) vai ver TODAS a partir daqui
         else:
-            query = db_sql.query(Ocorrencia).filter(Ocorrencia.usuario_id == current_user.id)
+            query = db_sql.query(Ocorrencia).options(joinedload(Ocorrencia.usuario), joinedload(Ocorrencia.secretaria)).filter(Ocorrencia.usuario_id == current_user.id)
         
         ocorrencias = query.order_by(Ocorrencia.data.desc()).all()
         
-        # Populate secretaria_nome
+        # Populate secretaria_nome and usuario_nome
         for o in ocorrencias:
             if o.secretaria:
                 o.secretaria_nome = o.secretaria.nome
             else:
                 o.secretaria_nome = "Geral"
+            o.usuario_nome = o.usuario.nome if o.usuario else "Desconhecido"
                 
         return ocorrencias
     except Exception as e:
@@ -57,6 +57,7 @@ async def create_ocorrencia(
     ponto_referencia: Optional[str] = Form(None),
     foto: Optional[UploadFile] = File(None),
     video: Optional[UploadFile] = File(None),
+    documento: Optional[UploadFile] = File(None),
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
 ):
@@ -72,6 +73,7 @@ async def create_ocorrencia(
 
     foto_path = save_file(foto) if foto and foto.filename else None
     video_path = save_file(video) if video and video.filename else None
+    documento_path = save_file(documento) if documento and documento.filename else None
     protocolo = generate_protocol()
 
     try:
@@ -83,12 +85,24 @@ async def create_ocorrencia(
             ponto_referencia=ponto_referencia,
             secretaria_id=secretaria_id,
             foto=foto_path, 
-            video=video_path, 
+            video=video_path,
+            documento=documento_path,
             usuario_id=current_user.id
         )
         db_sql.add(ocorrencia)
         db_sql.commit()
         db_sql.refresh(ocorrencia)
+
+        try:
+            subadmins = db_sql.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
+            if subadmins:
+                msg = f"COLÔNIA DIGITAL: Nova Ocorrência ({protocolo}) registrada em sua secretaria. Verifique o painel!"
+                for sa in subadmins:
+                    if sa.telefone:
+                        send_status_sms(sa.telefone, msg)
+        except Exception as sms_err:
+            print(f"Erro ao disparar SMS de nova ocorrencia: {sms_err}")
+
         return ocorrencia
     except Exception as e:
         db_sql.rollback()
@@ -133,6 +147,38 @@ async def update_status(
             
         db_sql.commit()
         return {"message": "Status atualizado"}
+    except Exception as e:
+        db_sql.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/{id}/cobrar")
+async def cobrar_secretaria(
+    id: int, 
+    current_user = Depends(get_current_admin),
+    db_sql: Session = Depends(get_db)
+):
+    try:
+        if current_user.tipo_usuario_verificado != "admin":
+            raise HTTPException(status_code=403, detail="Apenas administrador geral pode cobrar secretaria.")
+            
+        ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == id).first()
+        if not ocorrencia or not ocorrencia.secretaria_id:
+            raise HTTPException(status_code=404, detail="Ocorrência ou secretaria não encontrada.")
+            
+        subadmins = db_sql.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == ocorrencia.secretaria_id).all()
+        
+        msg = f"URGENTE - COLÔNIA DIGITAL: A ocorrência '{ocorrencia.titulo}' precisa ser resolvida. Verifique no painel!"
+        
+        for sa in subadmins:
+            if sa.telefone:
+                send_status_sms(sa.telefone, msg)
+                
+        # Add to audit log
+        log = LogAuditoria(usuario_id=current_user.id, usuario_tipo="admin", acao="Alerta/Cobrança Enviada", detalhes=f"Ocorrência {ocorrencia.id} cobrada para a Secretaria {ocorrencia.secretaria_id}")
+        db_sql.add(log)
+        db_sql.commit()
+        
+        return {"message": "Alerta enviado aos responsáveis"}
     except Exception as e:
         db_sql.rollback()
         raise HTTPException(status_code=500, detail=str(e))

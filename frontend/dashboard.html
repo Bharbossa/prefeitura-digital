@@ -63,6 +63,9 @@
                     <button class="btn btn-primary" style="background: var(--primary-color); flex: 1; min-width: 140px;" onclick="abrirModalViagem()">
                         <i class="fa-solid fa-bus"></i> Viagem
                     </button>
+                    <button class="btn btn-primary" style="background: #f59e0b; flex: 1; min-width: 140px;" onclick="abrirModalBolsaFamilia()">
+                        <i class="fa-solid fa-hands-holding-child"></i> Bolsa Família
+                    </button>
                 </div>
                 <div class="ocorrencias-list" id="listaAgendamentos"></div>
             </div>
@@ -70,33 +73,26 @@
     </div>
 
     <!-- Modal Nova Ocorrencia -->
-    <div id="modalNovaOcorrencia" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:1001; overflow-y:auto;">
-        <div class="form-container fade-in" style="margin: 2rem auto; position: relative;">
+    <div id="modalNovaOcorrencia" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:1001; overflow-y:auto;">
+        <div class="form-container fade-in" style="margin: 2rem auto; position: relative; padding-bottom: 4rem;">
             <i class="fa-solid fa-times" style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem;" onclick="document.getElementById('modalNovaOcorrencia').style.display='none'"></i>
             <h3 style="margin-bottom: 1.5rem;">Registrar Problema</h3>
             <form id="formOcorrencia">
                 <div class="form-group">
+                    <label>Secretaria Responsável</label>
+                    <select id="oc_secretaria" required onchange="atualizarTiposProblema()">
+                        <option value="">Carregando...</option>
+                    </select>
+                </div>
+                <div class="form-group">
                     <label>Tipo de Problema</label>
                     <select id="oc_titulo_select" required onchange="handleOcorrenciaTitleChange()">
-                        <option value="">Selecione o problema...</option>
-                        <option value="Buraco na rua">Buraco na rua</option>
-                        <option value="Lâmpada queimada">Lâmpada queimada</option>
-                        <option value="Lixo na rua / Limpeza urbana">Lixo na rua / Limpeza urbana</option>
-                        <option value="Vazamento de água / esgoto">Vazamento de água / esgoto</option>
-                        <option value="Poda de árvore">Poda de árvore</option>
-                        <option value="Limpeza de bueiro">Limpeza de bueiro</option>
-                        <option value="Outro">Outro (Descrever abaixo)</option>
+                        <option value="">Selecione primeiro a secretaria...</option>
                     </select>
                 </div>
                 <div class="form-group" id="group_custom_titulo" style="display: none;">
                     <label>Título Personalizado</label>
                     <input type="text" id="oc_titulo_custom" placeholder="Ex: Poste caído, Som alto, etc.">
-                </div>
-                <div class="form-group">
-                    <label>Secretaria Responsável</label>
-                    <select id="oc_secretaria" required>
-                        <option value="">Carregando...</option>
-                    </select>
                 </div>
                 <div class="form-group">
                     <label>Descrição Detalhada</label>
@@ -110,17 +106,21 @@
                     <label>Ponto de Referência</label>
                     <input type="text" id="oc_ponto_referencia" placeholder="Ex: Próximo à padaria, em frente ao posto...">
                 </div>
-                <div class="form-group" style="display: flex; gap: 1rem;">
-                    <div style="flex: 1;">
+                <div class="form-group" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 120px;">
                         <label>Foto (Opcional)</label>
                         <input type="file" id="oc_foto" accept="image/*">
                     </div>
-                    <div style="flex: 1;">
+                    <div style="flex: 1; min-width: 120px;">
                         <label>Vídeo (Opcional)</label>
                         <input type="file" id="oc_video" accept="video/*">
                     </div>
+                    <div style="flex: 1; min-width: 120px;">
+                        <label>Documento (PDF/Opcional)</label>
+                        <input type="file" id="oc_pdf" accept=".pdf,application/pdf">
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%;">Enviar</button>
+                <button type="submit" class="btn btn-primary mobile-submit-btn" style="width: 100%; height: 55px; font-weight: bold; margin-top: 20px;">Enviar Ocorrência</button>
             </form>
         </div>
     </div>
@@ -131,6 +131,13 @@
             <i class="fa-solid fa-times" style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem;" onclick="document.getElementById('modalNovoAgendamento').style.display='none'"></i>
             <h3 id="modalAgTitle" style="margin-bottom: 1.5rem;">Agendamento</h3>
             <form id="formAgendamento">
+                <div class="form-group" id="group_dados_usuario" style="display: none; background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 1rem;">
+                    <p style="margin-top:0; font-weight: 600; color: var(--primary-color); margin-bottom: 0.5rem;"><i class="fa-solid fa-id-card"></i> Dados do Cidadão</p>
+                    <label>Nome Completo</label>
+                    <input type="text" id="ag_nome" readonly style="background: #e2e8f0; cursor: not-allowed; margin-bottom: 0.5rem; width: 100%; border: 1px solid var(--border); padding: 0.8rem; border-radius: 8px; color: var(--text-primary);">
+                    <label>CPF</label>
+                    <input type="text" id="ag_cpf" readonly style="background: #e2e8f0; cursor: not-allowed; width: 100%; border: 1px solid var(--border); padding: 0.8rem; border-radius: 8px; color: var(--text-primary);">
+                </div>
                 <div class="form-group">
                     <label>Secretaria (Destino do Agendamento)</label>
                     <select id="ag_secretaria" required>
@@ -228,6 +235,7 @@
         if (!checkAuth()) throw new Error("Acesso negado");
 
         function abrirModalConsulta() {
+            document.getElementById('group_dados_usuario').style.display = 'none';
             document.getElementById('modalNovoAgendamento').style.display = 'block';
             document.getElementById('modalAgTitle').innerText = 'Marcar Consulta (Saúde)';
             
@@ -290,6 +298,7 @@
         document.getElementById('ag_tipo').addEventListener('change', toggleSusField);
 
         function abrirModalAtendimento() {
+            document.getElementById('group_dados_usuario').style.display = 'none';
             document.getElementById('modalNovoAgendamento').style.display = 'block';
             document.getElementById('modalAgTitle').innerText = 'Agendar Atendimento Presencial';
             
@@ -324,6 +333,7 @@
         }
 
         function abrirModalViagem() {
+            document.getElementById('group_dados_usuario').style.display = 'none';
             document.getElementById('modalNovoAgendamento').style.display = 'block';
             document.getElementById('modalAgTitle').innerText = 'Marcação de Viagem (Garagem Municipal)';
             
@@ -358,6 +368,49 @@
             document.getElementById('group_acompanhante').style.display = 'block';
             document.getElementById('group_comprovante').style.display = 'block';
             document.getElementById('ag_comprovante').required = true;
+        }
+
+        function abrirModalBolsaFamilia() {
+            document.getElementById('modalNovoAgendamento').style.display = 'block';
+            document.getElementById('modalAgTitle').innerText = 'Agendamento Bolsa Família';
+            
+            const tipoSelect = document.getElementById('ag_tipo');
+            tipoSelect.innerHTML = `<option value="Bolsa Família">Bolsa Família</option>`;
+            tipoSelect.value = "Bolsa Família";
+
+            const secSelect = document.getElementById('ag_secretaria');
+            secSelect.disabled = false;
+            for(let i=0; i<secSelect.options.length; i++) {
+                if(secSelect.options[i].text.toUpperCase().includes("ASSISTÊNCIA SOCIAL") || secSelect.options[i].text.toUpperCase().includes("BOLSA FAMÍLIA")) {
+                    secSelect.options[i].style.display = 'block';
+                    secSelect.selectedIndex = i;
+                } else {
+                    secSelect.options[i].style.display = 'block';
+                }
+            }
+
+            document.getElementById('ag_assunto_label').innerText = 'Motivo do Atendimento (Opcional)';
+            document.getElementById('ag_assunto').placeholder = 'Ex: Atualização de cadastro, Dúvidas, etc.';
+            document.getElementById('ag_assunto').required = false; 
+
+            document.getElementById('group_dados_usuario').style.display = 'block';
+            const user = getUserInfo();
+            if (user) {
+                document.getElementById('ag_nome').value = user.nome || '';
+                document.getElementById('ag_cpf').value = user.cpf || '';
+            }
+            
+            document.getElementById('group_profissional').style.display = 'none';
+            document.getElementById('ag_profissional').required = false;
+            
+            document.getElementById('group_posto').style.display = 'none';
+            document.getElementById('ag_posto').required = false;
+            document.getElementById('group_sus').style.display = 'none';
+            document.getElementById('ag_cartao_sus').required = false;
+            document.getElementById('group_motivo').style.display = 'none';
+            document.getElementById('group_acompanhante').style.display = 'none';
+            document.getElementById('group_comprovante').style.display = 'none';
+            document.getElementById('ag_comprovante').required = false;
         }
 
         async function loadSecretarias() {
@@ -419,6 +472,7 @@
                                 <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                     ${o.foto ? `<a href="${MEDIA_URL}/${o.foto}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem;"><i class="fa-solid fa-image"></i> Ver Foto</a>` : ''}
                                     ${o.video ? `<a href="${MEDIA_URL}/${o.video}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: #ef4444; color: #ef4444;"><i class="fa-solid fa-video"></i> Ver Vídeo</a>` : ''}
+                                    ${o.documento ? `<a href="${MEDIA_URL}/${o.documento}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: #8b5cf6; color: #8b5cf6;"><i class="fa-solid fa-file-pdf"></i> Ver PDF</a>` : ''}
                                     ${o.foto_resolucao ? `<a href="${MEDIA_URL}/${o.foto_resolucao}" target="_blank" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; background: #10b981;"><i class="fa-solid fa-check-circle"></i> Ver Solução</a>` : ''}
                                 </div>
                             </div>
@@ -514,6 +568,11 @@
                     formData.append('video', videoInput.files[0]);
                 }
 
+                const pdfInput = document.getElementById('oc_pdf');
+                if(pdfInput && pdfInput.files.length > 0) {
+                    formData.append('documento', pdfInput.files[0]);
+                }
+
                 const res = await fetch(`${API_URL}/ocorrencias`, {
                     method: 'POST',
                     headers: { 'Authorization': `Bearer ${getToken()}` },
@@ -570,6 +629,12 @@
                     return;
                 }
                 assuntoFinal = `[${posto}] ` + assuntoFinal;
+            }
+
+            if (tipoAtend === "Bolsa Família") {
+                const userName = document.getElementById('ag_nome').value;
+                const userCPF = document.getElementById('ag_cpf').value;
+                assuntoFinal = `[Bolsa Família] Nome: ${userName} | CPF: ${userCPF}` + (assuntoFinal ? ` - ${assuntoFinal}` : '');
             }
 
             if (tipoAtend === "Marcação de Viagem") {
@@ -702,6 +767,15 @@
                     const a = data.find(i => i.id == id);
                     if (!a) return;
 
+                    // Formatar data/hora no horário de Brasília
+                    const optDate = { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' };
+                    const optTime = { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false };
+                    const dataFormatada = new Date(a.data_hora).toLocaleDateString('pt-BR', optDate);
+                    const horaFormatada = new Date(a.data_hora).toLocaleTimeString('pt-BR', optTime);
+                    const dataHoraBrasilia = `${dataFormatada} às ${horaFormatada} (Horário de Brasília)`;
+
+                    const dataCriacao = new Date(a.criado_em).toLocaleDateString('pt-BR', optDate) + ' ' + new Date(a.criado_em).toLocaleTimeString('pt-BR', optTime);
+
                     const printWindow = window.open('', '_blank');
                     printWindow.document.write(`
                         <html>
@@ -711,25 +785,36 @@
                                 body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; color: #1e293b; }
                                 .header { text-align: center; margin-bottom: 40px; border-bottom: 4px solid #10b981; padding-bottom: 20px; }
                                 .content { background: #f0fdf4; padding: 30px; border-radius: 12px; border: 1px solid #dcfce7; }
-                                .row { display: flex; margin-bottom: 15px; }
-                                .label { width: 140px; font-weight: 700; color: #166534; }
+                                .row { display: flex; margin-bottom: 15px; align-items: flex-start; }
+                                .label { min-width: 180px; font-weight: 700; color: #166534; }
                                 .stamp { margin-top: 40px; text-align: right; }
                                 .badge { padding: 10px 20px; border: 2px solid #2563eb; color: #2563eb; font-weight: 800; border-radius: 8px; display: inline-block; transform: rotate(-5deg); }
+                                .highlight { background: #dcfce7; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; }
+                                .section-title { font-weight: 700; color: #166534; font-size: 1rem; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #dcfce7; padding-bottom: 5px; }
                                 @media print { .no-print { display: none; } }
                             </style>
                         </head>
                         <body>
                             <div class="header">
                                 <h1>📅 COMPROVANTE DE AGENDAMENTO</h1>
-                                <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA -AL</p>
+                                <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA - AL</p>
                             </div>
                             <div class="content">
                                 <div class="row"><span class="label">PROTOCOLO:</span> <strong>${a.protocolo || a.id}</strong></div>
-                                <div class="row"><span class="label">ASSUNTO:</span> ${a.assunto}</div>
-                                <div class="row" style="background: #dcfce7; padding: 10px; border-radius: 8px;"><span class="label">HORÁRIO MARCADO:</span> <strong style="font-size: 1.2rem; color: #166534;">${new Date(a.data_hora).toLocaleString()}</strong></div>
-                                <div class="row"><span class="label">SITUAÇÃO:</span> CONFIRMADO</div>
+                                <div class="row"><span class="label">SITUAÇÃO:</span> <strong style="color: #10b981;">✅ CONFIRMADO</strong></div>
+                                <div class="row"><span class="label">DATA DA SOLICITAÇÃO:</span> ${dataCriacao}</div>
+
+                                <div class="section-title">📋 DADOS DO AGENDAMENTO</div>
                                 <div class="row"><span class="label">TIPO:</span> ${a.tipo}</div>
-                                ${a.cartao_sus ? `<div class="row"><span class="label">SUS:</span> ${a.cartao_sus}</div>` : ''}
+                                <div class="row"><span class="label">ASSUNTO / DETALHES:</span> ${a.assunto}</div>
+                                ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
+                                ${a.motivo ? `<div class="row"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
+                                ${a.acompanhante ? `<div class="row"><span class="label">ACOMPANHANTE:</span> ${a.acompanhante}</div>` : ''}
+
+                                <div class="section-title">🕐 HORÁRIO DESEJADO PARA ATENDIMENTO</div>
+                                <div class="highlight">
+                                    <strong style="font-size: 1.3rem; color: #166534;">📌 ${dataHoraBrasilia}</strong>
+                                </div>
                             </div>
                             <div class="stamp"><div class="badge">AGENDAMENTO VÁLIDO</div></div>
                             <div style="text-align: center; margin-top: 40px;">
@@ -749,11 +834,58 @@
             document.getElementById('formTrocaSenha').reset();
         }
 
+        // Mapa de tipos de problema por secretaria
+        function getOpcoesSecretaria(nomeSecretaria) {
+            const nome = nomeSecretaria.toUpperCase();
+            if (nome.includes('GUARDA MUNICIPAL')) {
+                return [
+                    'Briga / Confusão',
+                    'Espancamento',
+                    'Pessoa Suspeita',
+                    'Agressão à Mulher',
+                    'Perturbação da Ordem'
+                ];
+            } else if (nome.includes('INFRAESTRUTURA') || nome.includes('OBRAS') || nome.includes('ILUMINAÇÃO') || nome.includes('LIMPEZA') || nome.includes('MEIO AMBIENTE')) {
+                return [
+                    'Buraco na rua',
+                    'Lâmpada queimada',
+                    'Lixo na rua / Limpeza urbana',
+                    'Vazamento de água / esgoto',
+                    'Poda de árvore',
+                    'Limpeza de bueiro'
+                ];
+            }
+            return [];
+        }
+
+        function atualizarTiposProblema() {
+            const secSelect = document.getElementById('oc_secretaria');
+            const tituloSelect = document.getElementById('oc_titulo_select');
+            const selectedText = secSelect.options[secSelect.selectedIndex]?.text || '';
+
+            // Limpar opções anteriores
+            tituloSelect.innerHTML = '<option value="">Selecione o problema...</option>';
+
+            if (secSelect.value === '') {
+                tituloSelect.innerHTML = '<option value="">Selecione primeiro a secretaria...</option>';
+                return;
+            }
+
+            const opcoes = getOpcoesSecretaria(selectedText);
+            opcoes.forEach(op => {
+                tituloSelect.innerHTML += `<option value="${op}">${op}</option>`;
+            });
+            tituloSelect.innerHTML += '<option value="Outro">Outro (Descrever abaixo)</option>';
+
+            // Resetar campo custom
+            document.getElementById('group_custom_titulo').style.display = 'none';
+            document.getElementById('oc_titulo_custom').required = false;
+        }
+
         function handleOcorrenciaTitleChange() {
             const select = document.getElementById('oc_titulo_select');
             const customGroup = document.getElementById('group_custom_titulo');
             const customInput = document.getElementById('oc_titulo_custom');
-            const secSelect = document.getElementById('oc_secretaria');
 
             if (select.value === 'Outro') {
                 customGroup.style.display = 'block';
@@ -761,16 +893,6 @@
             } else {
                 customGroup.style.display = 'none';
                 customInput.required = false;
-                
-                // Auto-selecionar Secretaria de Infraestrutura para problemas comuns
-                if (select.value !== "") {
-                    for (let i = 0; i < secSelect.options.length; i++) {
-                        if (secSelect.options[i].text.toUpperCase().includes("INFRAESTRUTURA")) {
-                            secSelect.selectedIndex = i;
-                            break;
-                        }
-                    }
-                }
             }
         }
 
@@ -835,6 +957,15 @@
             }
         }
         init();
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('action') === 'bolsafamilia') {
+                setTimeout(() => {
+                    abrirModalBolsaFamilia();
+                }, 500);
+            }
+        });
     </script>
 
     <footer class="footer">

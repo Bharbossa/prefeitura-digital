@@ -44,7 +44,9 @@ def register(user_in: UsuarioCreate, db_sql: Session = Depends(get_db)) -> Any:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Já existe um usuário registrado com este CPF ou E-mail")
         hashed_password = get_password_hash(user_in.senha)
         db_user = Usuario(
-            nome=user_in.nome, cpf=user_in.cpf.strip(), email=normalized_email, 
+            nome=user_in.nome, cpf=user_in.cpf.strip(), email=normalized_email,
+            telefone=user_in.telefone, whatsapp=user_in.whatsapp, 
+            endereco=user_in.endereco,
             senha_hash=hashed_password, status=StatusUsuario.ativo
         )
         db_sql.add(db_user)
@@ -71,7 +73,19 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
     else:
         # SQLite / MySQL Fallback
         clean_username = form_data.username.lower().strip()
-        user = db_sql.query(Usuario).filter(func.lower(Usuario.email) == clean_username).first()
+        
+        # Check if the username is a CPF
+        import re
+        is_cpf = False
+        clean_cpf = re.sub(r'\D', '', clean_username)
+        if len(clean_cpf) == 11 and re.match(r'^[0-9.\-\s]+$', form_data.username.strip()):
+            is_cpf = True
+
+        if is_cpf:
+            user = db_sql.query(Usuario).filter(Usuario.cpf == clean_cpf).first()
+        else:
+            user = db_sql.query(Usuario).filter(func.lower(Usuario.email) == clean_username).first()
+
         if user:
             user_type = user.tipo_usuario
             if hasattr(user_type, "value"):
@@ -82,7 +96,11 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
             
             user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id, "status": user.status}
         else:
-            user = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == clean_username).first()
+            if is_cpf:
+                user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.cpf == clean_cpf).first()
+            else:
+                user = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == clean_username).first()
+            
             if user:
                 user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id, "status": getattr(user, "status", "Ativo")}
                 user_type = "subadmin"
@@ -165,10 +183,8 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
         parts = email.split('@')
         masked_dest = f"{parts[0][0]}***@{parts[1]}"
         
-        # Email (simulated)
-        print(f"--- EMAIL SIMULADO PARA {email} ---")
-        print(f"Sua nova senha é: {new_pw}")
-        print(f"----------------------------------------")
+        from ..utils.email_service import send_password_email
+        send_password_email(email, new_pw)
     
     return {"message": f"Uma nova senha foi gerada e enviada para {masked_dest} via {data.method.upper()}."}
 

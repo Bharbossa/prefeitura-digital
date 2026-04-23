@@ -51,11 +51,20 @@ def startup_db_init():
             for col in [
                 "ADD COLUMN protocolo VARCHAR(20)",
                 "ADD COLUMN foto VARCHAR(255)",
-                "ADD COLUMN video VARCHAR(255)"
+                "ADD COLUMN video VARCHAR(255)",
+                "ADD COLUMN documento VARCHAR(255)"
             ]:
                 try: conn.execute(text(f"ALTER TABLE ocorrencias {col}"))
                 except Exception: pass
                 
+            for col in [
+                "ADD COLUMN telefone VARCHAR(20)",
+                "ADD COLUMN status VARCHAR(20)",
+                "ADD COLUMN whatsapp VARCHAR(20)"
+            ]:
+                try: conn.execute(text(f"ALTER TABLE usuarios {col}"))
+                except Exception: pass
+
             for col in [
                 "ADD COLUMN protocolo VARCHAR(20)",
                 "ADD COLUMN motivo TEXT",

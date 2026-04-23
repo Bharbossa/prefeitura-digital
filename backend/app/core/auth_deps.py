@@ -17,48 +17,55 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
         headers={"WWW-Authenticate": "Bearer"},
     )
     import traceback
+    from sqlalchemy import func
+    
+    def log_auth(msg):
+        try:
+            with open("uploads/debug.log", "a") as f:
+                f.write(f"[{datetime.datetime.now()}] {msg}\n")
+        except: pass
+    
+    import datetime
+    log_auth(f"AUTH START: Token received: {token[:10]}...")
+
     try:
         try:
             payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
             email: str = payload.get("sub")
             tipo: str = payload.get("type")
+            log_auth(f"JWT OK: Email={email}, Tipo={tipo}")
             if email is None or tipo is None:
+                log_auth("ERR: Payload incomplete")
                 raise credentials_exception
             token_data = TokenData(email=email, type=tipo)
-        except JWTError:
+        except JWTError as e:
+            log_auth(f"ERR: JWT Decode: {str(e)}")
             raise credentials_exception
         
-        # SQLite Implementation (Neon/Postgres use this too via DB_MODE != "firestore")
-        # Try User table (Citizen or Admin)
-        user = db_sql.query(Usuario).filter(Usuario.email == token_data.email).first()
+        # User lookup - Case-insensitive
+        user = db_sql.query(Usuario).filter(func.lower(Usuario.email) == func.lower(token_data.email)).first()
         if not user:
-            # Try AdminSecretaria table (Sub-admin)
-            user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == token_data.email).first()
+            user = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == func.lower(token_data.email)).first()
         
         if user:
-            # Determine actual verified type
+            log_auth(f"User Found in DB: {user.email}")
             if isinstance(user, Usuario):
-                # cidadao or admin
                 raw_role = str(user.tipo_usuario).split('.')[-1]
                 role = "admin" if raw_role == "admin" else "cidadao"
             else:
-                # AdminSecretaria is always subadmin
                 role = "subadmin"
             
-            # Security check: Does token type match database role?
-            if tipo == "admin" and role != "admin":
-                user = None
-            elif tipo == "subadmin" and role != "subadmin":
-                user = None
-            elif tipo == "cidadao" and role != "cidadao":
-                user = None
+            # Role validation
+            valid = False
+            if tipo == "admin" and role == "admin": valid = True
+            elif tipo == "subadmin" and role == "subadmin": valid = True
+            elif tipo == "cidadao" and role == "cidadao": valid = True
+            elif tipo == "user" and role == "cidadao": valid = True
             
-            if user:
-                # Create a uniform object for routes
+            if valid:
+                log_auth(f"Auth Success: role={role}")
                 from types import SimpleNamespace
-                is_subadmin = isinstance(user, AdminSecretaria)
-                
-                user_out = SimpleNamespace(
+                return SimpleNamespace(
                     id=int(user.id),
                     email=user.email,
                     nome=user.nome,
@@ -67,14 +74,20 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
                     endereco=getattr(user, 'endereco', ""),
                     status=getattr(user, 'status', "ativo"),
                     secretaria_id=getattr(user, 'secretaria_id', None),
-                    tipo_usuario_verificado=role # "cidadao", "subadmin", "admin"
+                    tipo_usuario_verificado=role
                 )
-                return user_out
+            else:
+                log_auth(f"ERR: Role mismatch. Token={tipo}, DB={role}")
 
+        log_auth(f"ERR: User not found or rejected: {token_data.email}")
         raise credentials_exception
+
+    except HTTPException as he:
+        log_auth(f"AUTH RAISED: {he.detail}")
+        raise he
     except Exception as e:
-        print(f"ERROR IN get_current_user: {traceback.format_exc()}")
-        raise HTTPException(status_code=500, detail=f"Auth error: {str(e)}")
+        log_auth(f"CRITICAL AUTH: {traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"Auth system error: {str(e)}")
 
 def get_current_admin(current_user = Depends(get_current_user)):
     if current_user.tipo_usuario_verificado not in ["admin", "subadmin"]:
@@ -91,4 +104,3 @@ def get_general_admin(current_user = Depends(get_current_user)):
             detail="Acesso restrito ao Administrador Geral."
         )
     return current_user
-

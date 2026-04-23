@@ -43,6 +43,28 @@ function logout() {
     window.location.href = 'login.html';
 }
 
+function resetSession() {
+    localStorage.clear();
+    alert("Sessão limpa com sucesso. Por favor, faça login novamente.");
+    window.location.href = 'login.html';
+}
+
+// Global 401 Interceptor
+const originalFetch = window.fetch;
+window.fetch = async (...args) => {
+    const response = await originalFetch(...args);
+    if (response.status === 401) {
+        console.warn("Unauthorized! Logging out...");
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('user_info');
+        // Avoid redirect loop if already on login page
+        if (!window.location.pathname.includes('login.html')) {
+            window.location.href = 'login.html?error=session_expired';
+        }
+    }
+    return response;
+};
+
 function checkAuth(requireAdmin = false) {
     const token = getToken();
     const user = getUserInfo();

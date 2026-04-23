@@ -39,9 +39,15 @@
                 <input type="email" id="email" required>
             </div>
 
-            <div class="form-group">
-                <label for="telefone">Telefone</label>
-                <input type="text" id="telefone" required>
+            <div class="form-group" style="display: flex; gap: 1rem;">
+                <div style="flex: 1;">
+                    <label for="telefone">Telefone</label>
+                    <input type="text" id="telefone" required>
+                </div>
+                <div style="flex: 1;">
+                    <label for="whatsapp">WhatsApp</label>
+                    <input type="text" id="whatsapp" required>
+                </div>
             </div>
             
             <div class="form-group">
@@ -74,6 +80,7 @@
                 cpf: document.getElementById('cpf').value,
                 email: document.getElementById('email').value,
                 telefone: document.getElementById('telefone').value,
+                whatsapp: document.getElementById('whatsapp').value,
                 endereco: document.getElementById('endereco').value,
                 senha: document.getElementById('senha').value
             };
