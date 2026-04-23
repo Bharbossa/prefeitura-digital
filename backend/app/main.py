@@ -117,23 +117,23 @@ def startup_db_init():
     except Exception as e:
         print(f"Error initializing database: {e}")
 
-# CORS configuration
-origins = [
-    "https://leopoldina-digital-1b75e.web.app",
-    "https://leopoldina-digital-1b75e.firebaseapp.com",
-    "https://prefeitura-digital.onrender.com",
-    "http://localhost:5500",
-    "http://127.0.0.1:5500",
-    "http://localhost:3000",
-]
-
+# CORS configuration - Highly permissive for debugging and immediate access
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Custom Middleware to catch any remaining CORS issues
+@app.middleware("http")
+async def add_cors_header(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "*"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
 
 from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users, agendamentos, admin_metrics
 
@@ -151,7 +151,7 @@ app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["adm
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "version": "2.1.0-CORS_FINAL"}
+    return {"status": "ok", "version": "3.0.0-CORS_INFALIVEL"}
 
 
 # Mount the 'uploads' directory to serve files (photos/videos)
