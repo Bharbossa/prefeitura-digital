@@ -15,6 +15,17 @@ SQLALCHEMY_DATABASE_URL = os.getenv(
     "postgresql+psycopg2://neondb_owner:npg_9gGs8ZPRMUnS@ep-wild-river-ancnt251-pooler.c-6.us-east-1.aws.neon.tech/neondb?sslmode=require"
 )
 
+# Remove channel_binding from URL if present (psycopg2 doesn't support it well)
+if "channel_binding" in SQLALCHEMY_DATABASE_URL:
+    import re
+    SQLALCHEMY_DATABASE_URL = re.sub(r'[&?]channel_binding=[^&]*', '', SQLALCHEMY_DATABASE_URL)
+    # Fix leftover ? at end or double ?
+    SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.rstrip('&').rstrip('?')
+    if '?' not in SQLALCHEMY_DATABASE_URL and 'sslmode' not in SQLALCHEMY_DATABASE_URL:
+        pass  # No query params needed
+    elif '?' not in SQLALCHEMY_DATABASE_URL:
+        SQLALCHEMY_DATABASE_URL += '?sslmode=require'
+
 # Format for MySQL: mysql+pymysql://user:pass@host:port/db
 if SQLALCHEMY_DATABASE_URL.startswith("mysql://"):
     SQLALCHEMY_DATABASE_URL = SQLALCHEMY_DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
