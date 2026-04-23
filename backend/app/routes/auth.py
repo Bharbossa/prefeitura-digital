@@ -190,17 +190,27 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
 
 @router.patch("/change-password")
 def change_password(data: ChangePasswordRequest, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
-    if not verify_password(data.senha_atual, current_user.senha_hash):
+    from ..models.schema import Usuario, AdminSecretaria
+    
+    if current_user.tipo_usuario_verificado == "subadmin":
+        user_db = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == current_user.id).first()
+    else:
+        user_db = db_sql.query(Usuario).filter(Usuario.id == current_user.id).first()
+        
+    if not user_db:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+
+    if not verify_password(data.senha_atual, user_db.senha_hash):
         raise HTTPException(status_code=401, detail="Senha atual incorreta.")
     
-    current_user.senha_hash = get_password_hash(data.nova_senha)
+    user_db.senha_hash = get_password_hash(data.nova_senha)
     db_sql.commit()
     
     # Audit log
     from ..models.schema import LogAuditoria
     log = LogAuditoria(
         usuario_id=current_user.id,
-        usuario_tipo="cidadao",
+        usuario_tipo="admin" if current_user.tipo_usuario_verificado in ["admin", "subadmin"] else "cidadao",
         acao="self_change_password",
         detalhes=f"Usuário {current_user.email} alterou sua própria senha"
     )

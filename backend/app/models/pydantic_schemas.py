@@ -100,8 +100,7 @@ class AdminSecretariaResponse(BaseModel):
     tipo_usuario: str = "subadmin"
     model_config = ConfigDict(from_attributes=True)
 
-class AdminPasswordUpdate(BaseModel):
-    nova_senha: str
+
 
 class AgendamentoBase(BaseModel):
     secretaria_id: int
