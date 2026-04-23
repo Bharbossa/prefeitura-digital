@@ -49,20 +49,32 @@ function resetSession() {
     window.location.href = 'login.html';
 }
 
-// Global 401 Interceptor
+// Global Fetch Wrapper with Retry Logic for Cold Starts
 const originalFetch = window.fetch;
 window.fetch = async (...args) => {
-    const response = await originalFetch(...args);
-    if (response.status === 401) {
-        console.warn("Unauthorized! Logging out...");
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('user_info');
-        // Avoid redirect loop if already on login page
-        if (!window.location.pathname.includes('login.html')) {
-            window.location.href = 'login.html?error=session_expired';
+    let attempts = 0;
+    const maxAttempts = 3;
+    const delay = 1000; // 1 second
+
+    while (attempts < maxAttempts) {
+        try {
+            const response = await originalFetch(...args);
+            if (response.status === 401) {
+                console.warn("Unauthorized! Logging out...");
+                localStorage.removeItem('access_token');
+                localStorage.removeItem('user_info');
+                if (!window.location.pathname.includes('login.html')) {
+                    window.location.href = 'login.html?error=session_expired';
+                }
+            }
+            return response;
+        } catch (err) {
+            attempts++;
+            console.error(`Tentativa de conexão ${attempts} falhou:`, err);
+            if (attempts >= maxAttempts) throw err;
+            await new Promise(resolve => setTimeout(resolve, delay * attempts));
         }
     }
-    return response;
 };
 
 function checkAuth(requireAdmin = false) {
