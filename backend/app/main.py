@@ -1,123 +1,84 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from .database import engine, Base, get_db
 from sqlalchemy.orm import Session
+from starlette.middleware.base import BaseHTTPMiddleware
 import os
 
 # FastAPI Application for Colônia Digital
-# Using Neon Postgres as the primary database
-
-from slowapi import _rate_limit_exceeded_handler
-from slowapi.errors import RateLimitExceeded
-from .core.rate_limit import limiter
-from fastapi import Request, Response
-from starlette.middleware.base import BaseHTTPMiddleware
-
-# Forced redeploy at 2026-04-04 14:18
 app = FastAPI(
     title="Colônia Digital API",
-    description="API for Colônia Digital platform - Citizen Urban Occurrences",
+    description="API for Colônia Digital platform",
     version="1.0.0"
 )
 
-app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        response: Response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Content-Security-Policy"] = "default-src 'self' 'unsafe-eval' 'unsafe-inline' https:; img-src 'self' data: https: blob:; connect-src 'self' https: wss:;"
-        return response
-
-app.add_middleware(SecurityHeadersMiddleware)
-
-# Database initialization on startup
+# 1. DATABASE INITIALIZATION
 @app.on_event("startup")
 def startup_db_init():
     try:
-        # Auto-create tables if they don't exist
-        print("Initializing database...")
         Base.metadata.create_all(bind=engine)
-        
-        # Sincronizar colunas novas (Migração Manual para MySQL/Render)
         from sqlalchemy import text
         
-        # Ocorrencias
-        for col in [
-            "ADD COLUMN protocolo VARCHAR(20)",
-            "ADD COLUMN foto VARCHAR(255)",
-            "ADD COLUMN video VARCHAR(255)",
-            "ADD COLUMN documento VARCHAR(255)"
-        ]:
-            try:
-                with engine.connect() as conn:
-                    conn.execute(text(f"ALTER TABLE ocorrencias {col}"))
-                    conn.commit()
-            except Exception: pass
-            
-        for col in [
-            "ADD COLUMN telefone VARCHAR(20)",
-            "ADD COLUMN status VARCHAR(20)",
-            "ADD COLUMN whatsapp VARCHAR(20)"
-        ]:
-            try:
-                with engine.connect() as conn:
-                    conn.execute(text(f"ALTER TABLE usuarios {col}"))
-                    conn.commit()
-            except Exception: pass
-
-        for col in [
-            "ADD COLUMN protocolo VARCHAR(20)",
-            "ADD COLUMN motivo TEXT",
-            "ADD COLUMN acompanhante VARCHAR(100)",
-            "ADD COLUMN cartao_sus VARCHAR(50)",
-            "ADD COLUMN anexo VARCHAR(255)",
-            "ADD COLUMN criado_em DATETIME"
-        ]:
-            try:
-                with engine.connect() as conn:
-                    conn.execute(text(f"ALTER TABLE agendamentos {col}"))
-                    conn.commit()
-            except Exception: pass
+        # Sync columns
+        tables_cols = {
+            "ocorrencias": ["protocolo VARCHAR(20)", "foto VARCHAR(255)", "video VARCHAR(255)", "documento VARCHAR(255)"],
+            "usuarios": ["telefone VARCHAR(20)", "status VARCHAR(20)", "whatsapp VARCHAR(20)"],
+            "agendamentos": ["protocolo VARCHAR(20)", "motivo TEXT", "acompanhante VARCHAR(100)", "cartao_sus VARCHAR(50)", "anexo VARCHAR(255)", "criado_em DATETIME"]
+        }
         
-        # Reset e Ativação de Conta (Produção) - Forçar Ativo
+        for table, cols in tables_cols.items():
+            for col in cols:
+                try:
+                    with engine.connect() as conn:
+                        conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {col}"))
+                        conn.commit()
+                except Exception: pass
+
+        # Emergency Reset
         from .core.security import get_password_hash
         email_res = "alexandregilberto1994@gmail.com"
         hashed = get_password_hash("123456")
         try:
             with engine.connect() as conn:
-                # Update password and status for ciudadano - Case-insensitive match
                 conn.execute(text("UPDATE usuarios SET senha_hash = :h, status = 'ativo' WHERE LOWER(email) = LOWER(:e)"), {"h": hashed, "e": email_res})
-                # Check sub-admins too
                 conn.execute(text("UPDATE admins_secretaria SET senha_hash = :h WHERE LOWER(email) = LOWER(:e)"), {"h": hashed, "e": email_res})
                 conn.commit()
-                print(f"Reset emergencial executado para {email_res}")
-        except Exception as e:
-            print(f"Erro no reset temporario: {e}")
-        
-        # Seed secretarias if empty
-        from .database import SessionLocal
-        from .models.schema import Secretaria
-        db = SessionLocal()
-        try:
-            if db.query(Secretaria).count() == 0:
-                print("Seeding secretarias...")
-                sec_names = ["Obras", "Saúde", "Educação", "Transporte", "Meio Ambiente", "Limpeza Urbana"]
-                for name in sec_names:
-                    db.add(Secretaria(nome=f"Secretaria de {name}" if "Limpeza" not in name else name))
-                db.commit()
-                print("Seeding complete.")
-        finally:
-            db.close()
+        except Exception: pass
+            
     except Exception as e:
         print(f"Error initializing database: {e}")
 
-# 1. CORS Configuration (Obrigatório ser o primeiro para Preflight/OPTIONS funcionar)
+# 2. ROUTES
+from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users, agendamentos, admin_metrics
+
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(ocorrencias.router, prefix="/api/ocorrencias", tags=["ocorrencias"])
+app.include_router(secretarias.router, prefix="/api/secretarias", tags=["secretarias"])
+app.include_router(chat_ia.router, prefix="/api/chat-ia", tags=["chat_ia"])
+app.include_router(admin_users.router, prefix="/api/admin/users", tags=["admin_users"])
+app.include_router(agendamentos.router, prefix="/api/agendamentos", tags=["agendamentos"])
+app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["admin_metrics"])
+
+@app.get("/api/health")
+def health_check():
+    return {"status": "ok", "version": "5.0.0-CLEAN_STABLE"}
+
+# 3. MIDDLEWARES (Ordem: O último adicionado é o primeiro a processar o request)
+
+# Security Headers (Sem CSP restritivo por enquanto)
+class SecurityHeadersMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.method == "OPTIONS":
+            return await call_next(request)
+        response = await call_next(request)
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        return response
+
+app.add_middleware(SecurityHeadersMiddleware)
+
+# CORS (DEVE SER O ÚLTIMO ADICIONADO PARA FUNCIONAR O PREFLIGHT)
 origins = [
     "https://leopoldina-digital-1b75e.web.app",
     "https://leopoldina-digital-1b75e.firebaseapp.com",
@@ -133,53 +94,13 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
 )
 
-# 2. Security and Headers Middleware
-class SecurityHeadersMiddleware(BaseHTTPMiddleware):
-    async def dispatch(self, request: Request, call_next):
-        # Permitir OPTIONS passar sem processamento extra de headers de segurança se necessário
-        if request.method == "OPTIONS":
-            return await call_next(request)
-        
-        response: Response = await call_next(request)
-        response.headers["X-Content-Type-Options"] = "nosniff"
-        response.headers["X-Frame-Options"] = "DENY"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["X-XSS-Protection"] = "1; mode=block"
-        return response
-
-app.add_middleware(SecurityHeadersMiddleware)
-
-from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users, agendamentos, admin_metrics
-
-@app.get("/")
-def read_root():
-    return {"message": "Welcome to Colônia Digital API"}
-
-app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
-app.include_router(ocorrencias.router, prefix="/api/ocorrencias", tags=["ocorrencias"])
-app.include_router(secretarias.router, prefix="/api/secretarias", tags=["secretarias"])
-app.include_router(chat_ia.router, prefix="/api/chat-ia", tags=["chat_ia"])
-app.include_router(admin_users.router, prefix="/api/admin/users", tags=["admin_users"])
-app.include_router(agendamentos.router, prefix="/api/agendamentos", tags=["agendamentos"])
-app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["admin_metrics"])
-
-@app.get("/api/health")
-def health_check():
-    return {"status": "ok", "version": "4.0.0-SENIOR_FIX"}
-
-
-# Mount the 'uploads' directory to serve files (photos/videos)
+# 4. STATIC FILES
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
-# Serve the frontend files
 frontend_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../frontend"))
 if os.path.exists(frontend_path):
     app.mount("/", StaticFiles(directory=frontend_path, html=True), name="frontend")
-else:
-    # Optional: print warning if frontend not found where expected
-    print(f"Warning: Frontend path not found at {frontend_path}")
