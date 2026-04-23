@@ -7,7 +7,7 @@ let statusChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!checkAuth(true)) {
-        window.location.href = 'login.html';
+        window.location.href = 'admin/index.html';
         return;
     }
     

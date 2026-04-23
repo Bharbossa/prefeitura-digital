@@ -70,13 +70,18 @@ function checkAuth(requireAdmin = false) {
     const user = getUserInfo();
     
     if (!token || !user) {
-        window.location.href = 'login.html';
+        if (!window.location.pathname.includes('login.html')) {
+            window.location.href = 'login.html';
+        }
         return false;
     }
     
-    if (requireAdmin && user.tipo_usuario === 'user') {
-        window.location.href = 'dashboard.html';
-        return false;
+    if (requireAdmin) {
+        const isAdmin = user.tipo_usuario === 'admin' || user.tipo_usuario === 'subadmin';
+        if (!isAdmin) {
+            window.location.href = 'dashboard.html';
+            return false;
+        }
     }
     return true;
 }
