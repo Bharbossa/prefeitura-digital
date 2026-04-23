@@ -46,48 +46,59 @@ def startup_db_init():
         
         # Sincronizar colunas novas (Migração Manual para MySQL/Render)
         from sqlalchemy import text
-        with engine.begin() as conn:
-            # Ocorrencias
-            for col in [
-                "ADD COLUMN protocolo VARCHAR(20)",
-                "ADD COLUMN foto VARCHAR(255)",
-                "ADD COLUMN video VARCHAR(255)",
-                "ADD COLUMN documento VARCHAR(255)"
-            ]:
-                try: conn.execute(text(f"ALTER TABLE ocorrencias {col}"))
-                except Exception: pass
-                
-            for col in [
-                "ADD COLUMN telefone VARCHAR(20)",
-                "ADD COLUMN status VARCHAR(20)",
-                "ADD COLUMN whatsapp VARCHAR(20)"
-            ]:
-                try: conn.execute(text(f"ALTER TABLE usuarios {col}"))
-                except Exception: pass
-
-            for col in [
-                "ADD COLUMN protocolo VARCHAR(20)",
-                "ADD COLUMN motivo TEXT",
-                "ADD COLUMN acompanhante VARCHAR(100)",
-                "ADD COLUMN cartao_sus VARCHAR(50)",
-                "ADD COLUMN anexo VARCHAR(255)",
-                "ADD COLUMN criado_em DATETIME"
-            ]:
-                try: conn.execute(text(f"ALTER TABLE agendamentos {col}"))
-                except Exception: pass
-            
-            # Reset e Ativação de Conta (Produção) - Forçar Ativo
-            from .core.security import get_password_hash
-            email_res = "alexandregilberto1994@gmail.com"
-            hashed = get_password_hash("123456")
+        
+        # Ocorrencias
+        for col in [
+            "ADD COLUMN protocolo VARCHAR(20)",
+            "ADD COLUMN foto VARCHAR(255)",
+            "ADD COLUMN video VARCHAR(255)",
+            "ADD COLUMN documento VARCHAR(255)"
+        ]:
             try:
+                with engine.connect() as conn:
+                    conn.execute(text(f"ALTER TABLE ocorrencias {col}"))
+                    conn.commit()
+            except Exception: pass
+            
+        for col in [
+            "ADD COLUMN telefone VARCHAR(20)",
+            "ADD COLUMN status VARCHAR(20)",
+            "ADD COLUMN whatsapp VARCHAR(20)"
+        ]:
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text(f"ALTER TABLE usuarios {col}"))
+                    conn.commit()
+            except Exception: pass
+
+        for col in [
+            "ADD COLUMN protocolo VARCHAR(20)",
+            "ADD COLUMN motivo TEXT",
+            "ADD COLUMN acompanhante VARCHAR(100)",
+            "ADD COLUMN cartao_sus VARCHAR(50)",
+            "ADD COLUMN anexo VARCHAR(255)",
+            "ADD COLUMN criado_em DATETIME"
+        ]:
+            try:
+                with engine.connect() as conn:
+                    conn.execute(text(f"ALTER TABLE agendamentos {col}"))
+                    conn.commit()
+            except Exception: pass
+        
+        # Reset e Ativação de Conta (Produção) - Forçar Ativo
+        from .core.security import get_password_hash
+        email_res = "alexandregilberto1994@gmail.com"
+        hashed = get_password_hash("123456")
+        try:
+            with engine.connect() as conn:
                 # Update password and status for ciudadano - Case-insensitive match
                 conn.execute(text("UPDATE usuarios SET senha_hash = :h, status = 'ativo' WHERE LOWER(email) = LOWER(:e)"), {"h": hashed, "e": email_res})
                 # Check sub-admins too
                 conn.execute(text("UPDATE admins_secretaria SET senha_hash = :h WHERE LOWER(email) = LOWER(:e)"), {"h": hashed, "e": email_res})
+                conn.commit()
                 print(f"Reset emergencial executado para {email_res}")
-            except Exception as e:
-                print(f"Erro no reset temporario: {e}")
+        except Exception as e:
+            print(f"Erro no reset temporario: {e}")
         
         # Seed secretarias if empty
         from .database import SessionLocal
