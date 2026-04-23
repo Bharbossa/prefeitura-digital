@@ -118,9 +118,18 @@ def startup_db_init():
         print(f"Error initializing database: {e}")
 
 # CORS configuration
+origins = [
+    "https://leopoldina-digital-1b75e.web.app",
+    "https://leopoldina-digital-1b75e.firebaseapp.com",
+    "https://prefeitura-digital.onrender.com",
+    "http://localhost:5500",
+    "http://127.0.0.1:5500",
+    "http://localhost:3000",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -142,7 +151,7 @@ app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["adm
 
 @app.get("/api/health")
 def health_check():
-    return {"status": "ok", "version": "2.0.0-CHANNEL_FIX"}
+    return {"status": "ok", "version": "2.1.0-CORS_FINAL"}
 
 
 # Mount the 'uploads' directory to serve files (photos/videos)
