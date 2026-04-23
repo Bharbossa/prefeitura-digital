@@ -176,7 +176,8 @@
                     errorMsg.style.display = 'block';
                 }
             } catch (err) {
-                errorMsg.innerText = `Erro de conexão: ${err.message}. Tente novamente em instantes.`;
+                console.error('Erro detalhado do login:', err);
+                errorMsg.innerText = `Erro Crítico: ${err.name} - ${err.message}. Certifique-se que o backend em prefeitura-digital.onrender.com está online.`;
                 errorMsg.style.display = 'block';
             } finally {
                 submitBtn.disabled = false;
