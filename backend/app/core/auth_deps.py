@@ -71,6 +71,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
                     nome=user.nome,
                     cpf=user.cpf,
                     telefone=getattr(user, 'telefone', ""),
+                    whatsapp=getattr(user, 'whatsapp', ""),
                     endereco=getattr(user, 'endereco', ""),
                     status=getattr(user, 'status', "ativo"),
                     secretaria_id=getattr(user, 'secretaria_id', None),

@@ -8,7 +8,7 @@ class UsuarioBase(BaseModel):
     cpf: str
     email: EmailStr
     telefone: str
-    whatsapp: str
+    whatsapp: Optional[str] = None
     endereco: str
 
 class UsuarioCreate(UsuarioBase):

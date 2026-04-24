@@ -56,7 +56,7 @@ app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["adm
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "6.1.0-FIX_CORS_HEADERS"}
+    return {"status": "ok", "version": "6.2.0-STABLE"}
 
 if not os.path.exists("uploads"):
     os.makedirs("uploads")

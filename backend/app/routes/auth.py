@@ -267,6 +267,7 @@ def read_users_me(current_user = Depends(get_current_user)):
         "email": current_user.email,
         "cpf": getattr(current_user, "cpf", ""),
         "telefone": getattr(current_user, "telefone", ""),
+        "whatsapp": getattr(current_user, "whatsapp", ""),
         "endereco": getattr(current_user, "endereco", ""),
         "tipo_usuario": tipo,
         "status": status_val,
