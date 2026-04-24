@@ -7,9 +7,9 @@ class UsuarioBase(BaseModel):
     nome: str
     cpf: str
     email: EmailStr
-    telefone: str
+    telefone: Optional[str] = None
     whatsapp: Optional[str] = None
-    endereco: str
+    endereco: Optional[str] = None
 
 class UsuarioCreate(UsuarioBase):
     senha: str
