@@ -8,6 +8,8 @@ app = FastAPI(title="Colônia Digital API", version="6.0.0-CORS_MAX")
 
 # 1. CORS - CONFIGURAÇÃO TOTALMENTE ABERTA (MODO EMERGÊNCIA)
 # Nota: Quando allow_origins=["*"], allow_credentials deve ser False.
+# 1. CORS - CONFIGURAÇÃO TOTALMENTE ABERTA (MODO EMERGÊNCIA)
+# Nota: Quando allow_origins=["*"], allow_credentials deve ser False.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 from ..database import get_db
-from ..models.schema import Usuario, StatusUsuario, AdminSecretaria, LogAuditoria, TipoUsuario
+from ..models.schema import Usuario, StatusUsuario, AdminSecretaria, LogAuditoria, TipoUsuario, Ocorrencia, StatusOcorrencia
 from ..models.pydantic_schemas import (
     UsuarioResponse, 
     AdminSecretariaCreate, 
@@ -12,8 +12,46 @@ from ..models.pydantic_schemas import (
 )
 from ..core.auth_deps import get_current_user, get_current_admin, get_general_admin
 from ..core.security import get_password_hash, verify_password
+from ..utils.sms_service import send_status_sms
 
 router = APIRouter()
+
+@router.post("/secretaria-admins/{admin_id}/notificar-pendencias")
+def notify_subadmin_pending(admin_id: int, current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+    admin = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == admin_id).first()
+    if not admin:
+        raise HTTPException(status_code=404, detail="Sub-administrador não encontrado.")
+    
+    if not admin.telefone:
+        raise HTTPException(status_code=400, detail="Sub-administrador não possui telefone cadastrado.")
+
+    # Contar ocorrências pendentes da secretaria dele
+    count_pending = db_sql.query(Ocorrencia).filter(
+        Ocorrencia.secretaria_id == admin.secretaria_id,
+        Ocorrencia.status == StatusOcorrencia.pendente
+    ).count()
+
+    if count_pending == 0:
+        msg = f"COLÔNIA DIGITAL: Olá {admin.nome.split(' ')[0]}, o sistema está em dia! Nenhuma nova ocorrência pendente em sua secretaria."
+    else:
+        msg = f"ALERTA URGENTE - COLÔNIA DIGITAL: Olá {admin.nome.split(' ')[0]}, existem {count_pending} ocorrências PENDENTES aguardando resposta em sua secretaria. Verifique o painel agora!"
+
+    success = send_status_sms(admin.telefone, msg)
+    
+    if not success:
+        raise HTTPException(status_code=500, detail="Falha ao enviar notificação.")
+
+    # Auditoria
+    log = LogAuditoria(
+        usuario_id=current_admin.id,
+        usuario_tipo="admin",
+        acao="notify_subadmin",
+        detalhes=f"Enviou alerta de {count_pending} pendências para sub-admin {admin.email} (Tel: {admin.telefone})"
+    )
+    db_sql.add(log)
+    db_sql.commit()
+
+    return {"message": "Notificação enviada com sucesso!", "count_pending": count_pending}
 
 @router.get("/pending", response_model=List[UsuarioResponse])
 def get_pending_users(current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):

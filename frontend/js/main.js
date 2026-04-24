@@ -63,8 +63,14 @@ window.fetch = async (...args) => {
                 console.warn("Unauthorized! Logging out...");
                 localStorage.removeItem('access_token');
                 localStorage.removeItem('user_info');
-                if (!window.location.pathname.includes('login.html')) {
-                    window.location.href = 'login.html?error=session_expired';
+                const path = window.location.pathname;
+                // Redirecionar para a página de login correta conforme o contexto
+                if (!path.includes('login.html') && !path.includes('admin/index.html')) {
+                    if (path.includes('admin.html') || path.includes('/admin/')) {
+                        window.location.href = 'admin/index.html';
+                    } else {
+                        window.location.href = 'login.html?error=session_expired';
+                    }
                 }
             }
             return response;
@@ -82,15 +88,14 @@ function checkAuth(requireAdmin = false) {
     const user = getUserInfo();
     
     if (!token || !user) {
-        if (!window.location.pathname.includes('login.html')) {
-            window.location.href = 'login.html';
-        }
+        // Não redirecionar aqui — deixar o chamador decidir o destino correto
         return false;
     }
     
     if (requireAdmin) {
         const isAdmin = user.tipo_usuario === 'admin' || user.tipo_usuario === 'subadmin';
         if (!isAdmin) {
+            // Usuário logado mas não é admin — enviar para dashboard cidadão
             window.location.href = 'dashboard.html';
             return false;
         }

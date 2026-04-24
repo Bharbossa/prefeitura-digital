@@ -7,6 +7,7 @@ let statusChart = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!checkAuth(true)) {
+        // Sem autenticação ou permissão de admin — redirecionar para login do painel
         window.location.href = 'admin/index.html';
         return;
     }
@@ -504,7 +505,7 @@ async function imprimirProtocolo(id) {
 
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-function logout() { localStorage.clear(); window.location.href = 'index.html'; }
+function logout() { localStorage.clear(); window.location.href = 'admin/index.html'; }
 
 async function loadAgendamentos() {
     try {
@@ -751,6 +752,7 @@ async function loadAdmins() {
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
                                 <button class="btn btn-primary" style="font-size: 0.7rem; padding: 4px 10px;" onclick="openPasswordModal('${a.id}', 'subadmin', '${a.nome}')"><i class="fa-solid fa-key"></i> Trocar Senha</button>
+                                <button class="btn" style="background-color: #f59e0b; color: white; border: none; font-size: 0.7rem; padding: 4px 10px; border-radius: 6px; display: flex; align-items: center; gap: 4px;" title="Notificar Pendências" onclick="notificarSubAdmin('${a.id}', '${a.nome}')"><i class="fa-solid fa-bell"></i> Notificar</button>
                                 <button class="btn btn-outline" style="color: var(--danger); font-size: 0.7rem; padding: 4px 10px;" onclick="deleteAdmin('${a.id}')"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </td>
@@ -910,5 +912,26 @@ function filterTable(containerId, query) {
             row.style.display = 'none';
         }
     });
+}
+
+async function notificarSubAdmin(id, nome) {
+    if (!confirm(`Deseja enviar agora uma notificação SMS para ${nome} alertando sobre as ocorrências pendentes na secretaria dele?`)) return;
+    
+    try {
+        const res = await fetch(`${ADMIN_API}/users/secretaria-admins/${id}/notificar-pendencias`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            alert(`Sucesso! ${data.message} (${data.count_pending} pendências detectadas)`);
+        } else {
+            const err = await res.json().catch(() => ({}));
+            alert("Erro ao notificar: " + (err.detail || "Falha na comunicação com o servidor."));
+        }
+    } catch(e) {
+        alert("Erro de conexão ao tentar notificar.");
+    }
 }
 
