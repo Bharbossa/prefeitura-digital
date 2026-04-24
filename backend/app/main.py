@@ -4,15 +4,26 @@ from fastapi.staticfiles import StaticFiles
 from .database import engine, Base, get_db
 import os
 
-app = FastAPI(title="Colônia Digital API", version="6.0.0-FINAL")
+app = FastAPI(title="Colônia Digital API", version="6.1.0-FIXED_CORS")
 
-# CORS - CONFIGURAÇÃO TOTALMENTE ABERTA (Wildcard)
+# 1. CORS - Configuração Robusta
+# Usando origens explícitas para permitir Credentials se necessário, 
+# mas garantindo que o cabeçalho Authorization seja aceito.
+origins = [
+    "https://leopoldina-digital-1b75e.web.app",
+    "https://leopoldina-digital-1b75e.firebaseapp.com",
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["*"], # Voltando para * para maior compatibilidade, mas sem credentials
     allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "Accept", "Origin", "X-Requested-With"],
+    expose_headers=["*"],
 )
 
 @app.on_event("startup")
@@ -45,7 +56,7 @@ app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["adm
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "6.0.0-DEPLOY_REQUIRED"}
+    return {"status": "ok", "version": "6.1.0-FIX_CORS_HEADERS"}
 
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
