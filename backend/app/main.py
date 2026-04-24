@@ -4,12 +4,9 @@ from fastapi.staticfiles import StaticFiles
 from .database import engine, Base, get_db
 import os
 
-app = FastAPI(title="Colônia Digital API", version="6.0.0-CORS_MAX")
+app = FastAPI(title="Colônia Digital API", version="6.0.0-FINAL")
 
-# 1. CORS - CONFIGURAÇÃO TOTALMENTE ABERTA (MODO EMERGÊNCIA)
-# Nota: Quando allow_origins=["*"], allow_credentials deve ser False.
-# 1. CORS - CONFIGURAÇÃO TOTALMENTE ABERTA (MODO EMERGÊNCIA)
-# Nota: Quando allow_origins=["*"], allow_credentials deve ser False.
+# CORS - CONFIGURAÇÃO TOTALMENTE ABERTA (Wildcard)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -48,7 +45,7 @@ app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["adm
 
 @app.get("/api/health")
 def health():
-    return {"status": "ok", "version": "6.0.0-ULTRA_LIBERADO"}
+    return {"status": "ok", "version": "6.0.0-DEPLOY_REQUIRED"}
 
 if not os.path.exists("uploads"):
     os.makedirs("uploads")
