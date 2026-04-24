@@ -10,6 +10,7 @@ class UsuarioBase(BaseModel):
     telefone: Optional[str] = None
     whatsapp: Optional[str] = None
     endereco: Optional[str] = None
+    foto_perfil: Optional[str] = None
 
 class UsuarioCreate(UsuarioBase):
     senha: str
@@ -98,6 +99,7 @@ class AdminSecretariaResponse(BaseModel):
     secretaria_id: int
     status: str = "Ativo"
     tipo_usuario: str = "subadmin"
+    foto_perfil: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 

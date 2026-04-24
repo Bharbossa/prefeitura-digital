@@ -45,7 +45,15 @@ async function initAdmin() {
     document.getElementById('userName').innerText = user.nome || user.email;
     document.getElementById('userRole').innerText = currentRole === 'admin' ? 'Administrador Geral' : `Sub-Administrador (${user.secretaria_nome || 'Secretaria'})`;
     document.getElementById('roleDebug').innerText = `[${currentRole}]`;
-    document.getElementById('userAvatar').innerText = (user.nome || user.email).charAt(0).toUpperCase();
+    
+    // Avatar Logic
+    const avatar = document.getElementById('userAvatar');
+    if (user.foto_perfil) {
+        avatar.innerHTML = `<img src="${MEDIA_URL}${user.foto_perfil}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+    } else {
+        avatar.innerText = (user.nome || user.email).charAt(0).toUpperCase();
+        avatar.innerHTML = avatar.innerText; // Ensure clear previous images
+    }
 
 
     setupSidebar();
@@ -143,6 +151,7 @@ function showSection(sectionId, element) {
     if (sectionId === 'admins') loadAdmins();
     if (sectionId === 'auditoria') loadAuditLogs();
     if (sectionId === 'usuarios-todos') loadAllCombinedUsers();
+    if (sectionId === 'config') refreshConfigUI();
 
     // Close sidebar on mobile after selection
     if (window.innerWidth <= 768) {
@@ -935,3 +944,59 @@ async function notificarSubAdmin(id, nome) {
     }
 }
 
+// Profile Photo Upload
+async function uploadProfilePhoto(input) {
+    if (!input.files || !input.files[0]) return;
+    
+    const file = input.files[0];
+    const btn = document.getElementById('btnChangePhoto');
+    const originalText = btn.innerHTML;
+    
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+        const res = await fetch(`${API_URL}/auth/update-photo`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` },
+            body: formData
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            // Update local user info
+            const user = getUserInfo();
+            user.foto_perfil = data.url;
+            localStorage.setItem('user_info', JSON.stringify(user));
+            
+            // Refresh UI
+            initAdmin();
+            refreshConfigUI();
+            alert("Foto de perfil atualizada com sucesso!");
+        } else {
+            const err = await res.json();
+            alert("Erro: " + (err.detail || "Falha no upload"));
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Erro de conexão ao enviar foto.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+function refreshConfigUI() {
+    const user = getUserInfo();
+    const configAvatar = document.getElementById('configAvatar');
+    if (!configAvatar) return;
+
+    if (user.foto_perfil) {
+        configAvatar.innerHTML = `<img src="${MEDIA_URL}${user.foto_perfil}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+    } else {
+        configAvatar.innerText = (user.nome || user.email).charAt(0).toUpperCase();
+    }
+}

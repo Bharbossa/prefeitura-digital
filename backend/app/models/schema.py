@@ -34,6 +34,7 @@ class Usuario(Base):
     tipo_usuario = Column(Enum(TipoUsuario), default=TipoUsuario.cidadao)
     status = Column(Enum(StatusUsuario), default=StatusUsuario.ativo)
     last_login = Column(DateTime, nullable=True)
+    foto_perfil = Column(String(255), nullable=True)
 
     ocorrencias = relationship("Ocorrencia", back_populates="usuario")
     agendamentos = relationship("Agendamento", back_populates="usuario")
@@ -60,6 +61,7 @@ class AdminSecretaria(Base):
     senha_hash = Column(String(255), nullable=False)
     secretaria_id = Column(Integer, ForeignKey("secretarias.id"))
     tipo_usuario = Column(String(50), default="subadmin") # Helper to distinguish in auth
+    foto_perfil = Column(String(255), nullable=True)
 
     secretaria = relationship("Secretaria", back_populates="admins")
     respostas = relationship("Resposta", back_populates="admin")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
 from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from ..core.utils import get_brasilia_time
@@ -271,7 +271,8 @@ def read_users_me(current_user = Depends(get_current_user)):
         "endereco": getattr(current_user, "endereco", ""),
         "tipo_usuario": tipo,
         "status": status_val,
-        "secretaria_id": getattr(current_user, "secretaria_id", None)
+        "secretaria_id": getattr(current_user, "secretaria_id", None),
+        "foto_perfil": getattr(current_user, "foto_perfil", None)
     }
 
 @router.get("/debug-logs-view")
@@ -281,3 +282,49 @@ def view_debug_logs():
             return {"logs": f.read()}
     except Exception as e:
         return {"error": str(e)}
+
+@router.post("/update-photo")
+async def update_photo(
+    file: UploadFile = File(...), 
+    current_user = Depends(get_current_user),
+    db_sql: Session = Depends(get_db)
+):
+    import shutil, os, uuid
+    
+    # 1. Validar extensão
+    ext = file.filename.split('.')[-1].lower()
+    if ext not in ['jpg', 'jpeg', 'png', 'webp']:
+        raise HTTPException(status_code=400, detail="Formato de imagem inválido. Use JPG, PNG ou WEBP.")
+    
+    # 2. Criar diretório se não existir
+    path = "uploads/perfil"
+    if not os.path.exists(path):
+        os.makedirs(path)
+        
+    # 3. Gerar nome único
+    filename = f"{uuid.uuid4()}.{ext}"
+    file_path = f"{path}/{filename}"
+    
+    # 4. Salvar arquivo
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    # 5. Atualizar no Banco de Dados
+    from ..models.schema import Usuario, AdminSecretaria
+    if current_user.tipo_usuario_verificado == "subadmin":
+        user_db = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == current_user.id).first()
+    else:
+        user_db = db_sql.query(Usuario).filter(Usuario.id == current_user.id).first()
+        
+    if not user_db:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+        
+    # Deletar foto antiga se existir
+    if user_db.foto_perfil and os.path.exists(user_db.foto_perfil.replace('/uploads/', 'uploads/')):
+        try: os.remove(user_db.foto_perfil.replace('/uploads/', 'uploads/'))
+        except: pass
+        
+    user_db.foto_perfil = f"/uploads/perfil/{filename}"
+    db_sql.commit()
+    
+    return {"url": user_db.foto_perfil}

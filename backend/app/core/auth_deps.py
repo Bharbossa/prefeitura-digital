@@ -75,6 +75,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
                     endereco=getattr(user, 'endereco', ""),
                     status=getattr(user, 'status', "ativo"),
                     secretaria_id=getattr(user, 'secretaria_id', None),
+                    foto_perfil=getattr(user, 'foto_perfil', None),
                     tipo_usuario_verificado=role
                 )
             else:
