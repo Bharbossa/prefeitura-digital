@@ -180,6 +180,18 @@
                     <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem;">Formatos aceitos: JPG, PNG, WEBP.</p>
                 </div>
 
+                <!-- Card Meus Dados -->
+                <div class="stat-card" style="margin-bottom: 1.5rem;">
+                    <h4>Meus Dados</h4>
+                    <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+                        <div>
+                            <label style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; display: block;">Nome de Exibição</label>
+                            <input type="text" id="configNome" class="btn btn-outline" style="width: 100%; text-align: left;" placeholder="Carregando...">
+                        </div>
+                        <button class="btn btn-primary" onclick="updateName()">Salvar Nome</button>
+                    </div>
+                </div>
+
                 <div class="stat-card">
                     <h4>Alterar Senha</h4>
                     <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">

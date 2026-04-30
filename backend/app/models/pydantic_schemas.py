@@ -138,3 +138,6 @@ class ForgotPasswordRequest(BaseModel):
 class ChangePasswordRequest(BaseModel):
     senha_atual: str
     nova_senha: str
+
+class UpdateNameRequest(BaseModel):
+    nome: str

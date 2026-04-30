@@ -9,7 +9,7 @@ from ..database import get_db
 from ..models.schema import Usuario, AdminSecretaria, StatusUsuario
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from ..models.pydantic_schemas import UsuarioCreate, UsuarioResponse, Token, ForgotPasswordRequest, ChangePasswordRequest
+from ..models.pydantic_schemas import UsuarioCreate, UsuarioResponse, Token, ForgotPasswordRequest, ChangePasswordRequest, UpdateNameRequest
 from ..core.security import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from ..core.auth_deps import get_current_user
 
@@ -328,3 +328,32 @@ async def update_photo(
     db_sql.commit()
     
     return {"url": user_db.foto_perfil}
+
+@router.patch("/update-name")
+def update_name(data: UpdateNameRequest, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+    from ..models.schema import Usuario, AdminSecretaria
+    
+    if current_user.tipo_usuario_verificado == "subadmin":
+        user_db = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == current_user.id).first()
+    else:
+        user_db = db_sql.query(Usuario).filter(Usuario.id == current_user.id).first()
+        
+    if not user_db:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    
+    old_name = user_db.nome
+    user_db.nome = data.nome
+    db_sql.commit()
+    
+    # Audit log
+    from ..models.schema import LogAuditoria
+    log = LogAuditoria(
+        usuario_id=current_user.id,
+        usuario_tipo="admin" if current_user.tipo_usuario_verificado in ["admin", "subadmin"] else "cidadao",
+        acao="update_name",
+        detalhes=f"Usuário {current_user.email} alterou nome de '{old_name}' para '{data.nome}'"
+    )
+    db_sql.add(log)
+    db_sql.commit()
+    
+    return {"message": "Nome atualizado com sucesso!", "nome": data.nome}

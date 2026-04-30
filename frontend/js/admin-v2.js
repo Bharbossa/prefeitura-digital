@@ -1054,6 +1054,53 @@ function refreshConfigUI() {
     } else {
         configAvatar.innerText = (user.nome || user.email).charAt(0).toUpperCase();
     }
+
+    const inputNome = document.getElementById('configNome');
+    if (inputNome) inputNome.value = user.nome || "";
+}
+
+async function updateName() {
+    const btn = event.target;
+    const originalText = btn.innerText;
+    const nome = document.getElementById('configNome').value.trim();
+    if (!nome) return alert("Por favor, digite um nome.");
+
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Salvando...';
+
+        const res = await fetch(`${API_URL}/auth/update-name`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ nome })
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            alert("Nome atualizado com sucesso!");
+            
+            // Atualizar localmente no localStorage usando a chave correta 'user_info'
+            const user = getUserInfo();
+            if (user) {
+                user.nome = data.nome;
+                localStorage.setItem('user_info', JSON.stringify(user));
+            }
+            
+            // Refresh UI do dashboard (topo, etc)
+            initAdmin(); 
+        } else {
+            const err = await res.json().catch(() => ({}));
+            alert("Erro: " + (err.detail || "Não foi possível atualizar o nome. Verifique se o backend foi atualizado."));
+        }
+    } catch(e) {
+        alert("Erro de conexão: " + e.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerText = originalText;
+    }
 }
 
 function toggleResetCard() {
