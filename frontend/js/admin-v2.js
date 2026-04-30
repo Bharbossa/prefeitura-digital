@@ -102,6 +102,9 @@ function setupSidebar() {
             <div class="nav-item" onclick="showSection('usuarios-todos', this)">
                 <i class="fa-solid fa-users-gear"></i><span>Gestão de Todos Usuários</span>
             </div>
+            <div class="nav-item" onclick="showSection('contabilidade', this)">
+                <i class="fa-solid fa-chart-bar"></i><span>Contabilidade</span>
+            </div>
         `;
     }
 
@@ -115,7 +118,7 @@ function setupSidebar() {
 
 function showSection(sectionId, element) {
     // Role check for specific sections
-    const restricted = ['usuarios', 'admins', 'auditoria', 'usuarios-todos'];
+    const restricted = ['usuarios', 'admins', 'auditoria', 'usuarios-todos', 'contabilidade'];
     if (restricted.includes(sectionId) && currentRole !== 'admin') {
 
         alert("Acesso restrito ao Administrador Geral.");
@@ -138,6 +141,7 @@ function showSection(sectionId, element) {
         'admins': 'Sub-Administradores',
         'auditoria': 'Logs de Auditoria',
         'usuarios-todos': 'Gestão de Todos os Usuários',
+        'contabilidade': 'Contabilidade por Secretaria',
         'config': 'Minha Conta'
     };
     document.getElementById('pageTitle').innerText = titles[sectionId];
@@ -151,7 +155,8 @@ function showSection(sectionId, element) {
     if (sectionId === 'admins') loadAdmins();
     if (sectionId === 'auditoria') loadAuditLogs();
     if (sectionId === 'usuarios-todos') loadAllCombinedUsers();
-    if (sectionId === 'config') refreshConfigUI();
+    if (sectionId === 'contabilidade') loadPerformance();
+    if (sectionId === 'config') { refreshConfigUI(); toggleResetCard(); }
 
     // Close sidebar on mobile after selection
     if (window.innerWidth <= 768) {
@@ -366,12 +371,13 @@ async function loadOcorrencias() {
                     <tr>
                         <td><strong>${o.protocolo || o.id}</strong></td>
                         <td>${o.titulo}</td>
-                        <td>${o.usuario_nome || 'N/A'}</td>
+                        <td style="font-weight: 600; color: var(--primary);">${o.usuario_nome || 'N/A'}</td>
                         <td style="font-size: 0.85rem;">${o.rua || 'N/A'}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}</td>
                         ${currentRole==='admin' ? `<td>${o.secretaria_nome || 'N/A'}</td>` : ''}
                         <td>${new Date(o.data).toLocaleString()}</td>
                         <td><span class="badge badge-${s === 'resolvido' ? 'done' : (s === 'em_atendimento' ? 'progress' : 'pending')}">${o.status}</span></td>
-                            <div style="display: flex; gap: 0.5rem;">
+                        <td>
+                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                 ${statusBtn}
                                 <button class="btn btn-outline" title="Ver Detalhes" onclick="alert(decodeURIComponent('${encodeURIComponent(o.descricao || '')}'))"><i class="fa-solid fa-eye"></i></button>
                                 ${o.foto ? `<button class="btn btn-outline" title="Ver Foto" onclick="window.open('${MEDIA_URL}/${o.foto.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-image"></i></button>` : ''}
@@ -903,6 +909,55 @@ document.getElementById('formAlterarSenha').addEventListener('submit', async fun
     }
 });
 
+// Admin self-password update (from config section)
+async function updatePassword() {
+    const current = document.getElementById('pwCurrent').value;
+    const newPw = document.getElementById('pwNew').value;
+    const confirm = document.getElementById('pwConfirm').value;
+
+    if (!current || !newPw || !confirm) {
+        alert("Por favor, preencha todos os campos de senha.");
+        return;
+    }
+    if (newPw !== confirm) {
+        alert("A nova senha e a confirmação não coincidem.");
+        return;
+    }
+    if (newPw.length < 6) {
+        alert("A nova senha deve ter pelo menos 6 caracteres.");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/auth/change-password`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ senha_atual: current, nova_senha: newPw })
+        });
+
+        if (res.ok) {
+            alert("Senha alterada com sucesso!");
+            document.getElementById('pwCurrent').value = '';
+            document.getElementById('pwNew').value = '';
+            document.getElementById('pwConfirm').value = '';
+        } else {
+            const err = await res.json().catch(() => ({}));
+            alert("Erro: " + (err.detail || "Não foi possível alterar a senha."));
+        }
+    } catch(e) {
+        alert("Erro de conexão: " + e.message);
+    }
+}
+
+// Search ocorrencias by name or protocol
+function searchOcorrenciasBtn() {
+    const query = document.getElementById('searchOcorrencias').value.trim().toLowerCase();
+    filterTable('ocorrenciasTableContainer', query);
+}
+
 // Universal Real-time Search Filter for Tables
 function filterTable(containerId, query) {
     const container = document.getElementById(containerId);
@@ -998,5 +1053,145 @@ function refreshConfigUI() {
         configAvatar.innerHTML = `<img src="${MEDIA_URL}${user.foto_perfil}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
     } else {
         configAvatar.innerText = (user.nome || user.email).charAt(0).toUpperCase();
+    }
+}
+
+function toggleResetCard() {
+    const card = document.getElementById('resetSystemCard');
+    if (card) card.style.display = currentRole === 'admin' ? 'block' : 'none';
+}
+
+async function resetSystem() {
+    const confirm1 = confirm("⚠️ ATENÇÃO: Isto vai APAGAR todas as ocorrências, agendamentos, respostas, chats e logs de auditoria.\n\nUsuários, admins e secretarias serão MANTIDOS.\n\nDeseja continuar?");
+    if (!confirm1) return;
+    
+    const confirm2 = prompt('Digite "ZERAR" para confirmar:');
+    if (confirm2 !== 'ZERAR') {
+        alert('Operação cancelada. Você precisa digitar ZERAR para confirmar.');
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${ADMIN_API}/metrics/reset-system`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        
+        if (res.ok) {
+            const data = await res.json();
+            alert(`✅ ${data.message}\n\nRemovidos:\n- ${data.removidos.ocorrencias} ocorrências\n- ${data.removidos.agendamentos} agendamentos\n- ${data.removidos.respostas} respostas\n- ${data.removidos.chats} chats\n- ${data.removidos.logs_auditoria} logs`);
+            loadDashboard();
+        } else {
+            const err = await res.json().catch(() => ({}));
+            alert('Erro: ' + (err.detail || 'Falha ao zerar o sistema.'));
+        }
+    } catch(e) {
+        alert('Erro de conexão: ' + e.message);
+    }
+}
+
+async function loadPerformance() {
+    const container = document.getElementById('performanceContainer');
+    if (container) container.innerHTML = '<p style="text-align:center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin"></i> Carregando dados...</p>';
+    try {
+        const res = await fetch(`${ADMIN_API}/metrics/secretaria-performance`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) {
+            if (container) container.innerHTML = '<p style="text-align:center; color: #ef4444; padding: 2rem;"><i class="fa-solid fa-circle-exclamation"></i> Erro ao carregar dados. Verifique se o backend foi atualizado.</p>';
+            return;
+        }
+        const data = await res.json();
+        
+        const container = document.getElementById('performanceContainer');
+        if (!container) return;
+        
+        if (data.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color: var(--text-muted); padding: 2rem;">Nenhuma secretaria cadastrada.</p>';
+            return;
+        }
+        
+        let html = '';
+        data.forEach(s => {
+            const taxaColor = s.ocorrencias.taxa_resolucao >= 70 ? '#10b981' : (s.ocorrencias.taxa_resolucao >= 40 ? '#f59e0b' : '#ef4444');
+            
+            html += `
+                <div class="stat-card" style="margin-bottom: 1rem; border-left: 4px solid var(--primary);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 style="margin: 0;">${s.nome}</h4>
+                        <span style="background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                            ${s.total_servicos} serviços
+                        </span>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                        <!-- Ocorrências -->
+                        <div style="background: var(--bg-body); padding: 1rem; border-radius: 10px;">
+                            <p style="font-weight: 600; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-clipboard-list"></i> OCORRÊNCIAS</p>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem;">
+                                <div><span style="color:#f59e0b;">●</span> Pendentes: <strong>${s.ocorrencias.pendentes}</strong></div>
+                                <div><span style="color:#3b82f6;">●</span> Em Atend.: <strong>${s.ocorrencias.em_atendimento}</strong></div>
+                                <div><span style="color:#10b981;">●</span> Resolvidas: <strong>${s.ocorrencias.resolvidas}</strong></div>
+                                <div><span style="color:#64748b;">●</span> Total: <strong>${s.ocorrencias.total}</strong></div>
+                            </div>
+                            <div style="margin-top: 0.8rem;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 3px;">
+                                    <span>Taxa de Resolução</span>
+                                    <strong style="color: ${taxaColor};">${s.ocorrencias.taxa_resolucao}%</strong>
+                                </div>
+                                <div style="background: #e2e8f0; border-radius: 10px; height: 8px; overflow: hidden;">
+                                    <div style="background: ${taxaColor}; height: 100%; width: ${s.ocorrencias.taxa_resolucao}%; border-radius: 10px; transition: width 0.5s ease;"></div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Agendamentos -->
+                        <div style="background: var(--bg-body); padding: 1rem; border-radius: 10px;">
+                            <p style="font-weight: 600; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-calendar-check"></i> AGENDAMENTOS</p>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.85rem;">
+                                <div><span style="color:#f59e0b;">●</span> Pendentes: <strong>${s.agendamentos.pendentes}</strong></div>
+                                <div><span style="color:#10b981;">●</span> Confirmados: <strong>${s.agendamentos.confirmados}</strong></div>
+                                <div><span style="color:#ef4444;">●</span> Cancelados: <strong>${s.agendamentos.cancelados}</strong></div>
+                                <div><span style="color:#64748b;">●</span> Total: <strong>${s.agendamentos.total}</strong></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        
+        // Totais gerais
+        const totalOc = data.reduce((sum, s) => sum + s.ocorrencias.total, 0);
+        const totalAg = data.reduce((sum, s) => sum + s.agendamentos.total, 0);
+        const totalResolvidas = data.reduce((sum, s) => sum + s.ocorrencias.resolvidas, 0);
+        const taxaGeral = totalOc > 0 ? Math.round(totalResolvidas / totalOc * 100) : 0;
+        
+        const resumo = `
+            <div class="stat-card" style="margin-bottom: 1.5rem; background: linear-gradient(135deg, #1e293b, #334155); color: white;">
+                <h4 style="color: #94a3b8; margin-bottom: 1rem;"><i class="fa-solid fa-chart-pie"></i> Resumo Geral</h4>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; text-align: center;">
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 800;">${totalOc}</div>
+                        <div style="font-size: 0.75rem; color: #94a3b8;">Ocorrências</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 800;">${totalAg}</div>
+                        <div style="font-size: 0.75rem; color: #94a3b8;">Agendamentos</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 800;">${totalOc + totalAg}</div>
+                        <div style="font-size: 0.75rem; color: #94a3b8;">Total Serviços</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 2rem; font-weight: 800; color: ${taxaGeral >= 70 ? '#10b981' : '#f59e0b'};">${taxaGeral}%</div>
+                        <div style="font-size: 0.75rem; color: #94a3b8;">Resolução</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        container.innerHTML = resumo + html;
+    } catch(e) {
+        console.error('Erro ao carregar contabilidade:', e);
     }
 }

@@ -79,10 +79,15 @@
 
         <!-- OCORRENCIAS SECTION -->
         <section id="ocorrencias" class="section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                 <h3>Gestão de Ocorrências</h3>
-                <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <input type="text" id="searchOcorrencias" class="btn btn-outline" placeholder="Buscar ocorrência..." onkeyup="filterTable('ocorrenciasTableContainer', this.value)" style="min-width: 200px;">
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0;">
+                        <input type="text" id="searchOcorrencias" class="btn btn-outline" placeholder="Buscar por nome ou protocolo..." onkeydown="if(event.key==='Enter') searchOcorrenciasBtn()" style="min-width: 250px; border-radius: 8px 0 0 8px; border-right: none;">
+                        <button class="btn btn-primary" onclick="searchOcorrenciasBtn()" style="border-radius: 0 8px 8px 0; padding: 0.6rem 1rem;">
+                            <i class="fa-solid fa-magnifying-glass"></i> Buscar
+                        </button>
+                    </div>
                     <select id="filterOcorrenciaStatus" class="btn btn-outline" onchange="loadOcorrencias()">
                         <option value="">Status: Todos</option>
                         <option value="Pendente">Pendentes</option>
@@ -146,6 +151,18 @@
             <div id="auditLogsTableContainer"></div>
         </section>
 
+        <!-- CONTABILIDADE SECTION (Real-time performance) -->
+        <section id="contabilidade" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3><i class="fa-solid fa-chart-bar"></i> Contabilidade por Secretaria</h3>
+                <button class="btn btn-outline" onclick="loadPerformance()" style="font-size: 0.85rem;">
+                    <i class="fa-solid fa-rotate"></i> Atualizar
+                </button>
+            </div>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Acompanhamento em tempo real de todos os serviços realizados por cada secretaria.</p>
+            <div id="performanceContainer"></div>
+        </section>
+
         <!-- CONFIG SECTION -->
         <section id="config" class="section">
             <h3>Minha Conta</h3>
@@ -171,6 +188,15 @@
                         <input type="password" id="pwConfirm" class="btn btn-outline" style="width: 100%;" placeholder="Confirmar Nova Senha">
                         <button class="btn btn-primary" onclick="updatePassword()">Atualizar Senha</button>
                     </div>
+                </div>
+
+                <!-- Reset System (Admin Geral only) -->
+                <div class="stat-card" style="margin-top: 1.5rem; border: 2px solid #ef4444;" id="resetSystemCard">
+                    <h4 style="color: #ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Zona de Perigo</h4>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 1rem 0;">Zerar todos os dados operacionais (ocorrências, agendamentos, respostas, chats e logs). <strong>Usuários, admins e secretarias serão mantidos.</strong></p>
+                    <button class="btn" style="background: #ef4444; color: white; border: none; width: 100%; font-weight: bold;" onclick="resetSystem()">
+                        <i class="fa-solid fa-trash-can"></i> Zerar Sistema
+                    </button>
                 </div>
             </div>
         </section>

@@ -96,3 +96,84 @@ def get_chart_data(current_user = Depends(get_current_admin), db_sql: Session = 
     data = q.group_by(func.date(Ocorrencia.data)).order_by(func.date(Ocorrencia.data)).all()
     
     return [{"day": str(d.day), "count": d.count} for d in data]
+
+@router.post("/reset-system")
+def reset_system(current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+    """Zera todos os dados operacionais do sistema. Mantém usuários, admins e secretarias."""
+    from ..models.schema import Resposta, Ocorrencia, Agendamento, ChatIA, LogAuditoria
+    
+    # Ordem importa por causa das foreign keys
+    deleted_respostas = db_sql.query(Resposta).delete()
+    deleted_ocorrencias = db_sql.query(Ocorrencia).delete()
+    deleted_agendamentos = db_sql.query(Agendamento).delete()
+    deleted_chat = db_sql.query(ChatIA).delete()
+    deleted_logs = db_sql.query(LogAuditoria).delete()
+    
+    # Registrar que o reset aconteceu (novo log após limpar)
+    log = LogAuditoria(
+        usuario_id=current_admin.id,
+        usuario_tipo="admin",
+        acao="reset_system",
+        detalhes=f"Sistema zerado: {deleted_ocorrencias} ocorrências, {deleted_agendamentos} agendamentos, {deleted_respostas} respostas, {deleted_chat} chats, {deleted_logs} logs removidos"
+    )
+    db_sql.add(log)
+    db_sql.commit()
+    
+    return {
+        "message": "Sistema zerado com sucesso!",
+        "removidos": {
+            "ocorrencias": deleted_ocorrencias,
+            "agendamentos": deleted_agendamentos,
+            "respostas": deleted_respostas,
+            "chats": deleted_chat,
+            "logs_auditoria": deleted_logs
+        }
+    }
+
+@router.get("/secretaria-performance")
+def get_secretaria_performance(current_admin = Depends(get_current_admin), db_sql: Session = Depends(get_db)):
+    """Contabilidade em tempo real de todos os serviços de cada secretaria."""
+    from ..models.schema import Secretaria, Agendamento
+    
+    secretarias = db_sql.query(Secretaria).all()
+    
+    results = []
+    for s in secretarias:
+        # Ocorrências por status
+        oc_total = db_sql.query(Ocorrencia).filter(Ocorrencia.secretaria_id == s.id).count()
+        oc_pendentes = db_sql.query(Ocorrencia).filter(Ocorrencia.secretaria_id == s.id, Ocorrencia.status == "pendente").count()
+        oc_em_atendimento = db_sql.query(Ocorrencia).filter(Ocorrencia.secretaria_id == s.id, Ocorrencia.status == "em_atendimento").count()
+        oc_resolvidas = db_sql.query(Ocorrencia).filter(Ocorrencia.secretaria_id == s.id, Ocorrencia.status == "resolvido").count()
+        
+        # Agendamentos por status
+        ag_total = db_sql.query(Agendamento).filter(Agendamento.secretaria_id == s.id).count()
+        ag_pendentes = db_sql.query(Agendamento).filter(Agendamento.secretaria_id == s.id, Agendamento.status == "Pendente").count()
+        ag_confirmados = db_sql.query(Agendamento).filter(Agendamento.secretaria_id == s.id, Agendamento.status == "Confirmado").count()
+        ag_cancelados = db_sql.query(Agendamento).filter(Agendamento.secretaria_id == s.id, Agendamento.status == "Cancelado").count()
+        
+        # Taxa de resolução
+        taxa_resolucao = round((oc_resolvidas / oc_total * 100), 1) if oc_total > 0 else 0
+        
+        results.append({
+            "id": s.id,
+            "nome": s.nome,
+            "ocorrencias": {
+                "total": oc_total,
+                "pendentes": oc_pendentes,
+                "em_atendimento": oc_em_atendimento,
+                "resolvidas": oc_resolvidas,
+                "taxa_resolucao": taxa_resolucao
+            },
+            "agendamentos": {
+                "total": ag_total,
+                "pendentes": ag_pendentes,
+                "confirmados": ag_confirmados,
+                "cancelados": ag_cancelados
+            },
+            "total_servicos": oc_total + ag_total
+        })
+    
+    # Ordenar pela secretaria com mais serviços
+    results.sort(key=lambda x: x["total_servicos"], reverse=True)
+    
+    return results
