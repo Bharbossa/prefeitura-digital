@@ -11,3 +11,7 @@ def generate_protocol():
     year = get_brasilia_time().year
     random_str = ''.join(random.choices(string.ascii_uppercase + string.digits, k=5))
     return f"COL-{year}-{random_str}"
+
+def generate_ticket_number():
+    """Generates a random 4-digit ticket number"""
+    return str(random.randint(1000, 9999))

@@ -37,7 +37,8 @@ def startup_db_init():
                 "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS protocolo VARCHAR(20)",
                 "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS foto VARCHAR(255)",
                 "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS tipo_usuario VARCHAR(20) DEFAULT 'cidadao'",
-                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'ativo'"
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'ativo'",
+                "ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS senha VARCHAR(10)"
             ]:
                 try: 
                     conn.execute(text(cmd))

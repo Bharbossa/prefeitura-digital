@@ -20,7 +20,8 @@ def seed_db():
             'Iluminação Pública',
             'Limpeza Urbana',
             'Guarda Municipal',
-            'Secretaria da Mulher'
+            'Secretaria da Mulher',
+            'SECRETARIA MUNICIPAL DE CULTURA E ESPORTE'
         ]
         
         for nome in secretarias_nomes:

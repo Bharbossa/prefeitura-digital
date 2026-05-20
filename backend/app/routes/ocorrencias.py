@@ -11,6 +11,7 @@ from ..models.schema import Ocorrencia, Resposta, AdminSecretaria, LogAuditoria,
 from ..models.pydantic_schemas import OcorrenciaResponse, RespostaResponse
 from ..core.auth_deps import get_current_user, get_current_admin
 from ..utils.sms_service import send_status_sms, get_resolved_message
+from ..utils.notification_helper import notify_admins_of_new_record
 from ..core.utils import generate_protocol
 from datetime import datetime
 
@@ -58,14 +59,21 @@ async def create_ocorrencia(
     foto: Optional[UploadFile] = File(None),
     video: Optional[UploadFile] = File(None),
     documento: Optional[UploadFile] = File(None),
+    latitude: Optional[float] = Form(None),
+    longitude: Optional[float] = Form(None),
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
 ):
+    print(f"DEBUG: Recebendo ocorrência - Lat: {latitude}, Lng: {longitude}")
     UPLOAD_DIR = "uploads"
     if not os.path.exists(UPLOAD_DIR): os.makedirs(UPLOAD_DIR)
     
     def save_file(ufile):
-        ext = os.path.splitext(ufile.filename)[1]
+        allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.pdf', '.mp4', '.mov', '.avi'}
+        ext = os.path.splitext(ufile.filename)[1].lower()
+        if ext not in allowed_extensions:
+            raise HTTPException(status_code=400, detail=f"Extensão de arquivo '{ext}' não permitida.")
+            
         name = f"{uuid.uuid4()}{ext}"
         path = os.path.join(UPLOAD_DIR, name)
         with open(path, "wb") as buf: shutil.copyfileobj(ufile.file, buf)
@@ -84,6 +92,8 @@ async def create_ocorrencia(
             rua=rua,
             ponto_referencia=ponto_referencia,
             secretaria_id=secretaria_id,
+            latitude=latitude,
+            longitude=longitude,
             foto=foto_path, 
             video=video_path,
             documento=documento_path,
@@ -93,28 +103,16 @@ async def create_ocorrencia(
         db_sql.commit()
         db_sql.refresh(ocorrencia)
 
-        try:
-            subadmins = db_sql.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
-            if subadmins:
-                msg = f"COLÔNIA DIGITAL: Nova Ocorrência ({protocolo}) registrada em sua secretaria. Verifique o painel!"
-                for sa in subadmins:
-                    if sa.telefone:
-                        send_status_sms(sa.telefone, msg)
-        except Exception as sms_err:
-            print(f"Erro ao disparar SMS de nova ocorrencia: {sms_err}")
+        # Notificar administradores
+        msg = f"COLÔNIA DIGITAL: Nova Ocorrência ({protocolo}) registrada. Verifique o painel!"
+        notify_admins_of_new_record(db_sql, secretaria_id, msg)
 
         return ocorrencia
     except Exception as e:
         db_sql.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/test-open")
-def test_open(db_sql: Session = Depends(get_db)):
-    try:
-        ocorrencias = db_sql.query(Ocorrencia).limit(5).all()
-        return [{"id": o.id, "titulo": o.titulo} for o in ocorrencias]
-    except Exception as e:
-        return {"error": str(e)}
+
 
 @router.patch("/{id}/status")
 async def update_status(

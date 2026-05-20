@@ -40,6 +40,8 @@ class OcorrenciaBase(BaseModel):
     rua: Optional[str] = None
     ponto_referencia: Optional[str] = None
     secretaria_id: Optional[int] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
 
 class OcorrenciaCreate(OcorrenciaBase):
     pass # foto and video are handled via Form data in endpoints
@@ -58,6 +60,8 @@ class OcorrenciaResponse(OcorrenciaBase):
     video: Optional[str] = None
     documento: Optional[str] = None
     foto_resolucao: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
     status: Optional[str] = None
     data: Optional[datetime] = None
     usuario_id: Optional[int] = None
@@ -119,6 +123,7 @@ class AgendamentoCreate(AgendamentoBase):
 class AgendamentoResponse(AgendamentoBase):
     id: int
     protocolo: Optional[str] = None
+    senha: Optional[str] = None
     usuario_id: int
     usuario_nome: Optional[str] = None
     status: str

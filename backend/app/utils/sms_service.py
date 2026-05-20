@@ -30,15 +30,19 @@ def send_status_sms(phone: str, message: str):
             from twilio.rest import Client
             client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
             
+            # Check if using WhatsApp
+            if TWILIO_PHONE_NUMBER.startswith("whatsapp:"):
+                formatted_phone = "whatsapp:" + formatted_phone
+            
             client_msg = client.messages.create(
                 body=message,
                 from_=TWILIO_PHONE_NUMBER,
                 to=formatted_phone
             )
-            logger.info(f"SMS enviado para {formatted_phone}: SID {client_msg.sid}")
+            logger.info(f"Mensagem enviada para {formatted_phone}: SID {client_msg.sid}")
             return True
         except Exception as e:
-            logger.error(f"Erro ao enviar SMS via Twilio para {formatted_phone}: {str(e)}")
+            logger.error(f"Erro ao enviar mensagem via Twilio para {formatted_phone}: {str(e)}")
             # Fallback to simulation if there's an error
             pass
 

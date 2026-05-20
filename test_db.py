@@ -14,4 +14,4 @@ db = SessionLocal()
 from backend.app.models.schema import AdminSecretaria
 print("Sub-Admins:")
 for admin in db.query(AdminSecretaria).all():
-    print(admin.email, admin.status)
+    print(admin.email)

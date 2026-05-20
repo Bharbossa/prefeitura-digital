@@ -4,6 +4,7 @@ const ADMIN_API = `${API_URL}/admin`;
 let currentRole = "";
 let currentSecId = null;
 let statusChart = null;
+let adminMap, adminMarker;
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!checkAuth(true)) {
@@ -316,9 +317,11 @@ async function loadRecentActivity() {
                         <div>
                             <div style="font-weight: 600; font-size: 0.9rem;">${o.titulo}</div>
                             <div style="font-size: 0.8rem; color: var(--text-muted);">#${o.protocolo || o.id} • ${new Date(o.data).toLocaleDateString()}${o.usuario_nome ? ' • Cidadão: ' + o.usuario_nome : ''}</div>
+                            ${o.latitude != null && o.longitude != null ? `<a href="javascript:void(0)" onclick="openAdminMap('${o.latitude}', '${o.longitude}', '${encodeURIComponent(o.titulo)}')" style="color: #10b981; font-weight: 600; text-decoration: none; font-size: 0.75rem; display: inline-block; margin-top: 2px;"><i class="fa-solid fa-location-dot"></i> Ver no Mapa</a>` : ''}
                         </div>
                         <div style="display: flex; gap: 0.5rem; align-items: center;">
                             <span class="badge badge-${statusType}">${o.status}</span>
+                            ${o.latitude && o.longitude ? `<button class="btn btn-outline" title="Ver no Mapa" style="border-color: #10b981; color: #10b981; padding: 4px 10px; font-size: 0.75rem;" onclick="openAdminMap('${o.latitude}', '${o.longitude}', '${encodeURIComponent(o.titulo)}')"><i class="fa-solid fa-location-dot"></i></button>` : ''}
                             ${currentRole==='admin' && s !== 'resolvido' ? `<button class="btn" style="background-color: #ef4444; color: white; border: none; font-weight: bold; margin-left: 8px; padding: 4px 10px; border-radius: 6px; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4); display: flex; align-items: center; gap: 5px; font-size: 0.75rem;" title="Cobrar Secretaria URGENTE" onclick="cobrarSecretaria('${o.id}')"><i class="fa-solid fa-bell fa-shake"></i> Cobrar</button>` : ''}
                         </div>
                     </div>
@@ -372,7 +375,10 @@ async function loadOcorrencias() {
                         <td><strong>${o.protocolo || o.id}</strong></td>
                         <td>${o.titulo}</td>
                         <td style="font-weight: 600; color: var(--primary);">${o.usuario_nome || 'N/A'}</td>
-                        <td style="font-size: 0.85rem;">${o.rua || 'N/A'}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}</td>
+                        <td style="font-size: 0.85rem;">
+                            ${o.rua || 'N/A'}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}
+                            ${o.latitude != null && o.longitude != null ? `<br><a href="javascript:void(0)" onclick="openAdminMap('${o.latitude}', '${o.longitude}', '${encodeURIComponent(o.titulo)}')" style="color: #10b981; font-weight: 600; text-decoration: none; font-size: 0.75rem; display: inline-block; margin-top: 4px;"><i class="fa-solid fa-location-dot"></i> Ver no Mapa</a>` : ''}
+                        </td>
                         ${currentRole==='admin' ? `<td>${o.secretaria_nome || 'N/A'}</td>` : ''}
                         <td>${new Date(o.data).toLocaleString()}</td>
                         <td><span class="badge badge-${s === 'resolvido' ? 'done' : (s === 'em_atendimento' ? 'progress' : 'pending')}">${o.status}</span></td>
@@ -380,6 +386,7 @@ async function loadOcorrencias() {
                             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                 ${statusBtn}
                                 <button class="btn btn-outline" title="Ver Detalhes" onclick="alert(decodeURIComponent('${encodeURIComponent(o.descricao || '')}'))"><i class="fa-solid fa-eye"></i></button>
+                                ${o.latitude && o.longitude ? `<button class="btn btn-outline" title="Ver no Mapa" style="border-color: #10b981; color: #10b981;" onclick="openAdminMap('${o.latitude}', '${o.longitude}', '${encodeURIComponent(o.titulo)}')"><i class="fa-solid fa-location-dot"></i></button>` : ''}
                                 ${o.foto ? `<button class="btn btn-outline" title="Ver Foto" onclick="window.open('${MEDIA_URL}/${o.foto.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-image"></i></button>` : ''}
                                 ${o.video ? `<button class="btn btn-outline" title="Ver Vídeo" onclick="window.open('${MEDIA_URL}/${o.video.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-video"></i></button>` : ''}
                                 ${o.documento ? `<button class="btn btn-outline" title="Ver PDF" style="border-color: #8b5cf6; color: #8b5cf6;" onclick="window.open('${MEDIA_URL}/${o.documento.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-file-pdf"></i></button>` : ''}
@@ -535,12 +542,28 @@ async function loadAgendamentos() {
                 return;
             }
 
-            let html = `<table class="data-table"><thead><tr><th>Protocolo</th><th>Assunto</th><th>Cidadão</th><th>Data/Hora</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
+            let html = `<table class="data-table"><thead><tr><th>Protocolo</th><th>Senha</th><th>Assunto</th><th>Cidadão</th><th>Data/Hora</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(a => {
                 const s = a.status.toLowerCase();
+                
+                let anexosButtons = '';
+                if (a.anexo) {
+                    const files = a.anexo.split(',');
+                    files.forEach((file, index) => {
+                        const trimFile = file.trim();
+                        if (!trimFile) return;
+                        const isImg = trimFile.match(/\.(jpeg|jpg|gif|png|webp)/i);
+                        const icon = isImg ? 'fa-image' : 'fa-file-pdf';
+                        const title = isImg ? 'Ver Foto' : 'Ver PDF';
+                        const colorStyle = isImg ? 'border-color: #a855f7; color: #a855f7;' : 'border-color: #8b5cf6; color: #8b5cf6;';
+                        anexosButtons += `<button class="btn btn-outline" title="${title}" style="${colorStyle}" onclick="window.open('${MEDIA_URL}/${trimFile.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid ${icon}"></i></button>`;
+                    });
+                }
+
                 html += `
                     <tr>
                         <td><strong>${a.protocolo || a.id}</strong></td>
+                        <td><span style="font-weight: bold; color: var(--primary);">${a.senha || '---'}</span></td>
                         <td>${a.assunto}</td>
                         <td>${a.usuario_nome || 'N/A'}</td>
                         <td>${new Date(a.data_hora).toLocaleString()}</td>
@@ -550,8 +573,8 @@ async function loadAgendamentos() {
                                 ${a.cartao_sus ? `<div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;"><i class="fa-solid fa-address-card"></i> SUS: ${a.cartao_sus}</div>` : ''}
                                 <div style="display: flex; gap: 0.5rem;">
                                     ${s === 'pendente' ? `<button class="btn btn-primary" onclick="updateAgendamento('${a.id}', 'Confirmado')">Confirmar</button>` : ''}
-                                    ${s === 'confirmado' ? `<button class="btn btn-outline" title="Imprimir Recibo" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>` : ''}
-                                    ${a.anexo ? `<button class="btn btn-outline" title="Ver Comprovante" onclick="window.open('${MEDIA_URL}/${a.anexo.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-paperclip"></i></button>` : ''}
+                                    <button class="btn btn-outline" title="Imprimir Recibo" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>
+                                    ${anexosButtons}
                                 </div>
                             </div>
                         </td>
@@ -561,7 +584,9 @@ async function loadAgendamentos() {
             html += '</tbody></table>';
             container.innerHTML = html;
         }
-    } catch(e) {}
+    } catch(e) {
+        console.error("Error loading agendamentos:", e);
+    }
 }
 
 async function updateOcorrenciaStatus(id, status) {
@@ -630,11 +655,17 @@ async function imprimirAgendamento(id) {
             const a = data.find(i => i.id == id);
             if (!a) return;
             
+            const isConcurso = a.tipo === 'Concurso';
+            const titleText = isConcurso ? 'COMPROVANTE DE INSCRIÇÃO' : 'COMPROVANTE DE AGENDAMENTO';
+            const iconHeader = isConcurso ? '🏆' : '📌';
+            const dateLabel = isConcurso ? 'DATA DE INSCRIÇÃO:' : 'HORÁRIO MARCADO:';
+            const badgeText = isConcurso ? 'INSCRIÇÃO CONFIRMADA' : 'AGENDAMENTO CONFIRMADO';
+
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
                 <html>
                 <head>
-                    <title>Protocolo de Agendamento - ${a.protocolo || a.id}</title>
+                    <title>${titleText} - ${a.protocolo || a.id}</title>
                     <style>
                         body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; color: #1e293b; }
                         .header { text-align: center; margin-bottom: 40px; border-bottom: 4px solid #10b981; padding-bottom: 20px; }
@@ -648,7 +679,7 @@ async function imprimirAgendamento(id) {
                 </head>
                 <body>
                     <div class="header">
-                        <h1>📌 COMPROVANTE DE AGENDAMENTO</h1>
+                        <h1>${iconHeader} ${titleText}</h1>
                         <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA -AL</p>
                     </div>
                     <div class="content">
@@ -658,10 +689,10 @@ async function imprimirAgendamento(id) {
                         ${a.motivo ? `<div class="row"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
                         ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
                         ${a.acompanhante ? `<div class="row"><span class="label">ACOMPANHANTE:</span> ${a.acompanhante}</div>` : ''}
-                        <div class="row" style="background: #dcfce7; padding: 10px; border-radius: 8px;"><span class="label">HORÁRIO MARCADO:</span> <strong style="font-size: 1.2rem; color: #166534;">${new Date(a.data_hora).toLocaleString()}</strong></div>
+                        <div class="row" style="background: #dcfce7; padding: 10px; border-radius: 8px;"><span class="label">${dateLabel}</span> <strong style="font-size: 1.2rem; color: #166534;">${new Date(a.data_hora).toLocaleString()}</strong></div>
                         <div class="row"><span class="label">SITUAÇÃO:</span> CONFIRMADO</div>
                     </div>
-                    <div class="stamp"><div class="badge">AGENDAMENTO CONFIRMADO</div></div>
+                    <div class="stamp"><div class="badge">${badgeText}</div></div>
                     <div style="text-align: center; margin-top: 40px;">
                         <button onclick="window.print()" class="no-print" style="padding: 10px 30px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer;">Imprimir</button>
                     </div>
@@ -1163,12 +1194,16 @@ async function loadPerformance() {
             const taxaColor = s.ocorrencias.taxa_resolucao >= 70 ? '#10b981' : (s.ocorrencias.taxa_resolucao >= 40 ? '#f59e0b' : '#ef4444');
             
             html += `
-                <div class="stat-card" style="margin-bottom: 1rem; border-left: 4px solid var(--primary);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h4 style="margin: 0;">${s.nome}</h4>
-                        <span style="background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
-                            ${s.total_servicos} serviços
-                        </span>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <button class="btn btn-outline" style="font-size: 0.75rem; padding: 4px 10px; border-color: var(--primary); color: var(--primary);" onclick="imprimirRelatorioSecretaria('${s.id}', '${s.nome}')">
+                                <i class="fa-solid fa-print"></i> Relatório Detalhado
+                            </button>
+                            <span style="background: var(--primary); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700;">
+                                ${s.total_servicos} serviços
+                            </span>
+                        </div>
                     </div>
                     
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
@@ -1240,5 +1275,196 @@ async function loadPerformance() {
         container.innerHTML = resumo + html;
     } catch(e) {
         console.error('Erro ao carregar contabilidade:', e);
+    }
+}
+
+function openAdminMap(lat, lng, titulo) {
+    document.getElementById('modalViewMap').style.display = 'flex';
+    document.getElementById('mapModalTitle').innerText = 'Localização: ' + decodeURIComponent(titulo);
+    
+    const pos = [parseFloat(lat), parseFloat(lng)];
+
+    setTimeout(() => {
+        if (!adminMap) {
+            adminMap = L.map('adminMapView').setView(pos, 16);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(adminMap);
+            adminMarker = L.marker(pos).addTo(adminMap);
+        } else {
+            adminMap.setView(pos, 16);
+            adminMarker.setLatLng(pos);
+            adminMap.invalidateSize();
+        }
+    }, 300);
+}
+
+async function imprimirRelatorioSecretaria(secId, secNome) {
+    const loadingBtn = event.currentTarget;
+    const originalContent = loadingBtn.innerHTML;
+    loadingBtn.disabled = true;
+    loadingBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando...';
+
+    try {
+        // Fetch all data
+        const [ocRes, agRes] = await Promise.all([
+            fetch(`${API_URL}/ocorrencias`, { headers: { 'Authorization': `Bearer ${getToken()}` } }),
+            fetch(`${API_URL}/agendamentos`, { headers: { 'Authorization': `Bearer ${getToken()}` } })
+        ]);
+
+        if (!ocRes.ok || !agRes.ok) throw new Error("Erro ao buscar dados.");
+
+        let ocorrencias = await ocRes.json();
+        let agendamentos = await agRes.json();
+
+        // Filter for this secretaria
+        ocorrencias = ocorrencias.filter(o => parseInt(o.secretaria_id) === parseInt(secId));
+        agendamentos = agendamentos.filter(a => parseInt(a.secretaria_id) === parseInt(secId));
+
+        const printWindow = window.open('', '_blank');
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Relatório Detalhado - ${secNome}</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #334155; line-height: 1.5; }
+                    .header { text-align: center; margin-bottom: 30px; border-bottom: 3px solid #2563eb; padding-bottom: 20px; }
+                    .header h1 { margin: 0; color: #1e3a8a; text-transform: uppercase; font-size: 1.8rem; }
+                    .header p { margin: 5px 0 0; color: #64748b; font-weight: 600; }
+                    
+                    .section-title { background: #f1f5f9; padding: 10px 15px; border-radius: 8px; margin: 30px 0 15px; border-left: 5px solid #2563eb; font-weight: 700; color: #1e293b; display: flex; justify-content: space-between; }
+                    
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 0.85rem; }
+                    th { background: #f8fafc; text-align: left; padding: 12px; border-bottom: 2px solid #e2e8f0; color: #475569; }
+                    td { padding: 12px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+                    
+                    .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; }
+                    .badge-pending { background: #fef3c7; color: #92400e; }
+                    .badge-progress { background: #dbeafe; color: #1e40af; }
+                    .badge-done { background: #dcfce7; color: #166534; }
+                    .badge-danger { background: #fee2e2; color: #991b1b; }
+                    
+                    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-bottom: 30px; }
+                    .summary-card { border: 1px solid #e2e8f0; padding: 15px; border-radius: 10px; text-align: center; }
+                    .summary-card div:first-child { font-size: 0.75rem; color: #64748b; text-transform: uppercase; margin-bottom: 5px; }
+                    .summary-card div:last-child { font-size: 1.5rem; font-weight: 800; color: #1e293b; }
+
+                    .no-data { text-align: center; padding: 20px; color: #94a3b8; font-style: italic; }
+                    
+                    @media print {
+                        .no-print { display: none; }
+                        body { padding: 0; }
+                        .summary-card { border: 1px solid #ddd; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Prefeitura de Colônia Leopoldina</h1>
+                    <p>Relatório de Desempenho e Solicitações - ${secNome}</p>
+                    <small>Gerado em: ${new Date().toLocaleString()}</small>
+                </div>
+
+                <div class="summary-grid">
+                    <div class="summary-card">
+                        <div>Total de Solicitações</div>
+                        <div>${ocorrencias.length + agendamentos.length}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div>Ocorrências Resolvidas</div>
+                        <div>${ocorrencias.filter(o => o.status.toLowerCase() === 'resolvido').length}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div>Agendamentos Confirmados</div>
+                        <div>${agendamentos.filter(a => a.status.toLowerCase() === 'confirmado').length}</div>
+                    </div>
+                    <div class="summary-card">
+                        <div>Taxa de Resolução</div>
+                        <div>${ocorrencias.length > 0 ? Math.round(ocorrencias.filter(o => o.status.toLowerCase() === 'resolvido').length / ocorrencias.length * 100) : 0}%</div>
+                    </div>
+                </div>
+
+                <div class="section-title">
+                    <span>Lista de Ocorrências</span>
+                    <span style="font-size: 0.8rem; font-weight: 400;">Total: ${ocorrencias.length}</span>
+                </div>
+                ${ocorrencias.length > 0 ? `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Protocolo</th>
+                                <th>Data</th>
+                                <th>Cidadão</th>
+                                <th>Título/Assunto</th>
+                                <th>Status</th>
+                                <th>Localização</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${ocorrencias.map(o => `
+                                <tr>
+                                    <td><strong>${o.protocolo || o.id}</strong></td>
+                                    <td>${new Date(o.data).toLocaleDateString()}</td>
+                                    <td>${o.usuario_nome || 'N/A'}</td>
+                                    <td>${o.titulo}</td>
+                                    <td><span class="badge badge-${o.status.toLowerCase() === 'resolvido' ? 'done' : (o.status.toLowerCase() === 'em_atendimento' ? 'progress' : 'pending')}">${o.status}</span></td>
+                                    <td>${o.rua || 'N/A'}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}</td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : '<p class="no-data">Nenhuma ocorrência registrada para esta secretaria.</p>'}
+
+                <div class="section-title">
+                    <span>Lista de Agendamentos</span>
+                    <span style="font-size: 0.8rem; font-weight: 400;">Total: ${agendamentos.length}</span>
+                </div>
+                ${agendamentos.length > 0 ? `
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Protocolo</th>
+                                <th>Data/Hora</th>
+                                <th>Cidadão</th>
+                                <th>Assunto</th>
+                                <th>Status</th>
+                                <th>Senha</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${agendamentos.map(a => `
+                                <tr>
+                                    <td><strong>${a.protocolo || a.id}</strong></td>
+                                    <td>${new Date(a.data_hora).toLocaleString()}</td>
+                                    <td>${a.usuario_nome || 'N/A'}</td>
+                                    <td>${a.assunto}</td>
+                                    <td><span class="badge badge-${a.status.toLowerCase() === 'confirmado' ? 'done' : (a.status.toLowerCase() === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
+                                    <td><strong style="color: #2563eb;">${a.senha || '---'}</strong></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                ` : '<p class="no-data">Nenhum agendamento registrado para esta secretaria.</p>'}
+
+                <div style="text-align: center; margin-top: 50px;" class="no-print">
+                    <button onclick="window.print()" style="padding: 12px 40px; background: #2563eb; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+                        <i class="fa-solid fa-print"></i> Imprimir Relatório
+                    </button>
+                </div>
+                
+                <div style="margin-top: 60px; border-top: 1px solid #e2e8f0; padding-top: 20px; text-align: center; font-size: 0.75rem; color: #94a3b8;">
+                    Documento Oficial - Sistema Colônia Digital<br>
+                    Prefeitura Municipal de Colônia Leopoldina - AL
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao gerar relatório: " + e.message);
+    } finally {
+        loadingBtn.disabled = false;
+        loadingBtn.innerHTML = originalContent;
     }
 }

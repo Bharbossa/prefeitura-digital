@@ -22,6 +22,9 @@ def add_columns():
         # Add anexo
         conn.execute(text("ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS anexo VARCHAR(255);"))
         
+        # Add senha
+        conn.execute(text("ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS senha VARCHAR(10);"))
+        
         # Add criado_em
         conn.execute(text("ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS criado_em TIMESTAMP WITH TIME ZONE DEFAULT NOW();"))
         

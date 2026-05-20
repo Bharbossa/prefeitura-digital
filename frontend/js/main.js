@@ -205,6 +205,7 @@ function appendChatMsg(text, sender) {
 }
 // Unified Hero Background Animation for all pages
 function initBackgroundAnimation(containerId) {
+    return; // Desativado para usar a imagem de fundo estática
     const container = document.getElementById(containerId);
     if (!container) return;
 

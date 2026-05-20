@@ -83,3 +83,7 @@ Thumbs.db
 
 # dataconnect generated files
 .dataconnect
+
+# Uploads directory
+uploads/
+

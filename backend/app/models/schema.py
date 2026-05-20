@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum, Float
 from sqlalchemy.orm import relationship
 import enum
 import datetime
@@ -79,6 +79,8 @@ class Ocorrencia(Base):
     rua = Column(String(255), nullable=True)
     ponto_referencia = Column(String(255), nullable=True)
     foto_resolucao = Column(String(255), nullable=True)
+    latitude = Column(Float, nullable=True)
+    longitude = Column(Float, nullable=True)
     status = Column(Enum(StatusOcorrencia), default=StatusOcorrencia.pendente)
     data = Column(DateTime, default=get_brasilia_time)
     
@@ -119,6 +121,7 @@ class Agendamento(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     protocolo = Column(String(20), unique=True, index=True)
+    senha = Column(String(10), nullable=True) # "Senha" de atendimento (ex: 1024)
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     secretaria_id = Column(Integer, ForeignKey("secretarias.id"))
     tipo = Column(String(50)) # "Online" ou "Presencial"

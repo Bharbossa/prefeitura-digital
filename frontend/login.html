@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,14 +9,18 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
-<body style="display: flex; justify-content: center; align-items: center; min-height: 100vh; position: relative; overflow: hidden;">
+
+<body
+    style="display: flex; justify-content: center; align-items: center; min-height: 100vh; position: relative; overflow: hidden;">
 
     <div class="bg-animation-container" id="bg-animation"></div>
     <div class="bg-overlay"></div>
 
-    <div class="form-container fade-in" style="width: 100%; max-width: 400px; margin: 1rem; position: relative; z-index: 10;">
+    <div class="form-container fade-in"
+        style="width: 100%; max-width: 400px; margin: 1rem; position: relative; z-index: 10;">
         <div style="position: absolute; top: -50px; left: 0;">
-            <a href="index.html" style="color: white; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
+            <a href="index.html"
+                style="color: white; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
                 <i class="fa-solid fa-arrow-left"></i> Início
             </a>
         </div>
@@ -31,13 +36,14 @@
                 <label for="email">E-mail ou CPF</label>
                 <input type="text" id="email" required placeholder="Digite seu e-mail ou CPF">
             </div>
-            
+
             <div class="form-group">
                 <label for="password">Senha</label>
                 <input type="password" id="password" required>
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-size: 0.9rem;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; font-size: 0.9rem;">
                 <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: normal;">
                     <input type="checkbox" style="width: auto;"> Lembrar-me
                 </label>
@@ -47,47 +53,62 @@
             <button type="submit" class="btn btn-primary" style="width: 100%;">Entrar</button>
             <p id="errorMsg" style="color: var(--error); margin-top: 1rem; text-align: center; display: none;"></p>
         </form>
-        
+
         <div style="text-align: center; margin-top: 2rem; color: var(--text-secondary);">
             Ainda não tem conta? <a href="register.html">Cadastre-se</a>
         </div>
 
         <!-- Opção de Reset de Emergência -->
         <div style="text-align: center; margin-top: 1.5rem; font-size: 0.85rem;">
-            <a href="#" onclick="resetSession()" style="color: var(--text-muted); text-decoration: underline;">Problemas com login? Limpar sessão</a>
+            <a href="#" onclick="resetSession()" style="color: var(--text-muted); text-decoration: underline;">Problemas
+                com login? Limpar sessão</a>
         </div>
     </div>
 
-    <div id="modalEsqueciSenha" class="modal" style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(8px);">
-        <div class="modal-content" style="background-color: #ffffff; margin: 10% auto; padding: 2.5rem; border: none; width: 90%; max-width: 450px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); position: relative; animation: modalSlideUp 0.4s ease-out;">
-            <span class="close" onclick="document.getElementById('modalEsqueciSenha').style.display='none'" style="position: absolute; right: 20px; top: 15px; font-size: 1.5rem; cursor: pointer; color: #999;">&times;</span>
-            
+    <div id="modalEsqueciSenha" class="modal"
+        style="display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); backdrop-filter: blur(8px);">
+        <div class="modal-content"
+            style="background-color: #ffffff; margin: 10% auto; padding: 2.5rem; border: none; width: 90%; max-width: 450px; border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.3); position: relative; animation: modalSlideUp 0.4s ease-out;">
+            <span class="close" onclick="document.getElementById('modalEsqueciSenha').style.display='none'"
+                style="position: absolute; right: 20px; top: 15px; font-size: 1.5rem; cursor: pointer; color: #999;">&times;</span>
+
             <div style="text-align: center; margin-bottom: 2rem;">
-                <div style="width: 70px; height: 70px; background: #e0f2f1; color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2rem; box-shadow: 0 8px 15px rgba(0,77,64,0.1);">
+                <div
+                    style="width: 70px; height: 70px; background: #e0f2f1; color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1.5rem; font-size: 2rem; box-shadow: 0 8px 15px rgba(0,77,64,0.1);">
                     <i class="fa-solid fa-shield-halved"></i>
                 </div>
-                <h2 style="color: var(--primary-dark); font-size: 1.75rem; margin-bottom: 0.5rem; font-weight: 700;">Recuperar Senha</h2>
-                <p style="font-size: 0.95rem; color: #666; line-height: 1.5;">Para sua segurança, informe seus dados para receber uma nova senha de acesso.</p>
+                <h2 style="color: var(--primary-dark); font-size: 1.75rem; margin-bottom: 0.5rem; font-weight: 700;">
+                    Recuperar Senha</h2>
+                <p style="font-size: 0.95rem; color: #666; line-height: 1.5;">Para sua segurança, informe seus dados
+                    para receber uma nova senha de acesso.</p>
             </div>
-            
+
             <form id="forgotPasswordForm">
                 <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label style="font-weight: 600; color: #333; margin-bottom: 0.8rem; display: block;">E-mail ou CPF</label>
+                    <label style="font-weight: 600; color: #333; margin-bottom: 0.8rem; display: block;">E-mail ou
+                        CPF</label>
                     <div style="position: relative;">
-                        <i class="fa-solid fa-user" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999;"></i>
-                        <input type="text" id="forgotIdentifier" required placeholder="Digite seus dados cadastrados" style="padding-left: 45px; border: 2px solid #edf2f7; border-radius: 12px; height: 55px; font-size: 1.05rem;">
+                        <i class="fa-solid fa-user"
+                            style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #999;"></i>
+                        <input type="text" id="forgotIdentifier" required placeholder="Digite seus dados cadastrados"
+                            style="padding-left: 45px; border: 2px solid #edf2f7; border-radius: 12px; height: 55px; font-size: 1.05rem;">
                     </div>
                 </div>
-                
+
                 <div class="form-group" style="margin-bottom: 2rem;">
-                    <label style="font-weight: 600; color: #333; margin-bottom: 1rem; display: block;">Como deseja receber a nova senha?</label>
+                    <label style="font-weight: 600; color: #333; margin-bottom: 1rem; display: block;">Como deseja
+                        receber a nova senha?</label>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <label style="border: 2px solid #edf2f7; border-radius: 12px; padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.2s;" class="method-card">
+                        <label
+                            style="border: 2px solid #edf2f7; border-radius: 12px; padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.2s;"
+                            class="method-card">
                             <input type="radio" name="recoveryMethod" value="email" checked style="display: none;">
                             <i class="fa-solid fa-envelope" style="font-size: 1.25rem;"></i>
                             <span style="font-weight: 500;">E-mail</span>
                         </label>
-                        <label style="border: 2px solid #edf2f7; border-radius: 12px; padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.2s;" class="method-card">
+                        <label
+                            style="border: 2px solid #edf2f7; border-radius: 12px; padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.2s;"
+                            class="method-card">
                             <input type="radio" name="recoveryMethod" value="sms" style="display: none;">
                             <i class="fa-solid fa-comment-sms" style="font-size: 1.25rem;"></i>
                             <span style="font-weight: 500;">SMS</span>
@@ -96,26 +117,40 @@
                 </div>
 
                 <div style="margin-top: 2.5rem;">
-                    <button type="submit" class="btn btn-primary" style="width: 100%; height: 60px; font-size: 1.1rem; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,77,64,0.2);">
+                    <button type="submit" class="btn btn-primary"
+                        style="width: 100%; height: 60px; font-size: 1.1rem; border-radius: 15px; box-shadow: 0 10px 20px rgba(0,77,64,0.2);">
                         Solicitar Nova Senha <i class="fa-solid fa-arrow-right" style="margin-left: 10px;"></i>
                     </button>
-                    <button type="button" class="btn" style="width: 100%; margin-top: 1rem; color: #718096; background: none; font-weight: 500;" onclick="document.getElementById('modalEsqueciSenha').style.display='none'">Cancelar</button>
+                    <button type="button" class="btn"
+                        style="width: 100%; margin-top: 1rem; color: #718096; background: none; font-weight: 500;"
+                        onclick="document.getElementById('modalEsqueciSenha').style.display='none'">Cancelar</button>
                 </div>
             </form>
-            <p id="forgotStatusMsg" style="margin-top: 1.5rem; text-align: center; font-size: 0.95rem; font-weight: 500; display: none; padding: 15px; border-radius: 10px;"></p>
+            <p id="forgotStatusMsg"
+                style="margin-top: 1.5rem; text-align: center; font-size: 0.95rem; font-weight: 500; display: none; padding: 15px; border-radius: 10px;">
+            </p>
         </div>
     </div>
 
     <style>
         @keyframes modalSlideUp {
-            from { transform: translateY(30px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+            from {
+                transform: translateY(30px);
+                opacity: 0;
+            }
+
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
         }
+
         .method-card:has(input:checked) {
             border-color: var(--primary-color) !important;
             background-color: #e0f2f1 !important;
             color: var(--primary-color) !important;
         }
+
         .method-card:hover {
             border-color: #cbd5e0;
         }
@@ -138,7 +173,7 @@
             document.getElementById('forgotStatusMsg').style.display = 'none';
         }
 
-        document.getElementById('forgotPasswordForm').addEventListener('submit', async function(e) {
+        document.getElementById('forgotPasswordForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const identifier = document.getElementById('forgotIdentifier').value.trim();
             const method = document.querySelector('input[name="recoveryMethod"]:checked').value;
@@ -181,7 +216,7 @@
 
         initBackgroundAnimation('bg-animation');
 
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
             const email = document.getElementById('email').value.toLowerCase().trim();
             const password = document.getElementById('password').value;
@@ -201,16 +236,16 @@
                 if (response.ok) {
                     const data = await response.json();
                     localStorage.setItem('access_token', data.access_token);
-                    
+
                     // Fetch user info based on token
                     const userRes = await fetch(`${API_URL}/auth/me`, {
                         headers: { 'Authorization': `Bearer ${data.access_token}` }
                     });
-                    
-                    if(userRes.ok) {
+
+                    if (userRes.ok) {
                         const userData = await userRes.json();
                         localStorage.setItem('user_info', JSON.stringify(userData));
-                        if(userData.tipo_usuario === 'admin' || userData.tipo_usuario === 'subadmin') {
+                        if (userData.tipo_usuario === 'admin' || userData.tipo_usuario === 'subadmin') {
                             localStorage.removeItem('access_token');
                             localStorage.removeItem('user_info');
                             errorMsg.innerText = "Administrador, utilize o portal restrito: /admin/";
@@ -223,7 +258,7 @@
                     errorMsg.innerText = "E-mail ou senha incorretos.";
                     errorMsg.style.display = "block";
                 } else {
-                    const errorData = await response.json().catch(() => ({detail: "Erro de servidor"}));
+                    const errorData = await response.json().catch(() => ({ detail: "Erro de servidor" }));
                     errorMsg.innerText = errorData.detail || "Erro ao fazer login.";
                     errorMsg.style.display = "block";
                 }
@@ -235,7 +270,12 @@
     </script>
 
     <footer class="footer">
-        <p>Todos direitos reservados ao Desenvolvedor Barbosa Nunes</p>
+        <p>Desenvolvido por Barbosa Nunes</p>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8;">
+            <i class="fa-solid fa-shield-halved"></i> Dados protegidos pela <strong>LGPD</strong>. <a
+                href="privacidade.html" style="color: inherit; text-decoration: underline;">Saiba mais</a>.
+        </p>
     </footer>
 </body>
+
 </html>

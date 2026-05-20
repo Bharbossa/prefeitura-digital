@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
@@ -11,7 +12,8 @@ from ..models.schema import Usuario, AdminSecretaria, Agendamento, LogAuditoria
 from ..models.pydantic_schemas import AgendamentoCreate, AgendamentoResponse
 from ..core.auth_deps import get_current_user, get_current_admin
 from ..utils.sms_service import send_status_sms, get_confirmed_message
-from ..core.utils import generate_protocol, get_brasilia_time
+from ..utils.notification_helper import notify_admins_of_new_record
+from ..core.utils import generate_protocol, get_brasilia_time, generate_ticket_number
 from sqlalchemy.orm import joinedload
 
 router = APIRouter()
@@ -21,7 +23,11 @@ if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
 def save_upload_file(upload_file: UploadFile) -> str:
-    file_ext = os.path.splitext(upload_file.filename)[1]
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.pdf'}
+    file_ext = os.path.splitext(upload_file.filename)[1].lower()
+    if file_ext not in allowed_extensions:
+        raise HTTPException(status_code=400, detail=f"Extensão de arquivo '{file_ext}' não permitida.")
+        
     file_name = f"{uuid.uuid4()}{file_ext}"
     file_path = os.path.join(UPLOAD_DIR, file_name)
     with open(file_path, "wb") as buffer:
@@ -31,12 +37,29 @@ def save_upload_file(upload_file: UploadFile) -> str:
 @router.post("", response_model=AgendamentoResponse)
 def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
     if getattr(current_user, "tipo_usuario_verificado", "") != "cidadao":
-        # Subadmins/Admins can create too? Maybe later. For now, keep as per user rules.
         raise HTTPException(status_code=403, detail="Apenas cidadãos podem criar agendamentos pelo perfil.")
     
     protocolo = generate_protocol()
+    
+    if agend.tipo == "Bolsa Família":
+        # Limite de 15 senhas por dia para o Bolsa Família
+        data_escolhida = agend.data_hora.date()
+        count = db_sql.query(Agendamento).filter(
+            Agendamento.tipo == "Bolsa Família",
+            func.date(Agendamento.data_hora) == data_escolhida
+        ).count()
+        
+        if count >= 15:
+            raise HTTPException(status_code=400, detail="Limite diário de 15 agendamentos para Bolsa Família atingido para esta data.")
+        
+        senha = f"BF-{count + 1:02d}"
+    else:
+        senha = generate_ticket_number()
+
+    
     novo_agendamento = Agendamento(
         protocolo=protocolo,
+        senha=senha,
         usuario_id=current_user.id,
         secretaria_id=agend.secretaria_id,
         tipo=agend.tipo,
@@ -44,22 +67,16 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
         motivo=agend.motivo,
         acompanhante=agend.acompanhante,
         cartao_sus=agend.cartao_sus,
-        data_hora=agend.data_hora.replace(tzinfo=None),
+        data_hora=agend.data_hora.replace(tzinfo=None), # Preserva o horário escolhido
         criado_em=get_brasilia_time()
     )
     db_sql.add(novo_agendamento)
     db_sql.commit()
     db_sql.refresh(novo_agendamento)
 
-    try:
-        subadmins = db_sql.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == agend.secretaria_id).all()
-        if subadmins:
-            msg = f"COLÔNIA DIGITAL: Novo Agendamento ({protocolo}) solicitado em sua secretaria. Verifique o painel!"
-            for sa in subadmins:
-                if sa.telefone:
-                    send_status_sms(sa.telefone, msg)
-    except Exception as sms_err:
-        print(f"Erro ao disparar SMS de novo agendamento: {sms_err}")
+    # Notificar administradores
+    msg = f"COLÔNIA DIGITAL: Novo Agendamento ({protocolo}) solicitado. Senha: {senha}. Verifique o painel!"
+    notify_admins_of_new_record(db_sql, agend.secretaria_id, msg)
 
     return novo_agendamento
 
@@ -79,15 +96,18 @@ def criar_agendamento_viagem(
         raise HTTPException(status_code=403, detail="Apenas cidadãos podem criar agendamentos pelo perfil.")
         
     try:
+        # Tenta converter a string ISO para datetime
         data_obj = datetime.fromisoformat(data_hora.replace('Z', '+00:00')).replace(tzinfo=None)
     except ValueError:
         raise HTTPException(status_code=400, detail="Formato de data inválido. Use ISO 8601.")
         
     arquivo_path = save_upload_file(comprovante) if comprovante else None
     protocolo = generate_protocol()
+    senha = generate_ticket_number()
 
     novo_agendamento = Agendamento(
         protocolo=protocolo,
+        senha=senha,
         usuario_id=current_user.id,
         secretaria_id=secretaria_id,
         tipo=tipo,
@@ -95,7 +115,7 @@ def criar_agendamento_viagem(
         motivo=motivo,
         acompanhante=acompanhante,
         data_hora=data_obj,
-        cartao_sus=None, # Trips don't usually use it but good for consistency
+        cartao_sus=None, 
         anexo=arquivo_path,
         criado_em=get_brasilia_time()
     )
@@ -103,16 +123,66 @@ def criar_agendamento_viagem(
     db_sql.commit()
     db_sql.refresh(novo_agendamento)
 
-    try:
-        subadmins = db_sql.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
-        if subadmins:
-            msg = f"COLÔNIA DIGITAL: Novo Agendamento de Viagem ({protocolo}) solicitado. Verifique o painel!"
-            for sa in subadmins:
-                if sa.telefone:
-                    send_status_sms(sa.telefone, msg)
-    except Exception as sms_err:
-        print(f"Erro ao disparar SMS de novo agendamento de viagem: {sms_err}")
+    # Notificar administradores
+    msg = f"COLÔNIA DIGITAL: Novo Agendamento de Viagem ({protocolo}) solicitado. Senha: {senha}."
+    notify_admins_of_new_record(db_sql, secretaria_id, msg)
 
+    return novo_agendamento
+
+
+@router.post("/concurso", response_model=AgendamentoResponse)
+def criar_agendamento_concurso(
+    secretaria_id: int = Form(...),
+    tipo: str = Form(...),
+    assunto: str = Form(...),
+    motivo: Optional[str] = Form(None),
+    foto: Optional[UploadFile] = File(None),
+    pdf: Optional[UploadFile] = File(None),
+    current_user = Depends(get_current_user),
+    db_sql: Session = Depends(get_db)
+):
+    if getattr(current_user, "tipo_usuario_verificado", "") != "cidadao":
+        raise HTTPException(status_code=403, detail="Apenas cidadãos podem criar inscrições pelo perfil.")
+
+    # Gerar número de inscrição sequencial crescente (INS-0001, INS-0002, etc.)
+    count = db_sql.query(Agendamento).filter(Agendamento.tipo == "Concurso").count()
+    senha = f"INS-{count + 1:04d}"
+
+    # Salvar arquivos se existirem
+    anexos = []
+    if foto and foto.filename:
+        foto_path = save_upload_file(foto)
+        anexos.append(foto_path)
+    if pdf and pdf.filename:
+        pdf_path = save_upload_file(pdf)
+        anexos.append(pdf_path)
+    
+    anexo_str = ",".join(anexos) if anexos else None
+
+    protocolo = generate_protocol()
+    data_hora_atual = get_brasilia_time()
+
+    novo_agendamento = Agendamento(
+        protocolo=protocolo,
+        senha=senha,
+        usuario_id=current_user.id,
+        secretaria_id=secretaria_id,
+        tipo=tipo,
+        assunto=assunto,
+        motivo=motivo if motivo else "",
+        data_hora=data_hora_atual,
+        anexo=anexo_str,
+        criado_em=data_hora_atual
+    )
+    db_sql.add(novo_agendamento)
+    db_sql.commit()
+    db_sql.refresh(novo_agendamento)
+
+    # Notificar administradores
+    msg = f"COLÔNIA DIGITAL: Nova Inscrição de Concurso ({protocolo}) solicitada. Inscrição: {senha}."
+    notify_admins_of_new_record(db_sql, secretaria_id, msg)
+
+    novo_agendamento.usuario_nome = current_user.nome
     return novo_agendamento
 
 

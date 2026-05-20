@@ -21,7 +21,7 @@
             color: white;
             position: relative;
             overflow: hidden;
-            background-color: var(--primary-color);
+            background-color: transparent;
         }
 
         .hero::after {
@@ -113,7 +113,7 @@
         </div>
 
         <div class="hero-content">
-            <h1 class="slide-in-left" style="animation-delay: 0.2s;">Sua voz transforma a Prefeitura</h1>
+            <h1 class="slide-in-left" style="animation-delay: 0.2s;">Sua voz transforma o município</h1>
             <p class="slide-in-left" style="animation-delay: 0.5s;">Plataforma digital para registro de problemas
                 urbanos e comunicação direta com a prefeitura.</p>
             <div class="slide-in-left"
@@ -134,31 +134,33 @@
                         style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(255,255,255,0.1);">Marcação
                         de Viagem <i class="fa-solid fa-bus"></i></a>
                     <a href="dashboard.html?action=bolsafamilia" class="btn btn-outline"
-                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(255,255,255,0.1);">Bolsa Família <i class="fa-solid fa-hands-holding-child"></i></a>
+                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(255,255,255,0.1);">Bolsa
+                        Família <i class="fa-solid fa-hands-holding-child"></i></a>
+                    <a href="dashboard.html?action=concursos" class="btn btn-outline"
+                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(168, 85, 247, 0.2); border-color: #a855f7;">Concursos <i class="fa-solid fa-trophy"></i></a>
                 </div>
             </div>
         </div>
     </header>
 
     <section style="padding: 5rem 5%; text-align: center;">
-        <h2 style="font-size: 2.5rem; margin-bottom: 3rem; color: var(--primary-color);">Como Funciona</h2>
+        <h2
+            style="font-size: 3.5rem; font-weight: 900; color: var(--primary-color); -webkit-text-stroke: 1.5px white; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 3.5rem; text-shadow: 2px 2px 10px rgba(0,0,0,0.2);">
+            Como Funciona</h2>
         <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 2rem;">
-            <div
-                style="flex: 1; min-width: 250px; padding: 2rem; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <div class="how-it-works-card">
                 <i class="fa-solid fa-camera fa-3x" style="color: var(--accent); margin-bottom: 1.5rem;"></i>
                 <h3>1. Registre o Problema</h3>
                 <p style="color: var(--text-secondary); margin-top: 1rem;">Tire uma foto ou vídeo do buraco, lâmpada
                     queimada ou problema na rua.</p>
             </div>
-            <div
-                style="flex: 1; min-width: 250px; padding: 2rem; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <div class="how-it-works-card">
                 <i class="fa-solid fa-paper-plane fa-3x" style="color: var(--accent); margin-bottom: 1.5rem;"></i>
                 <h3>2. Envie a Ocorrência</h3>
                 <p style="color: var(--text-secondary); margin-top: 1rem;">Selecione a secretaria responsável pelo
                     problema e envie os detalhes.</p>
             </div>
-            <div
-                style="flex: 1; min-width: 250px; padding: 2rem; background: var(--card-bg); border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+            <div class="how-it-works-card">
                 <i class="fa-solid fa-check-circle fa-3x" style="color: var(--accent); margin-bottom: 1.5rem;"></i>
                 <h3>3. Acompanhe a Solução</h3>
                 <p style="color: var(--text-secondary); margin-top: 1rem;">Receba atualizações diretamente do painel
@@ -176,7 +178,13 @@
     </script>
 
     <footer class="footer">
-        <p>Todos direitos reservados ao Desenvolvedor Barbosa Nunes</p>
+        <p>Desenvolvido por Barbosa Nunes</p>
+        <p style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8;">
+            <i class="fa-solid fa-shield-halved"></i> Em conformidade com a <strong>LGPD (Lei Geral de Proteção de
+                Dados)</strong>.
+            <br><a href="privacidade.html" style="color: inherit; text-decoration: underline;">Leia nossa Política de
+                Privacidade</a>.
+        </p>
     </footer>
 </body>
 

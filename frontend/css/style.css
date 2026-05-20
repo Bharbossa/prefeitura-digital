@@ -15,6 +15,9 @@
     
     /* Transitions */
     --transition: all 0.3s ease-in-out;
+    --glass-bg: rgba(255, 255, 255, 0.25);
+    --glass-border: rgba(255, 255, 255, 0.4);
+    --glass-blur: 15px;
 }
 
 [data-theme="dark"] {
@@ -27,6 +30,8 @@
     --text-primary: #e0e0e0;
     --text-secondary: #b0b0b0;
     --border-color: #333333;
+    --glass-bg: rgba(15, 23, 42, 0.5);
+    --glass-border: rgba(255, 255, 255, 0.15);
 }
 
 * {
@@ -37,13 +42,28 @@
 }
 
 body {
-    background-color: var(--bg-color);
+    font-family: 'Inter', sans-serif;
+    background-color: #0f172a !important; /* Fallback color */
     color: var(--text-primary);
     transition: var(--transition);
     line-height: 1.6;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    position: relative;
+}
+
+/* Fixed background image to avoid mobile Safari scrolling bugs */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.4)), url('../imagens/fundo.site.jpeg') no-repeat center center;
+    background-size: cover;
+    z-index: -1;
 }
 
 a {
@@ -184,16 +204,8 @@ input:checked + .slider:before {
     to { opacity: 1; transform: translateX(0); }
 }
 
-/* Background Animation */
 .bg-animation-container {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: -2;
-    overflow: hidden;
-    background-color: #000;
+    display: none;
 }
 
 .bg-animation-img {
@@ -212,16 +224,19 @@ input:checked + .slider:before {
 
 /* Semi-transparent containers for visibility */
 .dashboard-container {
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    border-radius: 12px;
-    padding: 2rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    padding: 2.5rem;
     margin: 2rem auto;
     max-width: 1200px;
 }
 
 [data-theme="dark"] .dashboard-container {
-    background: rgba(30, 30, 30, 0.85);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
 }
 
 .form-container {
@@ -232,44 +247,27 @@ input:checked + .slider:before {
 [data-theme="dark"] .form-container {
     background: rgba(30, 30, 30, 0.9);
 }
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    opacity: 0;
-}
-
-.bg-animation-img.active {
-    opacity: 1;
-}
 
 .bg-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.6));
-    z-index: -1;
+    display: none;
 }
 
 /* Forms */
 .form-container {
     max-width: 500px;
     margin: 3rem auto;
-    background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     padding: 2.5rem;
-    border-radius: 12px;
-    box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    border: 1px solid var(--glass-border);
 }
 
 [data-theme="dark"] .form-container {
-    background: rgba(30, 30, 30, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--glass-bg);
+    border: 1px solid var(--glass-border);
 }
 
 .form-group {
@@ -311,11 +309,15 @@ input:checked + .slider:before {
 }
 
 .stat-card {
-    background: var(--card-bg);
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
     padding: 1.5rem;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border-radius: 16px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid var(--glass-border);
     text-align: center;
+    transition: var(--transition);
 }
 
 .stat-card h3 {
@@ -331,11 +333,35 @@ input:checked + .slider:before {
 }
 
 .ocorrencia-card {
-    background: var(--card-bg);
-    border-radius: 12px;
+    background: var(--glass-bg);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-radius: 16px;
     padding: 1.5rem;
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid var(--glass-border);
+}
+
+/* How it Works Cards */
+.how-it-works-card {
+    flex: 1;
+    min-width: 280px;
+    padding: 2.5rem;
+    background: var(--card-bg);
+    border-radius: 20px;
     border: 1px solid var(--border-color);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    transition: var(--transition);
+    text-align: center;
+}
+
+.how-it-works-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+[data-theme="dark"] .how-it-works-card:hover {
+    background: rgba(15, 23, 42, 0.7);
 }
 
 .status-badge {

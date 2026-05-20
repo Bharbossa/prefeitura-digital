@@ -6,6 +6,7 @@
     <title>Painel Administrativo - Colônia Digital</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="css/admin-v2.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -39,6 +40,12 @@
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 1rem;">
+                <div class="theme-switch-wrapper">
+                    <label class="theme-switch" for="checkbox">
+                        <input type="checkbox" id="checkbox" />
+                        <div class="slider round"></div>
+                    </label>
+                </div>
                 <div style="text-align: right;">
                     <strong id="userName">Carregando...</strong>
                     <div style="font-size: 0.75rem;"><span id="userRole" style="color: var(--primary);">Administrador</span> <span id="roleDebug" style="color: #64748b; font-size: 0.65rem;"></span></div>
@@ -277,6 +284,19 @@
         </div>
     </div>
 
+    <!-- Modal Visualizar Mapa -->
+    <div id="modalViewMap" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
+        <div class="stat-card" style="width: 90%; max-width: 800px; padding: 2rem; position: relative;">
+            <i class="fa-solid fa-times" style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem;" onclick="closeModal('modalViewMap')"></i>
+            <h3 id="mapModalTitle" style="margin-bottom: 1.5rem;">Localização da Ocorrência</h3>
+            <div id="adminMapView" style="height: 450px; width: 100%; border-radius: 12px; border: 1px solid var(--border);"></div>
+            <div style="margin-top: 1.5rem; text-align: right;">
+                <button class="btn btn-primary" onclick="closeModal('modalViewMap')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="js/main.js?v=2"></script>
     <script src="js/admin-v2.js?v=4"></script>
 </body>
