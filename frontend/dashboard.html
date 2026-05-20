@@ -330,7 +330,9 @@
 
     <script src="js/main.js"></script>
     <script>
-        if (!checkAuth()) throw new Error("Acesso negado");
+        if (!checkAuth()) {
+            window.location.href = 'register.html';
+        }
 
         function resetAgendamentoModalFields() {
             document.getElementById('group_data_hora').style.display = 'block';
