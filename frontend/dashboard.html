@@ -827,7 +827,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                         <div>
                             <h3 style="margin-bottom: 0;"><i class="fa-solid ${iconType}"></i> ${a.assunto}</h3>
-                            <p style="font-size: 0.8rem; color: var(--primary-color); font-weight: bold; margin-top: 5px;">SENHA: ${a.senha || '---'}</p>
+                            <p style="font-size: 0.8rem; color: var(--primary-color); font-weight: bold; margin-top: 5px;">${a.tipo === 'Concurso' ? 'Nº DE INSCRIÇÃO:' : 'SENHA:'} ${a.senha || '---'}</p>
                         </div>
                         ${a.status.toLowerCase() === 'confirmado' ? `
                             <button onclick="gerarProtocoloAgendamento('${a.id}')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: var(--primary-color);">
@@ -1181,6 +1181,7 @@
                             </div>
                             <div class="content">
                                 <div class="row"><span class="label">PROTOCOLO:</span> <strong>${a.protocolo || a.id}</strong></div>
+                                ${a.senha ? `<div class="row"><span class="label" style="color: #2563eb;">${a.tipo === 'Concurso' ? 'Nº DE INSCRIÇÃO:' : 'SENHA:'}</span> <strong style="font-size: 1.2rem; color: #2563eb;">${a.senha}</strong></div>` : ''}
                                 <div class="row"><span class="label">SITUAÇÃO:</span> <strong style="color: #10b981;">✅ CONFIRMADO</strong></div>
                                 <div class="row"><span class="label">DATA DA SOLICITAÇÃO:</span> ${dataCriacao}</div>
 

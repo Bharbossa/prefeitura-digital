@@ -684,6 +684,7 @@ async function imprimirAgendamento(id) {
                     </div>
                     <div class="content">
                         <div class="row"><span class="label">PROTOCOLO:</span> <strong>${a.protocolo || a.id}</strong></div>
+                        ${a.senha ? `<div class="row"><span class="label" style="color: #2563eb;">${isConcurso ? 'Nº DE INSCRIÇÃO:' : 'SENHA:'}</span> <strong style="font-size: 1.2rem; color: #2563eb;">${a.senha}</strong></div>` : ''}
                         <div class="row"><span class="label">CIDADÃO:</span> ${a.usuario_nome || 'N/A'}</div>
                         <div class="row"><span class="label">ASSUNTO:</span> ${a.assunto}</div>
                         ${a.motivo ? `<div class="row"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
