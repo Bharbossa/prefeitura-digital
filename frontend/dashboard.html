@@ -262,8 +262,32 @@
                     <input type="file" id="ag_comprovante" accept="image/*,application/pdf">
                 </div>
                 <div class="form-group" id="group_concurso_arquivos" style="display: none;">
-                    <label>Enviar Foto (Opcional - JPEG, PNG)</label>
-                    <input type="file" id="ag_concurso_foto" accept="image/*">
+                    <label>Tamanho da Camisa (Sua)</label>
+                    <select id="ag_concurso_camisa" style="margin-bottom: 10px;">
+                        <option value="">Selecione...</option>
+                        <option value="P">P</option>
+                        <option value="M">M</option>
+                        <option value="G">G</option>
+                        <option value="GG">GG</option>
+                    </select>
+
+                    <label style="margin-top: 10px; display: block;">Número do Título de Eleitor</label>
+                    <input type="text" id="ag_concurso_titulo" placeholder="Ex: 123456789012" style="margin-bottom: 10px;">
+
+                    <label style="margin-top: 10px; display: block;">Nome do Parceiro(a) (Dança/Dupla) - Opcional</label>
+                    <input type="text" id="ag_concurso_parceiro" placeholder="Ex: Maria da Silva" style="margin-bottom: 10px;">
+
+                    <label style="margin-top: 10px; display: block;">Tamanho da Camisa do Parceiro(a) - Opcional</label>
+                    <select id="ag_concurso_camisa_parceiro" style="margin-bottom: 10px;">
+                        <option value="">Selecione...</option>
+                        <option value="P">P</option>
+                        <option value="M">M</option>
+                        <option value="G">G</option>
+                        <option value="GG">GG</option>
+                    </select>
+
+                    <label style="margin-top: 10px; display: block;">Enviar Foto (Opcional - JPEG, PNG)</label>
+                    <input type="file" id="ag_concurso_foto" accept="image/*" style="margin-bottom: 10px;">
                     
                     <label style="margin-top: 10px; display: block;">Enviar Arquivo PDF (Opcional)</label>
                     <input type="file" id="ag_concurso_pdf" accept=".pdf,application/pdf">
@@ -867,7 +891,19 @@
                 }
                 const userName = document.getElementById('ag_nome').value;
                 const userCPF = document.getElementById('ag_cpf').value;
-                assuntoFinal = `[Concurso: ${concurso}] Nome: ${userName} | CPF: ${userCPF}` + (assuntoFinal ? ` - ${assuntoFinal}` : '');
+                const camisa = document.getElementById('ag_concurso_camisa').value;
+                const titulo = document.getElementById('ag_concurso_titulo').value;
+                const parceiro = document.getElementById('ag_concurso_parceiro').value;
+                const camisaParceiro = document.getElementById('ag_concurso_camisa_parceiro').value;
+                
+                let extras = [];
+                if (camisa) extras.push(`Camisa: ${camisa}`);
+                if (titulo) extras.push(`Título: ${titulo}`);
+                if (parceiro) extras.push(`Parceiro(a): ${parceiro}`);
+                if (camisaParceiro) extras.push(`Camisa Parceiro(a): ${camisaParceiro}`);
+                const extraStr = extras.length > 0 ? ` | ${extras.join(' | ')}` : '';
+
+                assuntoFinal = `[Concurso: ${concurso}] Nome: ${userName} | CPF: ${userCPF}${extraStr}` + (assuntoFinal ? ` - ${assuntoFinal}` : '');
             }
 
             if (tipoAtend === "Concurso") {
