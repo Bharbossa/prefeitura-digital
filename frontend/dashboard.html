@@ -274,10 +274,10 @@
                     <label style="margin-top: 10px; display: block;">Número do Título de Eleitor</label>
                     <input type="text" id="ag_concurso_titulo" placeholder="Ex: 123456789012" style="margin-bottom: 10px;">
 
-                    <label style="margin-top: 10px; display: block;">Nome do Parceiro(a) (Dança/Dupla) - Opcional</label>
+                    <label style="margin-top: 10px; display: block;">Nome do Parceiro(a) (Dança/Dupla)</label>
                     <input type="text" id="ag_concurso_parceiro" placeholder="Ex: Maria da Silva" style="margin-bottom: 10px;">
 
-                    <label style="margin-top: 10px; display: block;">Tamanho da Camisa do Parceiro(a) - Opcional</label>
+                    <label style="margin-top: 10px; display: block;">Tamanho da Camisa do Parceiro(a)</label>
                     <select id="ag_concurso_camisa_parceiro" style="margin-bottom: 10px;">
                         <option value="">Selecione...</option>
                         <option value="P">P</option>
@@ -342,6 +342,10 @@
                 filesGroup.style.display = 'none';
                 document.getElementById('ag_concurso_foto').value = '';
                 document.getElementById('ag_concurso_pdf').value = '';
+                document.getElementById('ag_concurso_camisa').required = false;
+                document.getElementById('ag_concurso_titulo').required = false;
+                document.getElementById('ag_concurso_parceiro').required = false;
+                document.getElementById('ag_concurso_camisa_parceiro').required = false;
             }
         }
 
@@ -549,6 +553,10 @@
             document.getElementById('ag_data_time').value = '';
             
             document.getElementById('group_concurso_arquivos').style.display = 'block';
+            document.getElementById('ag_concurso_camisa').required = true;
+            document.getElementById('ag_concurso_titulo').required = true;
+            document.getElementById('ag_concurso_parceiro').required = true;
+            document.getElementById('ag_concurso_camisa_parceiro').required = true;
 
             document.getElementById('modalNovoAgendamento').style.display = 'block';
             document.getElementById('modalAgTitle').innerText = 'Inscrição em Concursos';
