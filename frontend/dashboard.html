@@ -28,59 +28,51 @@
     </nav>
 
     <div class="dashboard-container fade-in">
-        <div style="display: flex; gap: 2rem; flex-wrap: wrap;">
-            <div style="flex: 1; min-width: 300px;">
-                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 2rem;">
-                    <h2 style="color: var(--primary-color);">Minhas Ocorrências</h2>
-                    <select id="filtroOcorrencias" onchange="loadOcorrencias()"
-                        style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary);">
-                        <option value="">Todas</option>
-                        <option value="Pendente">Pendentes</option>
-                        <option value="Em atendimento">Em Atendimento</option>
-                        <option value="Resolvido">Resolvidas</option>
-                    </select>
-                </div>
-                <button class="btn btn-primary" style="margin-bottom: 2rem;" onclick="abrirModalOcorrencia()">
-                    <i class="fa-solid fa-plus"></i> Registrar Problema
-                </button>
-                <div class="ocorrencias-list" id="listaOcorrencias"></div>
+        <!-- Barra de Busca Rápida -->
+        <div style="margin-bottom: 2rem;">
+            <div style="position: relative; max-width: 600px; margin: 0 auto;">
+                <i class="fa-solid fa-search" style="position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted);"></i>
+                <input type="text" id="buscaRapida" placeholder="Buscar nas minhas solicitações..." oninput="filtrarBuscaRapida()"
+                    style="width: 100%; padding: 1rem 1rem 1rem 45px; border-radius: 12px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary); font-size: 1.05rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
             </div>
+        </div>
 
-            <div style="flex: 1; min-width: 300px;">
-                <div style="display: flex; gap: 1rem; align-items: center; margin-bottom: 2rem;">
-                    <h2 style="color: var(--primary-color);">Meus Agendamentos</h2>
-                    <select id="filtroAgendamentos" onchange="loadAgendamentos()"
-                        style="padding: 0.5rem; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-primary);">
-                        <option value="">Todos</option>
-                        <option value="Pendente">Pendentes</option>
-                        <option value="Confirmado">Confirmados</option>
-                        <option value="Cancelado">Cancelados</option>
-                    </select>
-                </div>
-                <div style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-                    <button class="btn btn-primary" style="background: var(--success); flex: 1; min-width: 140px;"
-                        onclick="abrirModalConsulta()">
-                        <i class="fa-solid fa-user-doctor"></i> Consulta
-                    </button>
-                    <button class="btn btn-primary" style="background: var(--accent); flex: 1; min-width: 140px;"
-                        onclick="abrirModalAtendimento()">
-                        <i class="fa-solid fa-users"></i> Atendimento
-                    </button>
-                    <button class="btn btn-primary" style="background: var(--primary-color); flex: 1; min-width: 140px;"
-                        onclick="abrirModalViagem()">
-                        <i class="fa-solid fa-bus"></i> Viagem
-                    </button>
-                    <button class="btn btn-primary" style="background: #f59e0b; flex: 1; min-width: 140px;"
-                        onclick="abrirModalBolsaFamilia()">
-                        <i class="fa-solid fa-hands-holding-child"></i> Bolsa Família
-                    </button>
-                    <button class="btn btn-primary" style="background: #a855f7; flex: 1; min-width: 140px;"
-                        onclick="abrirModalConcursos()">
-                        <i class="fa-solid fa-trophy"></i> Concursos
-                    </button>
-                </div>
-                <div class="ocorrencias-list" id="listaAgendamentos"></div>
-            </div>
+        <!-- Navegação de Abas -->
+        <div class="tabs-nav" style="display: flex; gap: 0.5rem; overflow-x: auto; padding-bottom: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border); scrollbar-width: none;">
+            <button class="btn tab-btn active" onclick="selecionarAba('todas')" style="background: var(--primary-color); color: white; border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-layer-group"></i> Todas</button>
+            <button class="btn tab-btn" onclick="selecionarAba('ocorrencias')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-triangle-exclamation"></i> Ocorrências</button>
+            <button class="btn tab-btn" onclick="selecionarAba('consultas')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-user-doctor"></i> Consultas</button>
+            <button class="btn tab-btn" onclick="selecionarAba('atendimentos')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-users"></i> Atendimentos</button>
+            <button class="btn tab-btn" onclick="selecionarAba('viagens')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-bus"></i> Viagens</button>
+            <button class="btn tab-btn" onclick="selecionarAba('bolsafamilia')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-hands-holding-child"></i> Bolsa Família</button>
+            <button class="btn tab-btn" onclick="selecionarAba('concursos')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-trophy"></i> Concursos</button>
+        </div>
+
+        <!-- Botões de Ação (Aparecem baseados na Aba) -->
+        <div id="action-buttons" style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
+            <button id="btn-nova-ocorrencia" class="btn btn-primary action-btn" style="background: var(--primary-color); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalOcorrencia()">
+                <i class="fa-solid fa-plus"></i> Registrar Problema
+            </button>
+            <button id="btn-nova-consulta" class="btn btn-primary action-btn" style="background: var(--success); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalConsulta()">
+                <i class="fa-solid fa-user-doctor"></i> Consulta
+            </button>
+            <button id="btn-novo-atendimento" class="btn btn-primary action-btn" style="background: var(--accent); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalAtendimento()">
+                <i class="fa-solid fa-users"></i> Atendimento
+            </button>
+            <button id="btn-nova-viagem" class="btn btn-primary action-btn" style="background: var(--primary-color); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalViagem()">
+                <i class="fa-solid fa-bus"></i> Viagem
+            </button>
+            <button id="btn-novo-bolsafamilia" class="btn btn-primary action-btn" style="background: #f59e0b; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalBolsaFamilia()">
+                <i class="fa-solid fa-hands-holding-child"></i> Bolsa Família
+            </button>
+            <button id="btn-novo-concurso" class="btn btn-primary action-btn" style="background: #a855f7; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalConcursos()">
+                <i class="fa-solid fa-trophy"></i> Concursos
+            </button>
+        </div>
+
+        <!-- Conteúdo das Abas -->
+        <div id="tab-content" style="min-height: 400px;">
+            <div id="listaGeral" class="ocorrencias-list" style="display: grid; gap: 1rem;"></div>
         </div>
     </div>
 
@@ -658,128 +650,203 @@
                 }
             } catch (e) { }
         }
+        let todasOcorrencias = [];
+        let todosAgendamentos = [];
+        let abaAtiva = 'todas';
+
+        function selecionarAba(aba) {
+            abaAtiva = aba;
+            
+            // Atualizar visual dos botões de aba
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.style.background = 'var(--bg-card)';
+                btn.style.color = 'var(--text-primary)';
+            });
+            event.currentTarget.style.background = 'var(--primary-color)';
+            event.currentTarget.style.color = 'white';
+
+            // Atualizar botões de ação
+            document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = 'none');
+            if (aba === 'todas') document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = 'block');
+            else if (aba === 'ocorrencias') document.getElementById('btn-nova-ocorrencia').style.display = 'block';
+            else if (aba === 'consultas') document.getElementById('btn-nova-consulta').style.display = 'block';
+            else if (aba === 'atendimentos') document.getElementById('btn-novo-atendimento').style.display = 'block';
+            else if (aba === 'viagens') document.getElementById('btn-nova-viagem').style.display = 'block';
+            else if (aba === 'bolsafamilia') document.getElementById('btn-novo-bolsafamilia').style.display = 'block';
+            else if (aba === 'concursos') document.getElementById('btn-novo-concurso').style.display = 'block';
+
+            renderizarLista();
+        }
+
+        function filtrarBuscaRapida() {
+            renderizarLista();
+        }
+
         async function loadOcorrencias() {
             try {
-                const res = await fetch(`${API_URL}/ocorrencias`, {
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
+                const res = await fetch(`${API_URL}/ocorrencias`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
                 if (res.ok) {
-                    let data = await res.json();
-
-                    // Client-side filtering
-                    const filtro = document.getElementById('filtroOcorrencias').value;
-                    if (filtro) data = data.filter(o => o.status === filtro);
-
-                    const container = document.getElementById('listaOcorrencias');
-                    container.innerHTML = '';
-                    if (data.length === 0) {
-                        container.innerHTML = `<p style="padding: 1rem; color: var(--text-muted);">Nenhuma ocorrência encontrada ${filtro ? 'com status: ' + filtro : ''}.</p>`;
-                        return;
-                    }
-                    data.forEach(o => {
-                        const statusClass = {
-                            'pendente': 'status-pendente',
-                            'em_atendimento': 'status-atendimento',
-                            'resolvido': 'status-resolvida'
-                        }[o.status.toLowerCase()] || 'status-pendente';
-
-                        container.innerHTML += `
-                            <div class="ocorrencia-card">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                                    <h3><i class="fa-solid fa-triangle-exclamation"></i> ${o.titulo}</h3>
-                                    ${o.status.toLowerCase() === 'resolvido' ? `
-                                        <button onclick="gerarProtocolo('${o.id}')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: var(--success);">
-                                            <i class="fa-solid fa-print"></i> Protocolo
-                                        </button>
-                                    ` : ''}
-                                </div>
-                                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">${o.descricao}</p>
-                                <p style="font-size: 0.85rem; color: var(--primary-color); margin-bottom: 1rem;">
-                                    <i class="fa-solid fa-location-dot"></i> <strong>Local:</strong> ${o.rua}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}
-                                </p>
-                                <span class="status-badge ${statusClass}">${o.status}</span>
-                                <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                    ${o.foto ? `<a href="${MEDIA_URL}/${o.foto}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem;"><i class="fa-solid fa-image"></i> Ver Foto</a>` : ''}
-                                    ${o.video ? `<a href="${MEDIA_URL}/${o.video}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: #ef4444; color: #ef4444;"><i class="fa-solid fa-video"></i> Ver Vídeo</a>` : ''}
-                                    ${o.documento ? `<a href="${MEDIA_URL}/${o.documento}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: #8b5cf6; color: #8b5cf6;"><i class="fa-solid fa-file-pdf"></i> Ver PDF</a>` : ''}
-                                    ${o.latitude ? `<a href="https://www.google.com/maps/search/?api=1&query=${o.latitude},${o.longitude}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: #10b981; color: #10b981;"><i class="fa-solid fa-map-marked-alt"></i> Ver no Mapa</a>` : ''}
-                                    ${o.foto_resolucao ? `<a href="${MEDIA_URL}/${o.foto_resolucao}" target="_blank" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; background: #10b981;"><i class="fa-solid fa-check-circle"></i> Ver Solução</a>` : ''}
-                                </div>
-                            </div>
-                        `;
-                    });
+                    todasOcorrencias = await res.json();
+                    renderizarLista();
                 }
             } catch (e) { console.error(e); }
         }
 
         async function loadAgendamentos() {
             try {
-                const res = await fetch(`${API_URL}/agendamentos`, {
-                    headers: { 'Authorization': `Bearer ${getToken()}` }
-                });
+                const res = await fetch(`${API_URL}/agendamentos`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
                 if (res.ok) {
-                    let data = await res.json();
-
-                    const filtro = document.getElementById('filtroAgendamentos').value;
-                    if (filtro) data = data.filter(a => a.status === filtro);
-
-                    const container = document.getElementById('listaAgendamentos');
-                    container.innerHTML = '';
-                    if (data.length === 0) {
-                        container.innerHTML = `<p style="padding: 1rem; color: var(--text-muted);">Nenhum agendamento encontrado ${filtro ? 'com status: ' + filtro : ''}.</p>`;
-                        return;
-                    }
-                    data.forEach(a => {
-                        const statusClass = {
-                            'pendente': 'status-pendente',
-                            'confirmado': 'status-confirmado',
-                            'cancelado': 'status-error'
-                        }[a.status.toLowerCase()] || 'status-pendente';
-
-                        let anexoHtml = '';
-                        if (a.anexo) {
-                            const files = a.anexo.split(',');
-                            anexoHtml = '<div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">';
-                            files.forEach(file => {
-                                const trimFile = file.trim();
-                                if (!trimFile) return;
-                                const isImg = trimFile.match(/\.(jpeg|jpg|gif|png|webp)/i);
-                                const icon = isImg ? 'fa-image' : 'fa-file-pdf';
-                                const label = isImg ? 'Ver Foto' : 'Ver PDF';
-                                const borderColor = isImg ? '#a855f7' : '#8b5cf6';
-                                const color = isImg ? '#a855f7' : '#8b5cf6';
-                                anexoHtml += `<a href="${MEDIA_URL}/${trimFile}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: ${borderColor}; color: ${color};"><i class="fa-solid ${icon}"></i> ${label}</a>`;
-                            });
-                            anexoHtml += '</div>';
-                        }
-
-                        container.innerHTML += `
-                            <div class="ocorrencia-card" style="border-left: 5px solid var(--success);">
-                                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
-                                    <div>
-                                        <h3 style="margin-bottom: 0;"><i class="fa-solid fa-calendar"></i> ${a.assunto}</h3>
-                                        <p style="font-size: 0.8rem; color: var(--primary-color); font-weight: bold; margin-top: 5px;">SENHA: ${a.senha || '---'}</p>
-                                    </div>
-                                    ${a.status.toLowerCase() === 'confirmado' ? `
-                                        <button onclick="gerarProtocoloAgendamento('${a.id}')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: var(--primary-color);">
-                                            <i class="fa-solid fa-print"></i> Protocolo
-                                        </button>
-                                    ` : ''}
-                                </div>
-                                <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-laptop-medical"></i> Tipo: <strong>${a.tipo}</strong></p>
-                                ${a.cartao_sus ? `<p style="margin-bottom: 0.5rem;"><strong>Cartão SUS:</strong> ${a.cartao_sus}</p>` : ''}
-                                <div style="background: var(--bg-body); padding: 0.8rem; border-radius: 8px; border: 1px dashed var(--primary-color); margin-bottom: 1rem;">
-                                    <p style="color: var(--primary-color); font-weight: 700; margin-bottom: 0;">
-                                        <i class="fa-solid fa-clock"></i> ${a.tipo === 'Concurso' ? 'INSCRIÇÃO EM:' : 'AGENDADO PARA:'} ${new Date(a.data_hora).toLocaleString()}
-                                    </p>
-                                </div>
-                                <span class="status-badge ${statusClass}">${a.status}</span>
-                                ${anexoHtml}
-                            </div>
-                        `;
-                    });
+                    todosAgendamentos = await res.json();
+                    renderizarLista();
                 }
             } catch (e) { console.error(e); }
+        }
+
+        function renderizarLista() {
+            const container = document.getElementById('listaGeral');
+            container.innerHTML = '';
+            const termoBusca = (document.getElementById('buscaRapida')?.value || '').toLowerCase();
+            
+            let itens = [];
+            
+            // Filtrar Ocorrências
+            if (['todas', 'ocorrencias'].includes(abaAtiva)) {
+                todasOcorrencias.forEach(o => {
+                    const textoBusca = `${o.titulo} ${o.descricao} ${o.rua} ${o.status}`.toLowerCase();
+                    if (textoBusca.includes(termoBusca)) {
+                        itens.push({ tipoItem: 'ocorrencia', data: new Date(o.data), html: renderOcorrenciaHtml(o) });
+                    }
+                });
+            }
+            
+            // Filtrar Agendamentos
+            if (['todas', 'consultas', 'atendimentos', 'viagens', 'bolsafamilia', 'concursos'].includes(abaAtiva)) {
+                todosAgendamentos.forEach(a => {
+                    const mapTipos = {
+                        'consultas': 'Consulta',
+                        'atendimentos': 'Atendimento',
+                        'viagens': 'Viagem',
+                        'bolsafamilia': 'Bolsa Família',
+                        'concursos': 'Concurso' 
+                    };
+                    
+                    let abaCorresponde = false;
+                    if (abaAtiva === 'todas') abaCorresponde = true;
+                    else {
+                        const tipoAlvo = mapTipos[abaAtiva];
+                        if (tipoAlvo && a.tipo === tipoAlvo) abaCorresponde = true;
+                    }
+                    
+                    if (abaCorresponde) {
+                        const textoBusca = `${a.tipo} ${a.assunto} ${a.motivo || ''} ${a.status} ${a.acompanhante || ''} ${a.cartao_sus || ''}`.toLowerCase();
+                        if (textoBusca.includes(termoBusca)) {
+                            itens.push({ tipoItem: 'agendamento', data: new Date(a.data_hora || a.criado_em), html: renderAgendamentoHtml(a) });
+                        }
+                    }
+                });
+            }
+            
+            // Sort items by date desc
+            itens.sort((a, b) => b.data - a.data);
+            
+            if (itens.length === 0) {
+                container.innerHTML = `<p style="padding: 1rem; color: var(--text-muted); text-align: center;">Nenhuma solicitação encontrada para esta aba ou busca.</p>`;
+                return;
+            }
+            
+            itens.forEach(item => {
+                container.innerHTML += item.html;
+            });
+        }
+        
+        function renderOcorrenciaHtml(o) {
+            const statusClass = {'pendente': 'status-pendente', 'em_atendimento': 'status-atendimento', 'resolvido': 'status-resolvida'}[o.status.toLowerCase()] || 'status-pendente';
+            
+            let html = `
+                <div class="ocorrencia-card" style="border-left: 5px solid var(--accent);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <h3><i class="fa-solid fa-triangle-exclamation"></i> ${o.titulo}</h3>
+                        ${o.status.toLowerCase() === 'resolvido' ? `
+                            <button onclick="gerarProtocolo('${o.id}')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: var(--success);">
+                                <i class="fa-solid fa-print"></i> Protocolo
+                            </button>
+                        ` : ''}
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 0.5rem;">${o.descricao}</p>
+                    <p style="font-size: 0.85rem; color: var(--primary-color); margin-bottom: 1rem;">
+                        <i class="fa-solid fa-location-dot"></i> <strong>Local:</strong> ${o.rua}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}
+                    </p>
+                    <span class="status-badge ${statusClass}">${o.status}</span>
+                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        ${o.foto ? `<a href="${MEDIA_URL}/${o.foto}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem;"><i class="fa-solid fa-image"></i> Ver Foto</a>` : ''}
+                        ${o.video ? `<a href="${MEDIA_URL}/${o.video}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: #ef4444; color: #ef4444;"><i class="fa-solid fa-video"></i> Ver Vídeo</a>` : ''}
+                        ${o.documento ? `<a href="${MEDIA_URL}/${o.documento}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: #8b5cf6; color: #8b5cf6;"><i class="fa-solid fa-file-pdf"></i> Ver PDF</a>` : ''}
+                        ${o.latitude ? `<a href="https://www.google.com/maps/search/?api=1&query=${o.latitude},${o.longitude}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: #10b981; color: #10b981;"><i class="fa-solid fa-map-marked-alt"></i> Mapa</a>` : ''}
+                        ${o.foto_resolucao ? `<a href="${MEDIA_URL}/${o.foto_resolucao}" target="_blank" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; background: #10b981;"><i class="fa-solid fa-check-circle"></i> Solução</a>` : ''}
+                    </div>
+                </div>
+            `;
+            return html;
+        }
+        
+        function renderAgendamentoHtml(a) {
+            const statusClass = {'pendente': 'status-pendente', 'confirmado': 'status-confirmado', 'cancelado': 'status-error'}[a.status.toLowerCase()] || 'status-pendente';
+
+            let anexoHtml = '';
+            if (a.anexo) {
+                const files = a.anexo.split(',');
+                anexoHtml = '<div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">';
+                files.forEach(file => {
+                    const trimFile = file.trim();
+                    if (!trimFile) return;
+                    const isImg = trimFile.match(/\.(jpeg|jpg|gif|png|webp)/i);
+                    const icon = isImg ? 'fa-image' : 'fa-file-pdf';
+                    const label = isImg ? 'Ver Foto' : 'Ver PDF';
+                    const borderColor = isImg ? '#a855f7' : '#8b5cf6';
+                    const color = isImg ? '#a855f7' : '#8b5cf6';
+                    anexoHtml += `<a href="${MEDIA_URL}/${trimFile}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: ${borderColor}; color: ${color};"><i class="fa-solid ${icon}"></i> ${label}</a>`;
+                });
+                anexoHtml += '</div>';
+            }
+
+            let borderColor = 'var(--primary-color)';
+            if (a.tipo === 'Consulta') borderColor = 'var(--success)';
+            else if (a.tipo === 'Atendimento') borderColor = 'var(--accent)';
+            else if (a.tipo === 'Bolsa Família') borderColor = '#f59e0b';
+            else if (a.tipo === 'Concurso') borderColor = '#a855f7';
+
+            let iconType = 'fa-calendar';
+            if (a.tipo === 'Consulta') iconType = 'fa-user-doctor';
+            else if (a.tipo === 'Atendimento') iconType = 'fa-users';
+            else if (a.tipo === 'Viagem') iconType = 'fa-bus';
+            else if (a.tipo === 'Bolsa Família') iconType = 'fa-hands-holding-child';
+            else if (a.tipo === 'Concurso') iconType = 'fa-trophy';
+
+            let html = `
+                <div class="ocorrencia-card" style="border-left: 5px solid ${borderColor};">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                        <div>
+                            <h3 style="margin-bottom: 0;"><i class="fa-solid ${iconType}"></i> ${a.assunto}</h3>
+                            <p style="font-size: 0.8rem; color: var(--primary-color); font-weight: bold; margin-top: 5px;">SENHA: ${a.senha || '---'}</p>
+                        </div>
+                        ${a.status.toLowerCase() === 'confirmado' ? `
+                            <button onclick="gerarProtocoloAgendamento('${a.id}')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: var(--primary-color);">
+                                <i class="fa-solid fa-print"></i> Protocolo
+                            </button>
+                        ` : ''}
+                    </div>
+                    <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-laptop-medical"></i> Tipo: <strong>${a.tipo}</strong></p>
+                    ${a.cartao_sus ? `<p style="margin-bottom: 0.5rem;"><strong>Cartão SUS:</strong> ${a.cartao_sus}</p>` : ''}
+                    <div style="background: var(--bg-body); padding: 0.8rem; border-radius: 8px; border: 1px dashed var(--primary-color); margin-bottom: 1rem;">
+                        <p style="color: var(--primary-color); font-weight: 700; margin-bottom: 0;">
+                            <i class="fa-solid fa-clock"></i> ${a.tipo === 'Concurso' ? 'INSCRIÇÃO EM:' : 'AGENDADO PARA:'} ${new Date(a.data_hora || a.criado_em).toLocaleString()}
+                        </p>
+                    </div>
+                    <span class="status-badge ${statusClass}">${a.status}</span>
+                    ${anexoHtml}
+                </div>
+            `;
+            return html;
         }
 
         document.getElementById('formOcorrencia').addEventListener('submit', async (e) => {
