@@ -9,7 +9,7 @@ let adminMap, adminMarker;
 document.addEventListener('DOMContentLoaded', () => {
     if (!checkAuth(true)) {
         // Sem autenticação ou permissão de admin — redirecionar para login do painel
-        window.location.href = 'admin/index.html';
+        window.location.href = '/admin/index.html';
         return;
     }
     
@@ -527,7 +527,7 @@ async function imprimirProtocolo(id) {
 
 function openModal(id) { document.getElementById(id).style.display = 'flex'; }
 function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-function logout() { localStorage.clear(); window.location.href = 'admin/index.html'; }
+function logout() { localStorage.clear(); window.location.href = '/admin/index.html'; }
 
 async function loadAgendamentos() {
     try {

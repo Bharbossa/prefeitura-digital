@@ -40,13 +40,13 @@ function getUserInfo() {
 function logout() {
     localStorage.removeItem('access_token');
     localStorage.removeItem('user_info');
-    window.location.href = 'login.html';
+    window.location.href = '/login.html';
 }
 
 function resetSession() {
     localStorage.clear();
     alert("Sessão limpa com sucesso. Por favor, faça login novamente.");
-    window.location.href = 'login.html';
+    window.location.href = '/login.html';
 }
 
 // Global Fetch Wrapper with Retry Logic for Cold Starts (Render free tier)
@@ -86,9 +86,9 @@ window.fetch = async (...args) => {
                 // Redirecionar para a página de login correta conforme o contexto
                 if (!path.includes('login.html') && !path.includes('admin/index.html')) {
                     if (path.includes('admin.html') || path.includes('/admin/')) {
-                        window.location.href = 'admin/index.html';
+                        window.location.href = '/admin/index.html';
                     } else {
-                        window.location.href = 'login.html?error=session_expired';
+                        window.location.href = '/login.html?error=session_expired';
                     }
                 }
             }
