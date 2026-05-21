@@ -3,29 +3,35 @@ const API_URL = "https://prefeitura-digital.onrender.com/api";
 const MEDIA_URL = API_URL.replace('/api', '');
 
 // Dark Mode Logic
-const toggleSwitch = document.querySelector('.theme-switch input[type="checkbox"]');
-const currentTheme = localStorage.getItem('theme');
-
-if (currentTheme) {
+function initThemeSwitches() {
+    const currentTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', currentTheme);
-    if (toggleSwitch && currentTheme === 'dark') {
-        toggleSwitch.checked = true;
+    document.querySelectorAll('.theme-switch input[type="checkbox"]').forEach(checkbox => {
+        checkbox.checked = (currentTheme === 'dark');
+    });
+}
+
+// Initialize theme on load
+initThemeSwitches();
+
+// Global theme switcher event delegation to support dynamically added switches (like in the navbar or dashboard panel)
+document.addEventListener('change', (e) => {
+    const themeCheckbox = e.target.closest('.theme-switch input[type="checkbox"]');
+    if (themeCheckbox) {
+        const isDark = themeCheckbox.checked;
+        const newTheme = isDark ? 'dark' : 'light';
+        
+        document.documentElement.setAttribute('data-theme', newTheme);
+        localStorage.setItem('theme', newTheme);
+        
+        // Sync all other theme switches on the page in real-time
+        document.querySelectorAll('.theme-switch input[type="checkbox"]').forEach(checkbox => {
+            if (checkbox !== themeCheckbox) {
+                checkbox.checked = isDark;
+            }
+        });
     }
-}
-
-function switchTheme(e) {
-    if (e.target.checked) {
-        document.documentElement.setAttribute('data-theme', 'dark');
-        localStorage.setItem('theme', 'dark');
-    } else {
-        document.documentElement.setAttribute('data-theme', 'light');
-        localStorage.setItem('theme', 'light');
-    }    
-}
-
-if (toggleSwitch) {
-    toggleSwitch.addEventListener('change', switchTheme, false);
-}
+});
 
 // Global Auth Management
 function getToken() {
@@ -139,11 +145,19 @@ document.addEventListener('DOMContentLoaded', () => {
             <a href="index.html">Início</a>
             <a href="${dashboardLink}">Meu Painel</a>
             <span style="display: block; color: var(--text-secondary)">Olá, ${user.nome.split(' ')[0]}</span>
+            <div class="theme-switch-wrapper" style="margin: 0 0.5rem; display: flex; align-items: center;">
+                <label class="theme-switch" for="checkbox-theme-nav" style="margin: 0;">
+                    <input type="checkbox" id="checkbox-theme-nav" />
+                    <div class="slider round"></div>
+                </label>
+            </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
                 <button onclick="abrirModalTrocaSenha()" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;"><i class="fa-solid fa-key"></i></button>
                 <button onclick="logout()" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">Sair</button>
             </div>
         `;
+        // Sync dynamic switcher checked state immediately
+        initThemeSwitches();
     }
 
 
@@ -155,6 +169,9 @@ document.addEventListener('DOMContentLoaded', () => {
             nav.classList.toggle('active');
         });
     }
+    
+    // Always sync all theme switches on the page once fully loaded
+    initThemeSwitches();
 });
 
 // AI Chat Integration

@@ -119,6 +119,20 @@
             <div id="agendamentosTableContainer"></div>
         </section>
 
+        <!-- CONCURSOS / INSCRIÇÕES SECTION -->
+        <section id="concursos" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3><i class="fa-solid fa-trophy" style="color: #a855f7;"></i> Inscrições de Concursos</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Gerencie e confirme inscrições em concursos culturais e esportivos.</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <input type="text" id="searchConcursos" class="btn btn-outline" placeholder="Buscar inscrição..." onkeyup="filterTable('concursosTableContainer', this.value)" style="min-width: 200px;">
+                </div>
+            </div>
+            <div id="concursosTableContainer"></div>
+        </section>
+
         <!-- USUARIOS SECTION (Cidadãos) -->
         <section id="usuarios" class="section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">

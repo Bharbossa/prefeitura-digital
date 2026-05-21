@@ -61,6 +61,7 @@ async def create_ocorrencia(
     documento: Optional[UploadFile] = File(None),
     latitude: Optional[float] = Form(None),
     longitude: Optional[float] = Form(None),
+    anonima: Optional[bool] = Form(False),
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
 ):
@@ -97,7 +98,7 @@ async def create_ocorrencia(
             foto=foto_path, 
             video=video_path,
             documento=documento_path,
-            usuario_id=current_user.id
+            usuario_id=None if anonima else current_user.id
         )
         db_sql.add(ocorrencia)
         db_sql.commit()

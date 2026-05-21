@@ -87,6 +87,9 @@ function setupSidebar() {
         <div class="nav-item" onclick="showSection('agendamentos', this)">
             <i class="fa-solid fa-calendar-check"></i><span>Agendamentos</span>
         </div>
+        <div class="nav-item" onclick="showSection('concursos', this)">
+            <i class="fa-solid fa-trophy"></i><span>Concursos</span>
+        </div>
     `;
 
     if (currentRole === 'admin') {
@@ -138,6 +141,7 @@ function showSection(sectionId, element) {
         'dashboard': 'Dashboard Geral',
         'ocorrencias': 'Todas Ocorrências (Global)',
         'agendamentos': 'Todos Agendamentos (Global)',
+        'concursos': 'Inscrições em Concursos',
         'usuarios': 'Gestão de Cidadãos',
         'admins': 'Sub-Administradores',
         'auditoria': 'Logs de Auditoria',
@@ -152,6 +156,7 @@ function showSection(sectionId, element) {
     if (sectionId === 'dashboard') loadDashboard();
     if (sectionId === 'ocorrencias') loadOcorrencias();
     if (sectionId === 'agendamentos') loadAgendamentos();
+    if (sectionId === 'concursos') loadConcursos();
     if (sectionId === 'usuarios') loadUsers();
     if (sectionId === 'admins') loadAdmins();
     if (sectionId === 'auditoria') loadAuditLogs();
@@ -535,6 +540,7 @@ async function loadAgendamentos() {
         if (res.ok) {
             let list = await res.json();
             if (currentSecId) list = list.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
+            list = list.filter(a => a.tipo !== 'Concurso');
             
             const container = document.getElementById('agendamentosTableContainer');
             if (list.length === 0) {
@@ -586,6 +592,64 @@ async function loadAgendamentos() {
         }
     } catch(e) {
         console.error("Error loading agendamentos:", e);
+    }
+}
+
+async function loadConcursos() {
+    try {
+        const res = await fetch(`${API_URL}/agendamentos`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
+        if (res.ok) {
+            let list = await res.json();
+            if (currentSecId) list = list.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
+            list = list.filter(a => a.tipo === 'Concurso');
+            
+            const container = document.getElementById('concursosTableContainer');
+            if (list.length === 0) {
+                container.innerHTML = '<p style="padding: 2rem; text-align: center;">Nenhuma inscrição encontrada.</p>';
+                return;
+            }
+
+            let html = `<table class="data-table"><thead><tr><th>Inscrição</th><th>Protocolo</th><th>Inscrito</th><th>Assunto / Categoria</th><th>Data da Inscrição</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
+            list.forEach(a => {
+                const s = a.status.toLowerCase();
+                
+                let anexosButtons = '';
+                if (a.anexo) {
+                    const files = a.anexo.split(',');
+                    files.forEach((file, index) => {
+                        const trimFile = file.trim();
+                        if (!trimFile) return;
+                        const isImg = trimFile.match(/\.(jpeg|jpg|gif|png|webp)/i);
+                        const icon = isImg ? 'fa-image' : 'fa-file-pdf';
+                        const title = isImg ? 'Ver Foto' : 'Ver PDF';
+                        const colorStyle = isImg ? 'border-color: #a855f7; color: #a855f7;' : 'border-color: #8b5cf6; color: #8b5cf6;';
+                        anexosButtons += `<button class="btn btn-outline" title="${title}" style="${colorStyle}" onclick="window.open('${MEDIA_URL}/${trimFile.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid ${icon}"></i></button>`;
+                    });
+                }
+
+                html += `
+                    <tr>
+                        <td><span style="font-weight: bold; color: #a855f7; font-size: 1.1rem;">${a.senha || '---'}</span></td>
+                        <td><small>${a.protocolo || a.id}</small></td>
+                        <td style="font-weight: bold; color: var(--primary);">${a.usuario_nome || 'N/A'}</td>
+                        <td>${a.assunto}</td>
+                        <td>${new Date(a.data_hora).toLocaleString()}</td>
+                        <td><span class="badge badge-${s === 'confirmado' ? 'done' : (s === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
+                        <td>
+                            <div style="display: flex; gap: 0.5rem;">
+                                ${s === 'pendente' ? `<button class="btn btn-primary" style="background: #a855f7; border-color: #a855f7;" onclick="updateAgendamento('${a.id}', 'Confirmado')">Confirmar</button>` : ''}
+                                <button class="btn btn-outline" title="Imprimir Comprovante" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>
+                                ${anexosButtons}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            html += '</tbody></table>';
+            container.innerHTML = html;
+        }
+    } catch(e) {
+        console.error("Error loading concursos:", e);
     }
 }
 
