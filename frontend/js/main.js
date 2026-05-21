@@ -6,7 +6,7 @@ const MEDIA_URL = API_URL.replace('/api', '');
 function initThemeSwitches() {
     const currentTheme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', currentTheme);
-    document.querySelectorAll('.theme-switch input[type="checkbox"]').forEach(checkbox => {
+    document.querySelectorAll('.theme-switch input[type="checkbox"]:not(#is_anonima)').forEach(checkbox => {
         checkbox.checked = (currentTheme === 'dark');
     });
 }
@@ -16,6 +16,8 @@ initThemeSwitches();
 
 // Global theme switcher event delegation to support dynamically added switches (like in the navbar or dashboard panel)
 document.addEventListener('change', (e) => {
+    if (e.target.id === 'is_anonima') return;
+    
     const themeCheckbox = e.target.closest('.theme-switch input[type="checkbox"]');
     if (themeCheckbox) {
         const isDark = themeCheckbox.checked;
@@ -25,7 +27,7 @@ document.addEventListener('change', (e) => {
         localStorage.setItem('theme', newTheme);
         
         // Sync all other theme switches on the page in real-time
-        document.querySelectorAll('.theme-switch input[type="checkbox"]').forEach(checkbox => {
+        document.querySelectorAll('.theme-switch input[type="checkbox"]:not(#is_anonima)').forEach(checkbox => {
             if (checkbox !== themeCheckbox) {
                 checkbox.checked = isDark;
             }
