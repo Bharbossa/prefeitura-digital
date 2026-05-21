@@ -1805,15 +1805,15 @@ async function imprimirResumoCamisas() {
     <div class="meta-grid">
         <div class="meta-card">
             <h3>Total de Inscritos</h3>
-            <div class="value">\${data.total_inscritos}</div>
+            <div class="value">${data.total_inscritos}</div>
         </div>
         <div class="meta-card">
             <h3>Inscrições Ativas</h3>
-            <div class="value">\${data.total_ativos}</div>
+            <div class="value">${data.total_ativos}</div>
         </div>
         <div class="meta-card">
             <h3>Data de Emissão</h3>
-            <div class="value" style="font-size: 1.2rem; margin-top: 0.5rem;">\${new Date().toLocaleDateString('pt-BR')}</div>
+            <div class="value" style="font-size: 1.2rem; margin-top: 0.5rem;">${new Date().toLocaleDateString('pt-BR')}</div>
         </div>
     </div>
 
@@ -1830,19 +1830,19 @@ async function imprimirResumoCamisas() {
                 <tbody>
                     <tr>
                         <td>P</td>
-                        <td style="text-align: right; font-weight: bold;">\${data.inscritos_camisas.P}</td>
+                        <td style="text-align: right; font-weight: bold;">${data.inscritos_camisas.P}</td>
                     </tr>
                     <tr>
                         <td>M</td>
-                        <td style="text-align: right; font-weight: bold;">\${data.inscritos_camisas.M}</td>
+                        <td style="text-align: right; font-weight: bold;">${data.inscritos_camisas.M}</td>
                     </tr>
                     <tr>
                         <td>G</td>
-                        <td style="text-align: right; font-weight: bold;">\${data.inscritos_camisas.G}</td>
+                        <td style="text-align: right; font-weight: bold;">${data.inscritos_camisas.G}</td>
                     </tr>
                     <tr>
                         <td>GG</td>
-                        <td style="text-align: right; font-weight: bold;">\${data.inscritos_camisas.GG}</td>
+                        <td style="text-align: right; font-weight: bold;">${data.inscritos_camisas.GG}</td>
                     </tr>
                 </tbody>
             </table>
@@ -1860,19 +1860,19 @@ async function imprimirResumoCamisas() {
                 <tbody>
                     <tr>
                         <td>P</td>
-                        <td style="text-align: right; font-weight: bold;">\${data.parceiros_camisas.P}</td>
+                        <td style="text-align: right; font-weight: bold;">${data.parceiros_camisas.P}</td>
                     </tr>
                     <tr>
                         <td>M</td>
-                        <td style="text-align: right; font-weight: bold;">\${data.parceiros_camisas.M}</td>
+                        <td style="text-align: right; font-weight: bold;">${data.parceiros_camisas.M}</td>
                     </tr>
                     <tr>
                         <td>G</td>
-                        <td style="text-align: right; font-weight: bold;">\${data.parceiros_camisas.G}</td>
+                        <td style="text-align: right; font-weight: bold;">${data.parceiros_camisas.G}</td>
                     </tr>
                     <tr>
                         <td>GG</td>
-                        <td style="text-align: right; font-weight: bold;">\${data.parceiros_camisas.GG}</td>
+                        <td style="text-align: right; font-weight: bold;">${data.parceiros_camisas.GG}</td>
                     </tr>
                 </tbody>
             </table>
@@ -1883,23 +1883,23 @@ async function imprimirResumoCamisas() {
         <h2>👕 Total Geral Consolidado (Cidadão + Parceiro)</h2>
         <div class="summary-row">
             <span>Tamanho P</span>
-            <strong>\${data.inscritos_camisas.P + data.parceiros_camisas.P} unidades</strong>
+            <strong>${data.inscritos_camisas.P + data.parceiros_camisas.P} unidades</strong>
         </div>
         <div class="summary-row">
             <span>Tamanho M</span>
-            <strong>\${data.inscritos_camisas.M + data.parceiros_camisas.M} unidades</strong>
+            <strong>${data.inscritos_camisas.M + data.parceiros_camisas.M} unidades</strong>
         </div>
         <div class="summary-row">
             <span>Tamanho G</span>
-            <strong>\${data.inscritos_camisas.G + data.parceiros_camisas.G} unidades</strong>
+            <strong>${data.inscritos_camisas.G + data.parceiros_camisas.G} unidades</strong>
         </div>
         <div class="summary-row">
             <span>Tamanho GG</span>
-            <strong>\${data.inscritos_camisas.GG + data.parceiros_camisas.GG} unidades</strong>
+            <strong>${data.inscritos_camisas.GG + data.parceiros_camisas.GG} unidades</strong>
         </div>
         <div class="summary-row" style="border-top: 2px solid #7c3aed; padding-top: 1rem; margin-top: 0.5rem;">
             <span style="font-size: 1.1rem; font-weight: bold; color: #7c3aed;">TOTAL CONSOLIDADO DE CAMISAS</span>
-            <strong style="font-size: 1.4rem; color: #7c3aed;">\${
+            <strong style="font-size: 1.4rem; color: #7c3aed;">${
                 data.inscritos_camisas.P + data.parceiros_camisas.P +
                 data.inscritos_camisas.M + data.parceiros_camisas.M +
                 data.inscritos_camisas.G + data.parceiros_camisas.G +

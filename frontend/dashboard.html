@@ -849,6 +849,25 @@
             } catch (e) { console.error(e); }
         }
 
+        function obterCategoriaAgendamento(a) {
+            const tipo = (a.tipo || '').toLowerCase();
+            const assunto = (a.assunto || '').toLowerCase();
+            
+            if (tipo.includes('concurso') || assunto.includes('concurso')) {
+                return 'concursos';
+            }
+            if (tipo.includes('bolsa') || assunto.includes('bolsa') || tipo.includes('família') || tipo.includes('familia')) {
+                return 'bolsafamilia';
+            }
+            if (tipo.includes('viagem') || tipo.includes('garagem') || assunto.includes('viagem') || assunto.includes('garagem') || tipo.includes('viagens') || tipo.includes('viagen')) {
+                return 'viagens';
+            }
+            if (tipo.includes('consulta') || assunto.includes('consulta') || assunto.includes('médica') || assunto.includes('medica') || assunto.includes('posto de saúde') || assunto.includes('posto de saude')) {
+                return 'consultas';
+            }
+            return 'atendimentos';
+        }
+
         function renderizarLista() {
             const container = document.getElementById('listaGeral');
             container.innerHTML = '';
@@ -869,19 +888,11 @@
             // Filtrar Agendamentos
             if (['todas', 'consultas', 'atendimentos', 'viagens', 'bolsafamilia', 'concursos'].includes(abaAtiva)) {
                 todosAgendamentos.forEach(a => {
-                    const mapTipos = {
-                        'consultas': 'Consulta',
-                        'atendimentos': 'Atendimento',
-                        'viagens': 'Viagem',
-                        'bolsafamilia': 'Bolsa Família',
-                        'concursos': 'Concurso' 
-                    };
-                    
                     let abaCorresponde = false;
                     if (abaAtiva === 'todas') abaCorresponde = true;
                     else {
-                        const tipoAlvo = mapTipos[abaAtiva];
-                        if (tipoAlvo && a.tipo === tipoAlvo) abaCorresponde = true;
+                        const categoria = obterCategoriaAgendamento(a);
+                        if (categoria === abaAtiva) abaCorresponde = true;
                     }
                     
                     if (abaCorresponde) {
@@ -957,21 +968,22 @@
             }
 
             const isEmergencia = a.assunto && a.assunto.includes('EMERGÊNCIA');
+            const categoria = obterCategoriaAgendamento(a);
 
             let borderColor = 'var(--primary-color)';
             if (isEmergencia) borderColor = '#ef4444';
-            else if (a.tipo === 'Consulta') borderColor = 'var(--success)';
-            else if (a.tipo === 'Atendimento') borderColor = 'var(--accent)';
-            else if (a.tipo === 'Bolsa Família') borderColor = '#f59e0b';
-            else if (a.tipo === 'Concurso') borderColor = '#a855f7';
+            else if (categoria === 'consultas') borderColor = 'var(--success)';
+            else if (categoria === 'atendimentos') borderColor = 'var(--accent)';
+            else if (categoria === 'bolsafamilia') borderColor = '#f59e0b';
+            else if (categoria === 'concursos') borderColor = '#a855f7';
 
             let iconType = 'fa-calendar';
             if (isEmergencia) iconType = 'fa-truck-medical fa-beat';
-            else if (a.tipo === 'Consulta') iconType = 'fa-user-doctor';
-            else if (a.tipo === 'Atendimento') iconType = 'fa-users';
-            else if (a.tipo === 'Viagem') iconType = 'fa-bus';
-            else if (a.tipo === 'Bolsa Família') iconType = 'fa-hands-holding-child';
-            else if (a.tipo === 'Concurso') iconType = 'fa-trophy';
+            else if (categoria === 'consultas') iconType = 'fa-user-doctor';
+            else if (categoria === 'atendimentos') iconType = 'fa-users';
+            else if (categoria === 'viagens') iconType = 'fa-bus';
+            else if (categoria === 'bolsafamilia') iconType = 'fa-hands-holding-child';
+            else if (categoria === 'concursos') iconType = 'fa-trophy';
 
             let emergBadge = isEmergencia ? `
                 <div style="background: #fef2f2; border: 1px solid #fca5a5; padding: 0.5rem 1rem; border-radius: 8px; color: #ef4444; font-weight: bold; font-size: 0.85rem; margin-bottom: 0.8rem; display: inline-flex; align-items: center; gap: 8px; animation: pulse 2s infinite;">
@@ -995,7 +1007,7 @@
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                         <div>
                             <h3 style="margin-bottom: 0;"><i class="fa-solid ${iconType}"></i> ${a.assunto}</h3>
-                            <p style="font-size: 0.8rem; color: var(--primary-color); font-weight: bold; margin-top: 5px;">${a.tipo === 'Concurso' ? 'Nº DE INSCRIÇÃO:' : 'SENHA:'} ${a.senha || '---'}</p>
+                            <p style="font-size: 0.8rem; color: var(--primary-color); font-weight: bold; margin-top: 5px;">${categoria === 'concursos' ? 'Nº DE INSCRIÇÃO:' : 'SENHA:'} ${a.senha || '---'}</p>
                             <p style="font-size: 0.8rem; margin-top: 5px; color: var(--text-muted);">
                                 <strong>Protocolo:</strong> <span class="${isEmergencia ? 'emergency-protocol' : ''}">${a.protocolo || a.id}</span>
                             </p>
@@ -1011,7 +1023,7 @@
                     ${a.cartao_sus ? `<p style="margin-bottom: 0.5rem;"><strong>Cartão SUS:</strong> ${a.cartao_sus}</p>` : ''}
                     <div style="background: var(--bg-body); padding: 0.8rem; border-radius: 8px; border: 1px dashed var(--primary-color); margin-bottom: 1rem;">
                         <p style="color: var(--primary-color); font-weight: 700; margin-bottom: 0;">
-                            <i class="fa-solid fa-clock"></i> ${a.tipo === 'Concurso' ? 'INSCRIÇÃO EM:' : 'AGENDADO PARA:'} ${new Date(a.data_hora || a.criado_em).toLocaleString()}
+                            <i class="fa-solid fa-clock"></i> ${categoria === 'concursos' ? 'INSCRIÇÃO EM:' : 'AGENDADO PARA:'} ${new Date(a.data_hora || a.criado_em).toLocaleString()}
                         </p>
                     </div>
                     <span class="status-badge ${statusClass}">${a.status}</span>
