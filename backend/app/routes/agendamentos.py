@@ -8,7 +8,7 @@ import shutil
 from datetime import datetime
 
 from ..database import get_db
-from ..models.schema import Usuario, AdminSecretaria, Agendamento, LogAuditoria
+from ..models.schema import Usuario, AdminSecretaria, Agendamento, LogAuditoria, Secretaria
 from ..models.pydantic_schemas import AgendamentoCreate, AgendamentoResponse
 from ..core.auth_deps import get_current_user, get_current_admin
 from ..utils.sms_service import send_status_sms, get_confirmed_message
@@ -23,7 +23,7 @@ if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
 def save_upload_file(upload_file: UploadFile) -> str:
-    allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.pdf'}
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.pdf', '.txt'}
     file_ext = os.path.splitext(upload_file.filename)[1].lower()
     if file_ext not in allowed_extensions:
         raise HTTPException(status_code=400, detail=f"Extensão de arquivo '{file_ext}' não permitida.")
@@ -208,7 +208,78 @@ def listar_meus_agendamentos(current_user = Depends(get_current_user), db_sql: S
         r.usuario_nome = r.usuario.nome if r.usuario else f"Cidadão #{r.usuario_id}"
     return results
 
+
+@router.get("/concurso/camisas")
+def obter_quantidade_camisas_concurso(
+    current_user = Depends(get_current_admin),
+    db_sql: Session = Depends(get_db)
+):
+    # Permissão: admin geral ou subadmin de cultura/esporte
+    if current_user.tipo_usuario_verificado == "subadmin":
+        if not current_user.secretaria_id:
+            raise HTTPException(status_code=403, detail="Acesso restrito ao administrador de Cultura e Esporte.")
+            
+        sec = db_sql.query(Secretaria).filter(Secretaria.id == current_user.secretaria_id).first()
+        if not sec or not ("CULTURA E ESPORTE" in sec.nome.upper()):
+            raise HTTPException(status_code=403, detail="Apenas sub-administradores da Secretaria de Cultura e Esporte podem ver o resumo de camisas.")
+
+    # Buscar todos agendamentos do tipo "Concurso" do "Pé de Aço"
+    concursos = db_sql.query(Agendamento).filter(
+        Agendamento.tipo == "Concurso",
+        Agendamento.assunto.like("%Pé de Aço%")
+    ).all()
+
+    total_inscritos = len(concursos)
+    # Filtrar ativos (status != "Cancelado") para contagem das camisas
+    concursos_ativos = [c for c in concursos if c.status != "Cancelado"]
+    total_ativos = len(concursos_ativos)
+
+    inscritos_camisas = {"P": 0, "M": 0, "G": 0, "GG": 0}
+    parceiros_camisas = {"P": 0, "M": 0, "G": 0, "GG": 0}
+
+    import re
+    for c in concursos_ativos:
+        assunto = c.assunto or ""
+        parts = [p.strip() for p in assunto.split("|")]
+        participant_size = None
+        partner_size = None
+        
+        for part in parts:
+            if "Camisa Parceiro" in part or "Camisa do Parceiro" in part:
+                match_val = re.search(r':\s*(P|M|G|GG)\b', part, re.IGNORECASE)
+                if match_val:
+                    partner_size = match_val.group(1).upper()
+            elif "Camisa" in part:
+                match_val = re.search(r':\s*(P|M|G|GG)\b', part, re.IGNORECASE)
+                if match_val:
+                    participant_size = match_val.group(1).upper()
+        
+        # Regex fallbacks
+        if not participant_size:
+            match = re.search(r'(?<!Parceiro\(a\))\bCamisa:\s*(P|M|G|GG)\b', assunto, re.IGNORECASE)
+            if match:
+                participant_size = match.group(1).upper()
+        
+        if not partner_size:
+            match = re.search(r'Camisa\s+Parceiro\(?a?\)?:\s*(P|M|G|GG)\b', assunto, re.IGNORECASE)
+            if match:
+                partner_size = match.group(1).upper()
+
+        if participant_size in inscritos_camisas:
+            inscritos_camisas[participant_size] += 1
+        if partner_size in parceiros_camisas:
+            parceiros_camisas[partner_size] += 1
+
+    return {
+        "total_inscritos": total_inscritos,
+        "total_ativos": total_ativos,
+        "inscritos_camisas": inscritos_camisas,
+        "parceiros_camisas": parceiros_camisas
+    }
+
+
 @router.get("/{agend_id}", response_model=AgendamentoResponse)
+
 def obter_agendamento(agend_id: int, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
     agend = db_sql.query(Agendamento).options(joinedload(Agendamento.usuario)).filter(Agendamento.id == agend_id).first()
     if not agend:
@@ -252,4 +323,69 @@ def atualizar_status(agend_id: int, status: str, current_user = Depends(get_curr
     db_sql.commit()
     db_sql.refresh(agendamento)
     return agendamento
+
+
+CONCURSOS_DOCS_JSON = "uploads/concursos_documentos.json"
+
+def load_concursos_docs():
+    import json
+    if os.path.exists(CONCURSOS_DOCS_JSON):
+        try:
+            with open(CONCURSOS_DOCS_JSON, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {
+        "Papa-Cuscuz": {
+            "regulamento": "documentos/regras_papa_cuscuz.txt",
+            "termo": ""
+        },
+        "Pé de Aço": {
+            "regulamento": "documentos/regras_pe_de_aco.txt",
+            "termo": ""
+        }
+    }
+
+def save_concursos_docs(data):
+    import json
+    with open(CONCURSOS_DOCS_JSON, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=4)
+
+@router.get("/concursos/documentos")
+def obter_documentos_concursos():
+    return load_concursos_docs()
+
+@router.post("/concursos/documentos")
+def fazer_upload_documento_concurso(
+    concurso: str = Form(...),
+    tipo_documento: str = Form(...),
+    arquivo: UploadFile = File(...),
+    current_user = Depends(get_current_admin),
+    db_sql: Session = Depends(get_db)
+):
+    if concurso not in ["Papa-Cuscuz", "Pé de Aço"]:
+        raise HTTPException(status_code=400, detail="Concurso inválido.")
+        
+    if tipo_documento not in ["regulamento", "termo"]:
+        raise HTTPException(status_code=400, detail="Tipo de documento inválido.")
+        
+    if current_user.tipo_usuario_verificado == "subadmin":
+        if not current_user.secretaria_id:
+            raise HTTPException(status_code=403, detail="Acesso restrito ao administrador de Cultura e Esporte.")
+            
+        sec = db_sql.query(Secretaria).filter(Secretaria.id == current_user.secretaria_id).first()
+        if not sec or not ("CULTURA E ESPORTE" in sec.nome.upper()):
+            raise HTTPException(status_code=403, detail="Apenas sub-administradores da Secretaria de Cultura e Esporte podem atualizar documentos de concursos.")
+
+    path = save_upload_file(arquivo)
+    
+    docs = load_concursos_docs()
+    if concurso not in docs:
+        docs[concurso] = {"regulamento": "", "termo": ""}
+    docs[concurso][tipo_documento] = path.replace("\\", "/")
+    
+    save_concursos_docs(docs)
+    
+    return {"message": "Documento atualizado com sucesso!", "path": path}
+
 

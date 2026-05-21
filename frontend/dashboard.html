@@ -8,6 +8,33 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+    @keyframes borderPulse {
+        0% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+        50% { border-color: #b91c1c; box-shadow: 0 0 10px 4px rgba(239, 68, 68, 0.2); }
+        100% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.03); }
+        100% { transform: scale(1); }
+    }
+    .emergency-protocol {
+        color: #ef4444 !important;
+        font-weight: bold;
+        padding: 2px 6px;
+        background: #fef2f2;
+        border: 1px solid #fee2e2;
+        border-radius: 4px;
+        display: inline-block;
+    }
+    [data-theme="dark"] .emergency-protocol {
+        color: #ff6b6b !important;
+        background: #271c1c !important;
+        border-color: #4c1d1d !important;
+        text-shadow: 0 0 8px rgba(255, 107, 107, 0.6);
+    }
+    </style>
 </head>
 
 <body>
@@ -225,17 +252,23 @@
                     </select>
                     <div id="concurso_regras_desc" style="margin-top: 0.8rem; padding: 0.8rem; background: var(--bg-body); border-radius: 8px; border: 1px solid var(--border); display: none;">
                         <p style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: var(--text-secondary);">
-                            <i class="fa-solid fa-file-shield"></i> Regulamento oficial do concurso disponível:
+                            <i class="fa-solid fa-file-shield"></i> Documentos oficiais do concurso disponíveis:
                         </p>
-                        <a id="btn_baixar_regras" href="#" download class="btn btn-outline" style="font-size: 0.75rem; padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-weight: bold; border-color: #a855f7; color: #a855f7;">
-                            <i class="fa-solid fa-download"></i> Baixar Regulamento
-                        </a>
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <a id="btn_baixar_regras" href="#" download class="btn btn-outline" style="font-size: 0.75rem; padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-weight: bold; border-color: #a855f7; color: #a855f7;">
+                                <i class="fa-solid fa-download"></i> Baixar Regulamento
+                            </a>
+                            <a id="btn_baixar_termo" href="#" download class="btn btn-outline" style="font-size: 0.75rem; padding: 4px 10px; display: inline-flex; align-items: center; gap: 5px; text-decoration: none; font-weight: bold; border-color: #06b6d4; color: #06b6d4; display: none;">
+                                <i class="fa-solid fa-file-signature"></i> Baixar Termo de Responsabilidade
+                            </a>
+                        </div>
                     </div>
                 </div>
                 <div class="form-group" id="group_posto" style="display: none;">
                     <label>Posto de Saúde</label>
                     <select id="ag_posto">
                         <option value="">Selecione o posto...</option>
+                        <option value="HOSPITAL MARIA LOUREIRO" style="font-weight: bold; color: #ef4444; background: #fee2e2;">🚨 HOSPITAL MARIA LOUREIRO (EMERGÊNCIA) 🚨</option>
                         <option value="POSTO JOSÉ LUIZ LESSA (PSF 01)">POSTO JOSÉ LUIZ LESSA (PSF 01)</option>
                         <option value="POSTO CENTRO (PSF 02)">POSTO CENTRO (PSF 02)</option>
                         <option value="POSTO VILA NOVA (PSF 03)">POSTO VILA NOVA (PSF 03)</option>
@@ -247,6 +280,21 @@
                         <option value="POSTO JOSÉ ADAMOR COSTA (PSF 07)">POSTO JOSÉ ADAMOR COSTA (PSF 07)</option>
                         <option value="POSTO JOSÉ ACIOLY MACIEL (PSF 08)">POSTO JOSÉ ACIOLY MACIEL (PSF 08)</option>
                     </select>
+                </div>
+
+                <!-- Banner de Emergência e Campo de Sintomas (Hospital Maria Loureiro) -->
+                <div id="emergencia_container" style="display: none; background: #fef2f2; border: 2px dashed #ef4444; border-radius: 12px; padding: 1.2rem; margin-bottom: 1.5rem; animation: borderPulse 2s infinite;">
+                    <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 0.8rem; color: #ef4444;">
+                        <i class="fa-solid fa-circle-exclamation fa-beat" style="font-size: 1.5rem;"></i>
+                        <h4 style="margin: 0; font-size: 1.1rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Atendimento de Emergência Identificado</h4>
+                    </div>
+                    <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #991b1b; line-height: 1.4;">
+                        Ao selecionar o <strong>Hospital Maria Loureiro</strong>, sua consulta é classificada automaticamente como <strong>EMERGÊNCIA MÉDICA</strong> para atendimento prioritário e imediato.
+                    </p>
+                    <div class="form-group" style="margin: 0;">
+                        <label style="color: #991b1b; font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;"><i class="fa-solid fa-notes-medical"></i> Quais sintomas você está sentindo? (Urgente/Obrigatório)</label>
+                        <textarea id="ag_sintomas" rows="3" placeholder="Descreva aqui detalhadamente seus sintomas (ex: dor no peito, febre alta, falta de ar) para triagem imediata..." style="width: 100%; border: 1px solid #fca5a5; border-radius: 8px; padding: 0.8rem; font-size: 0.95rem; background: #fff; color: #1e293b; resize: vertical; box-sizing: border-box;"></textarea>
+                    </div>
                 </div>
                 <div class="form-group" id="group_profissional" style="display: none;">
                     <label>Profissional</label>
@@ -364,6 +412,21 @@
             document.getElementById('ag_data_date').required = true;
             document.getElementById('ag_data_time').required = true;
             
+            // Reset health post selection & professional
+            const agPosto = document.getElementById('ag_posto');
+            if (agPosto) agPosto.value = '';
+            const agProf = document.getElementById('ag_profissional');
+            if (agProf) agProf.value = '';
+            
+            // Reset emergency fields
+            const emContainer = document.getElementById('emergencia_container');
+            if (emContainer) emContainer.style.display = 'none';
+            const sintomasInput = document.getElementById('ag_sintomas');
+            if (sintomasInput) {
+                sintomasInput.required = false;
+                sintomasInput.value = '';
+            }
+            
             const filesGroup = document.getElementById('group_concurso_arquivos');
             if (filesGroup) {
                 filesGroup.style.display = 'none';
@@ -440,6 +503,21 @@
 
         document.getElementById('ag_secretaria').addEventListener('change', toggleSusField);
         document.getElementById('ag_tipo').addEventListener('change', toggleSusField);
+
+        document.getElementById('ag_posto').addEventListener('change', function() {
+            const postoVal = this.value;
+            const container = document.getElementById('emergencia_container');
+            const sintomasInput = document.getElementById('ag_sintomas');
+            if (postoVal === 'HOSPITAL MARIA LOUREIRO') {
+                container.style.display = 'block';
+                sintomasInput.required = true;
+                sintomasInput.focus();
+            } else {
+                container.style.display = 'none';
+                sintomasInput.required = false;
+                sintomasInput.value = '';
+            }
+        });
 
         function abrirModalAtendimento() {
             resetAgendamentoModalFields();
@@ -647,10 +725,11 @@
             document.getElementById('ag_comprovante').required = false;
         }
 
-        function atualizarRegrasConcurso() {
+        async function atualizarRegrasConcurso() {
             const concurso = document.getElementById('ag_concurso').value;
             const container = document.getElementById('concurso_regras_desc');
-            const link = document.getElementById('btn_baixar_regras');
+            const linkRegulamento = document.getElementById('btn_baixar_regras');
+            const linkTermo = document.getElementById('btn_baixar_termo');
 
             if (!concurso) {
                 container.style.display = 'none';
@@ -658,12 +737,47 @@
             }
 
             container.style.display = 'block';
-            if (concurso === 'Papa-Cuscuz') {
-                link.href = 'documentos/regras_papa_cuscuz.txt';
-                link.download = 'Regulamento_Papa_Cuscuz.txt';
-            } else if (concurso === 'Pé de Aço') {
-                link.href = 'documentos/regras_pe_de_aco.txt';
-                link.download = 'Regulamento_Pe_de_Aco.txt';
+            
+            // Fallback padrão local
+            let rulesUrl = concurso === 'Papa-Cuscuz' ? 'documentos/regras_papa_cuscuz.txt' : 'documentos/regras_pe_de_aco.txt';
+            let rulesDownload = concurso === 'Papa-Cuscuz' ? 'Regulamento_Papa_Cuscuz.txt' : 'Regulamento_Pe_de_Aco.txt';
+            
+            let waiverUrl = '';
+            let waiverDownload = concurso === 'Papa-Cuscuz' ? 'Termo_de_Responsabilidade_Papa_Cuscuz.pdf' : 'Termo_de_Responsabilidade_Pe_de_Aco.pdf';
+
+            try {
+                const res = await fetch(`${API_URL}/agendamentos/concursos/documentos`);
+                if (res.ok) {
+                    const docs = await res.json();
+                    if (docs[concurso]) {
+                        const mUrl = API_URL.replace('/api', '');
+                        
+                        if (docs[concurso].regulamento) {
+                            const r = docs[concurso].regulamento;
+                            rulesUrl = r.startsWith('uploads') ? `${mUrl}/${r}` : r;
+                            rulesDownload = r.substring(r.lastIndexOf('/') + 1);
+                        }
+                        
+                        if (docs[concurso].termo) {
+                            const t = docs[concurso].termo;
+                            waiverUrl = t.startsWith('uploads') ? `${mUrl}/${t}` : t;
+                            waiverDownload = t.substring(t.lastIndexOf('/') + 1);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error("Erro ao carregar documentos do concurso:", err);
+            }
+
+            linkRegulamento.href = rulesUrl;
+            linkRegulamento.download = rulesDownload;
+
+            if (waiverUrl) {
+                linkTermo.href = waiverUrl;
+                linkTermo.download = waiverDownload;
+                linkTermo.style.display = 'inline-flex';
+            } else {
+                linkTermo.style.display = 'none';
             }
         }
 
@@ -842,25 +956,49 @@
                 anexoHtml += '</div>';
             }
 
+            const isEmergencia = a.assunto && a.assunto.includes('EMERGÊNCIA');
+
             let borderColor = 'var(--primary-color)';
-            if (a.tipo === 'Consulta') borderColor = 'var(--success)';
+            if (isEmergencia) borderColor = '#ef4444';
+            else if (a.tipo === 'Consulta') borderColor = 'var(--success)';
             else if (a.tipo === 'Atendimento') borderColor = 'var(--accent)';
             else if (a.tipo === 'Bolsa Família') borderColor = '#f59e0b';
             else if (a.tipo === 'Concurso') borderColor = '#a855f7';
 
             let iconType = 'fa-calendar';
-            if (a.tipo === 'Consulta') iconType = 'fa-user-doctor';
+            if (isEmergencia) iconType = 'fa-truck-medical fa-beat';
+            else if (a.tipo === 'Consulta') iconType = 'fa-user-doctor';
             else if (a.tipo === 'Atendimento') iconType = 'fa-users';
             else if (a.tipo === 'Viagem') iconType = 'fa-bus';
             else if (a.tipo === 'Bolsa Família') iconType = 'fa-hands-holding-child';
             else if (a.tipo === 'Concurso') iconType = 'fa-trophy';
 
+            let emergBadge = isEmergencia ? `
+                <div style="background: #fef2f2; border: 1px solid #fca5a5; padding: 0.5rem 1rem; border-radius: 8px; color: #ef4444; font-weight: bold; font-size: 0.85rem; margin-bottom: 0.8rem; display: inline-flex; align-items: center; gap: 8px; animation: pulse 2s infinite;">
+                    <i class="fa-solid fa-truck-medical fa-beat"></i> EMERGÊNCIA MÉDICA ATIVA
+                </div>
+            ` : '';
+
+            let sintomasHtml = (isEmergencia && a.motivo) ? `
+                <div style="background: #fff5f5; padding: 0.8rem; border-radius: 8px; border: 1px solid #fee2e2; margin-bottom: 1rem;">
+                    <p style="margin: 0; font-size: 0.9rem; color: #991b1b;">
+                        <i class="fa-solid fa-notes-medical" style="color: #ef4444;"></i> <strong>Sintomas Relatados:</strong> ${a.motivo}
+                    </p>
+                </div>
+            ` : '';
+
+            let cardAnimation = isEmergencia ? 'animation: borderPulse 3s infinite;' : '';
+
             let html = `
-                <div class="ocorrencia-card" style="border-left: 5px solid ${borderColor};">
+                <div class="ocorrencia-card" style="border-left: 5px solid ${borderColor}; ${cardAnimation}">
+                    ${emergBadge}
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
                         <div>
                             <h3 style="margin-bottom: 0;"><i class="fa-solid ${iconType}"></i> ${a.assunto}</h3>
                             <p style="font-size: 0.8rem; color: var(--primary-color); font-weight: bold; margin-top: 5px;">${a.tipo === 'Concurso' ? 'Nº DE INSCRIÇÃO:' : 'SENHA:'} ${a.senha || '---'}</p>
+                            <p style="font-size: 0.8rem; margin-top: 5px; color: var(--text-muted);">
+                                <strong>Protocolo:</strong> <span class="${isEmergencia ? 'emergency-protocol' : ''}">${a.protocolo || a.id}</span>
+                            </p>
                         </div>
                         ${a.status.toLowerCase() === 'confirmado' ? `
                             <button onclick="gerarProtocoloAgendamento('${a.id}')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: var(--primary-color);">
@@ -869,6 +1007,7 @@
                         ` : ''}
                     </div>
                     <p style="color: var(--text-secondary); margin-bottom: 0.5rem;"><i class="fa-solid fa-laptop-medical"></i> Tipo: <strong>${a.tipo}</strong></p>
+                    ${sintomasHtml}
                     ${a.cartao_sus ? `<p style="margin-bottom: 0.5rem;"><strong>Cartão SUS:</strong> ${a.cartao_sus}</p>` : ''}
                     <div style="background: var(--bg-body); padding: 0.8rem; border-radius: 8px; border: 1px dashed var(--primary-color); margin-bottom: 1rem;">
                         <p style="color: var(--primary-color); font-weight: 700; margin-bottom: 0;">
@@ -974,6 +1113,7 @@
 
             const dataObjeto = (dataDate && dataTime) ? new Date(`${dataDate}T${dataTime}`) : null;
 
+            let motivoFinal = null;
             let assuntoFinal = document.getElementById('ag_assunto').value;
             if (document.getElementById('group_profissional').style.display !== 'none') {
                 const prof = document.getElementById('ag_profissional').value;
@@ -989,7 +1129,12 @@
                     alert("Selecione um Posto de Saúde.");
                     return;
                 }
-                assuntoFinal = `[${posto}] ` + assuntoFinal;
+                if (posto === 'HOSPITAL MARIA LOUREIRO') {
+                    assuntoFinal = `🚨 [EMERGÊNCIA] HOSPITAL MARIA LOUREIRO` + (assuntoFinal ? ': ' + assuntoFinal : '');
+                    motivoFinal = document.getElementById('ag_sintomas').value;
+                } else {
+                    assuntoFinal = `[${posto}] ` + assuntoFinal;
+                }
             }
 
             if (tipoAtend === "Bolsa Família") {
@@ -1084,7 +1229,7 @@
                     secretaria_id: parseInt(dropdown.value),
                     tipo: tipoAtend,
                     assunto: assuntoFinal,
-                    motivo: null,
+                    motivo: motivoFinal,
                     acompanhante: null,
                     data_hora: dataObjeto ? dataObjeto.toISOString() : '',
                     cartao_sus: document.getElementById('ag_cartao_sus').value

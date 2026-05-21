@@ -8,6 +8,38 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="css/admin-v2.css">
+    <style>
+    @keyframes pulse {
+        0% { transform: scale(1); }
+        50% { transform: scale(1.03); }
+        100% { transform: scale(1); }
+    }
+    .emergency-row {
+        background-color: #fef2f2 !important;
+        border-left: 5px solid #ef4444 !important;
+        animation: rowPulse 3s infinite;
+    }
+    @keyframes rowPulse {
+        0% { background-color: #fef2f2; }
+        50% { background-color: #fee2e2; }
+        100% { background-color: #fef2f2; }
+    }
+    .emergency-protocol {
+        color: #ef4444 !important;
+        font-weight: bold;
+        padding: 2px 6px;
+        background: #fef2f2;
+        border: 1px solid #fee2e2;
+        border-radius: 4px;
+        display: inline-block;
+    }
+    [data-theme="dark"] .emergency-protocol {
+        color: #ff6b6b !important;
+        background: #271c1c !important;
+        border-color: #4c1d1d !important;
+        text-shadow: 0 0 8px rgba(255, 107, 107, 0.6);
+    }
+    </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
@@ -126,9 +158,45 @@
                     <h3><i class="fa-solid fa-trophy" style="color: #a855f7;"></i> Inscrições de Concursos</h3>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Gerencie e confirme inscrições em concursos culturais e esportivos.</p>
                 </div>
-                <div style="display: flex; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button id="btnImprimirCamisas" class="btn btn-outline" style="border-color: #a855f7; color: #a855f7; display: none; align-items: center; gap: 6px;" onclick="imprimirResumoCamisas()">
+                        <i class="fa-solid fa-shirt"></i> Imprimir Camisas
+                    </button>
                     <input type="text" id="searchConcursos" class="btn btn-outline" placeholder="Buscar inscrição..." onkeyup="filterTable('concursosTableContainer', this.value)" style="min-width: 200px;">
                 </div>
+            </div>
+            <div id="concursosUploadContainer" style="display: none; margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow);">
+                <h4 style="margin-top: 0; margin-bottom: 1rem; color: #a855f7; display: flex; align-items: center; gap: 8px;">
+                    <i class="fa-solid fa-cloud-arrow-up"></i> Atualizar Documentos dos Concursos
+                </h4>
+                <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                    Selecione o concurso, carregue o novo regulamento ou termo de responsabilidade e clique em enviar para atualizar imediatamente na plataforma dos cidadãos.
+                </p>
+                <form id="formUploadConcursos" onsubmit="handleConcursosUpload(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: flex-end;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="uploadConcursoSelect" style="font-size: 0.8rem; font-weight: 600;">Selecione o Concurso</label>
+                        <select id="uploadConcursoSelect" required style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-primary);">
+                            <option value="Papa-Cuscuz">Papa-Cuscuz</option>
+                            <option value="Pé de Aço">Pé de Aço</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="uploadTipoDoc" style="font-size: 0.8rem; font-weight: 600;">Tipo de Documento</label>
+                        <select id="uploadTipoDoc" required style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-primary);">
+                            <option value="regulamento">Regulamento</option>
+                            <option value="termo">Termo de Responsabilidade</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="uploadFileDoc" style="font-size: 0.8rem; font-weight: 600;">Selecione o Arquivo (PDF ou TXT)</label>
+                        <input type="file" id="uploadFileDoc" accept=".pdf,.txt" required style="width: 100%; font-size: 0.85rem; padding: 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-primary);">
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary" style="background: #a855f7; border-color: #a855f7; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; padding: 10px;">
+                            <i class="fa-solid fa-upload"></i> Enviar Documento
+                        </button>
+                    </div>
+                </form>
             </div>
             <div id="concursosTableContainer"></div>
         </section>

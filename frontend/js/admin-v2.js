@@ -551,6 +551,7 @@ async function loadAgendamentos() {
             let html = `<table class="data-table"><thead><tr><th>Protocolo</th><th>Senha</th><th>Assunto</th><th>Cidadão</th><th>Data/Hora</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(a => {
                 const s = a.status.toLowerCase();
+                const isEmergencia = a.assunto && a.assunto.includes('EMERGÊNCIA');
                 
                 let anexosButtons = '';
                 if (a.anexo) {
@@ -566,11 +567,17 @@ async function loadAgendamentos() {
                     });
                 }
 
+                const assuntoLabel = isEmergencia ? `<span style="background-color: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; display: inline-block; animation: pulse 2s infinite; margin-right: 5px;"><i class="fa-solid fa-truck-medical"></i> EMERGÊNCIA</span> ${a.assunto}` : a.assunto;
+                const rowClass = isEmergencia ? 'class="emergency-row"' : '';
+
                 html += `
-                    <tr>
-                        <td><strong>${a.protocolo || a.id}</strong></td>
+                    <tr ${rowClass}>
+                        <td><strong class="${isEmergencia ? 'emergency-protocol' : ''}">${a.protocolo || a.id}</strong></td>
                         <td><span style="font-weight: bold; color: var(--primary);">${a.senha || '---'}</span></td>
-                        <td>${a.assunto}</td>
+                        <td>
+                            ${assuntoLabel}
+                            ${a.motivo ? `<div style="font-size: 0.8rem; color: #ef4444; margin-top: 4px; font-weight: 500;"><i class="fa-solid fa-notes-medical"></i> <strong>Sintomas:</strong> ${a.motivo}</div>` : ''}
+                        </td>
                         <td>${a.usuario_nome || 'N/A'}</td>
                         <td>${new Date(a.data_hora).toLocaleString()}</td>
                         <td><span class="badge badge-${s === 'confirmado' ? 'done' : (s === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
@@ -597,6 +604,18 @@ async function loadAgendamentos() {
 
 async function loadConcursos() {
     try {
+        const user = getUserInfo();
+        const isCulturaEsporte = currentRole === 'admin' || (currentRole === 'subadmin' && user && user.secretaria_nome && user.secretaria_nome.toUpperCase().includes('CULTURA'));
+        const uploadContainer = document.getElementById('concursosUploadContainer');
+        if (uploadContainer) {
+            uploadContainer.style.display = isCulturaEsporte ? 'block' : 'none';
+        }
+
+        const btnImprimir = document.getElementById('btnImprimirCamisas');
+        if (btnImprimir) {
+            btnImprimir.style.display = isCulturaEsporte ? 'inline-flex' : 'none';
+        }
+
         const res = await fetch(`${API_URL}/agendamentos`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
         if (res.ok) {
             let list = await res.json();
@@ -1533,3 +1552,391 @@ async function imprimirRelatorioSecretaria(secId, secNome) {
         loadingBtn.innerHTML = originalContent;
     }
 }
+
+async function handleConcursosUpload(e) {
+    e.preventDefault();
+    const concurso = document.getElementById('uploadConcursoSelect').value;
+    const tipoDoc = document.getElementById('uploadTipoDoc').value;
+    const fileInput = document.getElementById('uploadFileDoc');
+    
+    if (fileInput.files.length === 0) {
+        alert("Por favor, selecione um arquivo.");
+        return;
+    }
+    
+    const file = fileInput.files[0];
+    const formData = new FormData();
+    formData.append("concurso", concurso);
+    formData.append("tipo_documento", tipoDoc);
+    formData.append("arquivo", file);
+    
+    try {
+        const btn = e.target.querySelector('button[type="submit"]');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Enviando...`;
+        
+        const res = await fetch(`${API_URL}/agendamentos/concursos/documentos`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: formData
+        });
+        
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+        
+        if (res.ok) {
+            alert("Documento enviado e atualizado com sucesso!");
+            fileInput.value = '';
+        } else {
+            const err = await res.json();
+            alert(`Erro no upload: ${err.detail || 'Erro desconhecido'}`);
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Erro de conexão ao enviar o documento.");
+    }
+}
+
+window.handleConcursosUpload = handleConcursosUpload;
+
+async function imprimirResumoCamisas() {
+    try {
+        const res = await fetch(`${API_URL}/agendamentos/concurso/camisas`, {
+            headers: {
+                'Authorization': `Bearer ${getToken()}`
+            }
+        });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            alert("Erro ao buscar dados de camisas: " + (err.detail || "Erro de permissão ou conexão."));
+            return;
+        }
+        
+        const data = await res.json();
+        
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert("Pop-up bloqueado. Por favor, permita pop-ups para este site para abrir a impressão.");
+            return;
+        }
+        
+        printWindow.document.write(`
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório Consolidado de Camisas - Pé de Aço</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Outfit', 'Inter', sans-serif;
+            color: #1e293b;
+            margin: 0;
+            padding: 2rem;
+            background: #ffffff;
+        }
+        .header {
+            text-align: center;
+            border-bottom: 2px solid #a855f7;
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            font-size: 2rem;
+            color: #7c3aed;
+            margin: 0;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+        .header p {
+            font-size: 0.95rem;
+            color: #64748b;
+            margin: 0.5rem 0 0 0;
+        }
+        .meta-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        .meta-card {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 1.2rem;
+            text-align: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        .meta-card h3 {
+            font-size: 0.85rem;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin: 0 0 0.5rem 0;
+        }
+        .meta-card .value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: #7c3aed;
+        }
+        .tables-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.95rem;
+        }
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        th {
+            background: #f8fafc;
+            color: #475569;
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+        .section-title {
+            font-size: 1.2rem;
+            color: #1e293b;
+            margin: 0 0 1rem 0;
+            font-weight: 600;
+            border-left: 4px solid #a855f7;
+            padding-left: 0.5rem;
+        }
+        .summary-box {
+            background: #fdf4ff;
+            border: 1px solid #f3e8ff;
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-top: 2rem;
+        }
+        .summary-box h2 {
+            font-size: 1.3rem;
+            color: #7c3aed;
+            margin: 0 0 1rem 0;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.8rem 0;
+            border-bottom: 1px dashed #e9d5ff;
+        }
+        .summary-row:last-child {
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .summary-row span {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+        .summary-row strong {
+            font-size: 1.2rem;
+            color: #7c3aed;
+        }
+        .footer {
+            margin-top: 4rem;
+            text-align: center;
+            font-size: 0.85rem;
+            color: #94a3b8;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 1.5rem;
+        }
+        .signature-section {
+            margin-top: 3rem;
+            display: flex;
+            justify-content: space-around;
+        }
+        .signature-line {
+            width: 250px;
+            border-top: 1px solid #94a3b8;
+            text-align: center;
+            padding-top: 0.5rem;
+            font-size: 0.9rem;
+            color: #475569;
+        }
+        @media print {
+            body {
+                padding: 0;
+            }
+            .meta-card {
+                background: none !important;
+                border: 1px solid #cbd5e1 !important;
+            }
+            th {
+                background: #f1f5f9 !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .summary-box {
+                background: #faf5ff !important;
+                border: 1px solid #e9d5ff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🏆 Relatório Consolidado de Camisas</h1>
+        <p>CONCURSO ESPORTIVO: PÉ DE AÇO | COLÔNIA LEOPOLDINA</p>
+    </div>
+
+    <div class="meta-grid">
+        <div class="meta-card">
+            <h3>Total de Inscritos</h3>
+            <div class="value">\${data.total_inscritos}</div>
+        </div>
+        <div class="meta-card">
+            <h3>Inscrições Ativas</h3>
+            <div class="value">\${data.total_ativos}</div>
+        </div>
+        <div class="meta-card">
+            <h3>Data de Emissão</h3>
+            <div class="value" style="font-size: 1.2rem; margin-top: 0.5rem;">\${new Date().toLocaleDateString('pt-BR')}</div>
+        </div>
+    </div>
+
+    <div class="tables-container">
+        <div>
+            <h3 class="section-title">Camisas dos Inscritos</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tamanho</th>
+                        <th style="text-align: right;">Quantidade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>P</td>
+                        <td style="text-align: right; font-weight: bold;">\${data.inscritos_camisas.P}</td>
+                    </tr>
+                    <tr>
+                        <td>M</td>
+                        <td style="text-align: right; font-weight: bold;">\${data.inscritos_camisas.M}</td>
+                    </tr>
+                    <tr>
+                        <td>G</td>
+                        <td style="text-align: right; font-weight: bold;">\${data.inscritos_camisas.G}</td>
+                    </tr>
+                    <tr>
+                        <td>GG</td>
+                        <td style="text-align: right; font-weight: bold;">\${data.inscritos_camisas.GG}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div>
+            <h3 class="section-title">Camisas dos Parceiros</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Tamanho</th>
+                        <th style="text-align: right;">Quantidade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>P</td>
+                        <td style="text-align: right; font-weight: bold;">\${data.parceiros_camisas.P}</td>
+                    </tr>
+                    <tr>
+                        <td>M</td>
+                        <td style="text-align: right; font-weight: bold;">\${data.parceiros_camisas.M}</td>
+                    </tr>
+                    <tr>
+                        <td>G</td>
+                        <td style="text-align: right; font-weight: bold;">\${data.parceiros_camisas.G}</td>
+                    </tr>
+                    <tr>
+                        <td>GG</td>
+                        <td style="text-align: right; font-weight: bold;">\${data.parceiros_camisas.GG}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="summary-box">
+        <h2>👕 Total Geral Consolidado (Cidadão + Parceiro)</h2>
+        <div class="summary-row">
+            <span>Tamanho P</span>
+            <strong>\${data.inscritos_camisas.P + data.parceiros_camisas.P} unidades</strong>
+        </div>
+        <div class="summary-row">
+            <span>Tamanho M</span>
+            <strong>\${data.inscritos_camisas.M + data.parceiros_camisas.M} unidades</strong>
+        </div>
+        <div class="summary-row">
+            <span>Tamanho G</span>
+            <strong>\${data.inscritos_camisas.G + data.parceiros_camisas.G} unidades</strong>
+        </div>
+        <div class="summary-row">
+            <span>Tamanho GG</span>
+            <strong>\${data.inscritos_camisas.GG + data.parceiros_camisas.GG} unidades</strong>
+        </div>
+        <div class="summary-row" style="border-top: 2px solid #7c3aed; padding-top: 1rem; margin-top: 0.5rem;">
+            <span style="font-size: 1.1rem; font-weight: bold; color: #7c3aed;">TOTAL CONSOLIDADO DE CAMISAS</span>
+            <strong style="font-size: 1.4rem; color: #7c3aed;">\${
+                data.inscritos_camisas.P + data.parceiros_camisas.P +
+                data.inscritos_camisas.M + data.parceiros_camisas.M +
+                data.inscritos_camisas.G + data.parceiros_camisas.G +
+                data.inscritos_camisas.GG + data.parceiros_camisas.GG
+            } unidades</strong>
+        </div>
+    </div>
+
+    <div class="signature-section">
+        <div class="signature-line">
+            Secretaria de Cultura e Esporte
+        </div>
+        <div class="signature-line">
+            Administração Geral
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Colônia Digital &copy; 2026 - Prefeitura de Colônia Leopoldina. Todos os direitos reservados.</p>
+    </div>
+
+    <script>
+        window.onload = function() {
+            setTimeout(function() {
+                window.print();
+            }, 300);
+        };
+    </script>
+</body>
+</html>
+        `);
+        printWindow.document.close();
+    } catch (e) {
+        console.error("Erro ao imprimir resumo:", e);
+        alert("Ocorreu um erro ao gerar a impressão.");
+    }
+}
+
+window.imprimirResumoCamisas = imprimirResumoCamisas;
+
