@@ -721,6 +721,7 @@ async function updateAgendamento(id, status) {
         if (res.ok) {
             alert("Status atualizado com sucesso!");
             loadAgendamentos();
+            loadConcursos();
             loadDashboard(); // Update metrics too
         } else {
             const err = await res.json();
