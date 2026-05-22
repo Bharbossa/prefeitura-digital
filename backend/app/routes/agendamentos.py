@@ -234,6 +234,7 @@ def criar_agendamento_concurso(
     notify_admins_of_new_record(db_sql, secretaria_id, msg)
 
     novo_agendamento.usuario_nome = current_user.nome
+    novo_agendamento.usuario_endereco = getattr(current_user, 'endereco', "")
     return novo_agendamento
 
 
@@ -254,9 +255,10 @@ def listar_meus_agendamentos(current_user = Depends(get_current_user), db_sql: S
     else:
         raise HTTPException(status_code=403, detail="Não autorizado.")
 
-    # Populate usuario_nome for response
+    # Populate usuario_nome and usuario_endereco for response
     for r in results:
         r.usuario_nome = r.usuario.nome if r.usuario else f"Cidadão #{r.usuario_id}"
+        r.usuario_endereco = r.usuario.endereco if r.usuario else ""
     return results
 
 
@@ -346,6 +348,7 @@ def obter_agendamento(agend_id: int, current_user = Depends(get_current_user), d
         raise HTTPException(status_code=403, detail="Acesso negado.")
 
     agend.usuario_nome = agend.usuario.nome if agend.usuario else f"Cidadão #{agend.usuario_id}"
+    agend.usuario_endereco = agend.usuario.endereco if agend.usuario else ""
     return agend
 
 @router.patch("/{agend_id}/status")

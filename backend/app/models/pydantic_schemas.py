@@ -126,6 +126,7 @@ class AgendamentoResponse(AgendamentoBase):
     senha: Optional[str] = None
     usuario_id: int
     usuario_nome: Optional[str] = None
+    usuario_endereco: Optional[str] = None
     status: str
     anexo: Optional[str] = None
     cartao_sus: Optional[str] = None

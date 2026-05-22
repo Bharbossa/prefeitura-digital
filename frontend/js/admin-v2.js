@@ -742,6 +742,12 @@ async function imprimirAgendamento(id) {
             const a = data.find(i => i.id == id);
             if (!a) return;
             
+            let parceiroNome = '';
+            if (a.assunto && a.assunto.includes('Parceiro:')) {
+                const match = a.assunto.match(/Parceiro:\s*([^|]+)/);
+                if (match) parceiroNome = match[1].trim();
+            }
+            
             const isConcurso = a.tipo === 'Concurso';
             const titleText = isConcurso ? 'COMPROVANTE DE INSCRIÇÃO' : 'COMPROVANTE DE AGENDAMENTO';
             const iconHeader = isConcurso ? '🏆' : '📌';
@@ -788,7 +794,9 @@ async function imprimirAgendamento(id) {
                     <div class="content">
                         <div class="row"><span class="label">PROTOCOLO:</span> <strong>${a.protocolo || a.id}</strong></div>
                         ${a.senha ? `<div class="row"><span class="label" style="color: #2563eb;">${isConcurso ? 'Nº DE INSCRIÇÃO:' : 'SENHA:'}</span> <strong style="font-size: 1.2rem; color: #2563eb;">${a.senha}</strong></div>` : ''}
-                        <div class="row"><span class="label">CIDADÃO:</span> ${a.usuario_nome || 'N/A'}</div>
+                        <div class="row"><span class="label">CIDADÃO:</span> <strong>${a.usuario_nome || 'N/A'}</strong></div>
+                        <div class="row"><span class="label">ENDEREÇO:</span> ${a.usuario_endereco || 'Não informado'}</div>
+                        ${parceiroNome ? `<div class="row"><span class="label">PARCEIRO(A):</span> <strong>${parceiroNome}</strong></div>` : ''}
                         <div class="row"><span class="label">ASSUNTO:</span> ${a.assunto}</div>
                         ${a.motivo ? `<div class="row" style="white-space: pre-line;"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
                         ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
