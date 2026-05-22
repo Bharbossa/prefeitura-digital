@@ -743,8 +743,8 @@ async function imprimirAgendamento(id) {
             if (!a) return;
             
             let parceiroNome = '';
-            if (a.assunto && a.assunto.includes('Parceiro:')) {
-                const match = a.assunto.match(/Parceiro:\s*([^|]+)/);
+            if (a.assunto) {
+                const match = a.assunto.match(/(?:^|\|)\s*parceiro(?:\(a\))?:\s*([^|]+)/i);
                 if (match) parceiroNome = match[1].trim();
             }
             
@@ -794,7 +794,7 @@ async function imprimirAgendamento(id) {
                     <div class="content">
                         <div class="row"><span class="label">PROTOCOLO:</span> <strong>${a.protocolo || a.id}</strong></div>
                         ${a.senha ? `<div class="row"><span class="label" style="color: #2563eb;">${isConcurso ? 'Nº DE INSCRIÇÃO:' : 'SENHA:'}</span> <strong style="font-size: 1.2rem; color: #2563eb;">${a.senha}</strong></div>` : ''}
-                        <div class="row"><span class="label">CIDADÃO:</span> <strong>${a.usuario_nome || 'N/A'}</strong></div>
+                        <div class="row"><span class="label">CIDADÃO:</span> <strong>${a.usuario_nome || 'N/A'}${isConcurso && parceiroNome ? ` e ${parceiroNome}` : ''}</strong></div>
                         <div class="row"><span class="label">ENDEREÇO:</span> ${a.usuario_endereco || 'Não informado'}</div>
                         ${parceiroNome ? `<div class="row"><span class="label">PARCEIRO(A):</span> <strong>${parceiroNome}</strong></div>` : ''}
                         <div class="row"><span class="label">ASSUNTO:</span> ${a.assunto}</div>
