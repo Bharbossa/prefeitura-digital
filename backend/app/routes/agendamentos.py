@@ -145,6 +145,53 @@ def criar_agendamento_concurso(
     if getattr(current_user, "tipo_usuario_verificado", "") != "cidadao":
         raise HTTPException(status_code=403, detail="Apenas cidadãos podem criar inscrições pelo perfil.")
 
+    # Restrição de casal único no Concurso Pé de Aço
+    if assunto and "Pé de Aço" in assunto:
+        import re
+        def clean_cpf(c: str) -> str:
+            if not c:
+                return ""
+            return "".join([char for char in c if char.isdigit()])
+
+        cidadao_cpf = clean_cpf(current_user.cpf)
+        
+        parceiro_cpf = ""
+        if motivo:
+            match_p = re.search(r'CPF Parceiro\(a\):\s*([0-9.-]+)', motivo)
+            if match_p:
+                parceiro_cpf = clean_cpf(match_p.group(1))
+
+        # Buscar todas as inscrições ativas (não canceladas) no Concurso Pé de Aço
+        from app.models.schema import Usuario
+        concursos_ativos = db_sql.query(Agendamento).join(Usuario).filter(
+            Agendamento.tipo == "Concurso",
+            Agendamento.assunto.like("%Pé de Aço%"),
+            Agendamento.status != "Cancelado"
+        ).all()
+
+        for c_ativo in concursos_ativos:
+            c_cidadao_cpf = clean_cpf(c_ativo.usuario.cpf if c_ativo.usuario else "")
+            
+            c_parceiro_cpf = ""
+            if c_ativo.motivo:
+                match_c = re.search(r'CPF Parceiro\(a\):\s*([0-9.-]+)', c_ativo.motivo)
+                if match_c:
+                    c_parceiro_cpf = clean_cpf(match_c.group(1))
+
+            # Valida duplicidade do CPF do cidadão solicitante
+            if cidadao_cpf and (cidadao_cpf == c_cidadao_cpf or cidadao_cpf == c_parceiro_cpf):
+                raise HTTPException(
+                    status_code=400, 
+                    detail="Seu CPF já está inscrito no concurso Pé de Aço (como candidato ou parceiro)."
+                )
+
+            # Valida duplicidade do CPF do parceiro
+            if parceiro_cpf and (parceiro_cpf == c_cidadao_cpf or parceiro_cpf == c_parceiro_cpf):
+                raise HTTPException(
+                    status_code=400, 
+                    detail="O CPF do seu parceiro já está inscrito no concurso Pé de Aço com outra pessoa."
+                )
+
     # Gerar número de inscrição sequencial crescente (INS-0001, INS-0002, etc.)
     count = db_sql.query(Agendamento).filter(Agendamento.tipo == "Concurso").count()
     senha = f"INS-{count + 1:04d}"
