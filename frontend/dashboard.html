@@ -386,7 +386,7 @@
                         <label style="display: block; margin-top: 10px; font-size: 0.85rem; font-weight: 600;">Título de Eleitor do Parceiro(a)</label>
                         <input type="text" id="ag_concurso_parceiro_titulo" placeholder="Ex: 123456789012" style="margin-bottom: 15px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; font-size: 0.95rem; background: var(--bg-body); color: var(--text-primary); box-sizing: border-box;">
 
-                        <label style="display: block; cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 8px 12px; border-radius: 6px; text-align: center; color: #495057; font-weight: bold; font-size: 0.85rem; transition: background 0.2s;" id="lbl_ag_concurso_parceiro_titulo_foto">
+                        <label for="ag_concurso_parceiro_titulo_foto" style="display: block; cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 8px 12px; border-radius: 6px; text-align: center; color: #495057; font-weight: bold; font-size: 0.85rem; transition: background 0.2s;" id="lbl_ag_concurso_parceiro_titulo_foto">
                             <i class="fa-solid fa-image"></i> Enviar Foto do Título do Parceiro(a)
                         </label>
                         <input type="file" id="ag_concurso_parceiro_titulo_foto" accept="image/*" style="display: none;" onchange="document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').innerHTML = '<i class=\'fa-solid fa-check\'></i> Foto Selecionada: ' + this.files[0].name; document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').style.background = '#d1e7dd'; document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').style.color = '#0f5132';">
