@@ -651,7 +651,10 @@ async function loadConcursos() {
                         <td><span style="font-weight: bold; color: #a855f7; font-size: 1.1rem;">${a.senha || '---'}</span></td>
                         <td><small>${a.protocolo || a.id}</small></td>
                         <td style="font-weight: bold; color: var(--primary);">${a.usuario_nome || 'N/A'}</td>
-                        <td>${a.assunto}</td>
+                        <td>
+                            ${a.assunto}
+                            ${a.motivo ? `<div style="font-size: 0.85rem; color: #a855f7; margin-top: 5px; font-weight: 500; white-space: pre-line;"><i class="fa-solid fa-id-card"></i> <strong>Dados Extra:</strong><br>${a.motivo}</div>` : ''}
+                        </td>
                         <td>${new Date(a.data_hora).toLocaleString()}</td>
                         <td><span class="badge badge-${s === 'confirmado' ? 'done' : (s === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
                         <td>
@@ -742,7 +745,23 @@ async function imprimirAgendamento(id) {
             const titleText = isConcurso ? 'COMPROVANTE DE INSCRIÇÃO' : 'COMPROVANTE DE AGENDAMENTO';
             const iconHeader = isConcurso ? '🏆' : '📌';
             const dateLabel = isConcurso ? 'DATA DE INSCRIÇÃO:' : 'HORÁRIO MARCADO:';
-            const badgeText = isConcurso ? 'INSCRIÇÃO CONFIRMADA' : 'AGENDAMENTO CONFIRMADO';
+            
+            let statusText = 'CONFIRMADO';
+            let statusColor = '#10b981'; // Green
+            let stampColor = '#10b981';
+            let badgeText = isConcurso ? 'INSCRIÇÃO CONFIRMADA' : 'AGENDAMENTO CONFIRMADO';
+            
+            if (a.status.toLowerCase() === 'pendente') {
+                statusText = 'PENDENTE';
+                statusColor = '#d97706'; // Amber-600
+                stampColor = '#d97706';
+                badgeText = isConcurso ? 'INSCRIÇÃO PENDENTE' : 'AGENDAMENTO PENDENTE';
+            } else if (a.status.toLowerCase() === 'cancelado') {
+                statusText = 'CANCELADO';
+                statusColor = '#dc2626'; // Red-600
+                stampColor = '#dc2626';
+                badgeText = isConcurso ? 'INSCRIÇÃO CANCELADA' : 'AGENDAMENTO CANCELADO';
+            }
 
             const printWindow = window.open('', '_blank');
             printWindow.document.write(`
@@ -756,7 +775,7 @@ async function imprimirAgendamento(id) {
                         .row { display: flex; margin-bottom: 15px; }
                         .label { width: 140px; font-weight: 700; color: #64748b; }
                         .stamp { margin-top: 40px; text-align: right; }
-                        .badge { padding: 10px 20px; border: 2px solid #10b981; color: #10b981; font-weight: 800; border-radius: 8px; display: inline-block; transform: rotate(-5deg); }
+                        .badge { padding: 10px 20px; border: 2px solid ${stampColor}; color: ${stampColor}; font-weight: 800; border-radius: 8px; display: inline-block; transform: rotate(-5deg); }
                         @media print { .no-print { display: none; } }
                     </style>
                 </head>
@@ -773,8 +792,8 @@ async function imprimirAgendamento(id) {
                         ${a.motivo ? `<div class="row" style="white-space: pre-line;"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
                         ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
                         ${a.acompanhante ? `<div class="row"><span class="label">ACOMPANHANTE:</span> ${a.acompanhante}</div>` : ''}
-                        <div class="row" style="background: #dcfce7; padding: 10px; border-radius: 8px;"><span class="label">${dateLabel}</span> <strong style="font-size: 1.2rem; color: #166534;">${new Date(a.data_hora).toLocaleString()}</strong></div>
-                        <div class="row"><span class="label">SITUAÇÃO:</span> CONFIRMADO</div>
+                        <div class="row" style="background: #f1f5f9; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;"><span class="label">${dateLabel}</span> <strong style="font-size: 1.2rem; color: #1e293b;">${new Date(a.data_hora).toLocaleString()}</strong></div>
+                        <div class="row"><span class="label">SITUAÇÃO:</span> <strong style="color: ${statusColor};">${statusText}</strong></div>
                     </div>
                     <div class="stamp"><div class="badge">${badgeText}</div></div>
                     <div style="text-align: center; margin-top: 40px;">

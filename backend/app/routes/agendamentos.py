@@ -138,6 +138,7 @@ def criar_agendamento_concurso(
     motivo: Optional[str] = Form(None),
     foto: Optional[UploadFile] = File(None),
     pdf: Optional[UploadFile] = File(None),
+    foto_titulo: Optional[UploadFile] = File(None),
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
 ):
@@ -156,6 +157,9 @@ def criar_agendamento_concurso(
     if pdf and pdf.filename:
         pdf_path = save_upload_file(pdf)
         anexos.append(pdf_path)
+    if foto_titulo and foto_titulo.filename:
+        foto_titulo_path = save_upload_file(foto_titulo)
+        anexos.append(foto_titulo_path)
     
     anexo_str = ",".join(anexos) if anexos else None
 

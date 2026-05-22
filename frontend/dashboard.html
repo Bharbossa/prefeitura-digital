@@ -373,6 +373,25 @@
                         <option value="GG">GG</option>
                     </select>
 
+                    <!-- Campos adicionais específicos do Pé de Aço (RG, CPF, Título e Foto do Título) -->
+                    <div id="concurso_pe_de_aco_fields" style="display: none; border: 1px dashed #a855f7; padding: 12px; border-radius: 8px; margin-top: 15px; margin-bottom: 15px; background: rgba(168, 85, 247, 0.03);">
+                        <label style="font-weight: bold; color: #a855f7; display: block; margin-bottom: 8px;"><i class="fa-solid fa-users"></i> Dados Completos do Parceiro(a)</label>
+                        
+                        <label style="display: block; margin-top: 10px; font-size: 0.85rem; font-weight: 600;">RG do Parceiro(a)</label>
+                        <input type="text" id="ag_concurso_parceiro_rg" placeholder="Ex: 1234567-SSP/AL" style="margin-bottom: 10px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; font-size: 0.95rem; background: var(--bg-body); color: var(--text-primary); box-sizing: border-box;">
+
+                        <label style="display: block; margin-top: 10px; font-size: 0.85rem; font-weight: 600;">CPF do Parceiro(a)</label>
+                        <input type="text" id="ag_concurso_parceiro_cpf" placeholder="000.000.000-00" style="margin-bottom: 10px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; font-size: 0.95rem; background: var(--bg-body); color: var(--text-primary); box-sizing: border-box;" maxlength="14">
+
+                        <label style="display: block; margin-top: 10px; font-size: 0.85rem; font-weight: 600;">Título de Eleitor do Parceiro(a)</label>
+                        <input type="text" id="ag_concurso_parceiro_titulo" placeholder="Ex: 123456789012" style="margin-bottom: 15px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; font-size: 0.95rem; background: var(--bg-body); color: var(--text-primary); box-sizing: border-box;">
+
+                        <label style="display: block; cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 8px 12px; border-radius: 6px; text-align: center; color: #495057; font-weight: bold; font-size: 0.85rem; transition: background 0.2s;" id="lbl_ag_concurso_parceiro_titulo_foto">
+                            <i class="fa-solid fa-image"></i> Enviar Foto do Título do Parceiro(a)
+                        </label>
+                        <input type="file" id="ag_concurso_parceiro_titulo_foto" accept="image/*" style="display: none;" onchange="document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').innerHTML = '<i class=\'fa-solid fa-check\'></i> Foto Selecionada: ' + this.files[0].name; document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').style.background = '#d1e7dd'; document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').style.color = '#0f5132';">
+                    </div>
+
                     <label style="margin-top: 10px; display: block;">Enviar Foto (Opcional - JPEG, PNG)</label>
                     <input type="file" id="ag_concurso_foto" accept="image/*" style="margin-bottom: 10px;">
                     
@@ -459,6 +478,27 @@
                 document.getElementById('ag_concurso_titulo').required = false;
                 document.getElementById('ag_concurso_parceiro').required = false;
                 document.getElementById('ag_concurso_camisa_parceiro').required = false;
+                
+                // Reset específicos do Pé de Aço
+                document.getElementById('ag_concurso_parceiro_rg').value = '';
+                document.getElementById('ag_concurso_parceiro_rg').required = false;
+                document.getElementById('ag_concurso_parceiro_cpf').value = '';
+                document.getElementById('ag_concurso_parceiro_cpf').required = false;
+                document.getElementById('ag_concurso_parceiro_titulo').value = '';
+                document.getElementById('ag_concurso_parceiro_titulo').required = false;
+                document.getElementById('ag_concurso_parceiro_titulo_foto').value = '';
+                
+                const lbl = document.getElementById('lbl_ag_concurso_parceiro_titulo_foto');
+                if (lbl) {
+                    lbl.innerHTML = '<i class="fa-solid fa-image"></i> Enviar Foto do Título do Parceiro(a)';
+                    lbl.style.background = '#e9ecef';
+                    lbl.style.color = '#495057';
+                }
+                
+                const peDeAcoFields = document.getElementById('concurso_pe_de_aco_fields');
+                if (peDeAcoFields) {
+                    peDeAcoFields.style.display = 'none';
+                }
             }
         }
 
@@ -827,6 +867,21 @@
             } else {
                 linkTermo.style.display = 'none';
             }
+
+            // Controle dos campos específicos do Pé de Aço
+            const peDeAcoFields = document.getElementById('concurso_pe_de_aco_fields');
+            const isPeDeAco = (concurso === 'Pé de Aço');
+            if (peDeAcoFields) {
+                peDeAcoFields.style.display = isPeDeAco ? 'block' : 'none';
+            }
+            
+            const rgInput = document.getElementById('ag_concurso_parceiro_rg');
+            const cpfInput = document.getElementById('ag_concurso_parceiro_cpf');
+            const tituloInput = document.getElementById('ag_concurso_parceiro_titulo');
+            
+            if (rgInput) rgInput.required = isPeDeAco;
+            if (cpfInput) cpfInput.required = isPeDeAco;
+            if (tituloInput) tituloInput.required = isPeDeAco;
         }
 
         async function loadSecretarias() {
@@ -1060,9 +1115,9 @@
                                 <strong>Protocolo:</strong> <span class="${isEmergencia ? 'emergency-protocol' : ''}">${a.protocolo || a.id}</span>
                             </p>
                         </div>
-                        ${a.status.toLowerCase() === 'confirmado' ? `
-                            <button onclick="gerarProtocoloAgendamento('${a.id}')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: var(--primary-color);">
-                                <i class="fa-solid fa-print"></i> Protocolo
+                        ${(a.status.toLowerCase() === 'confirmado' || categoria === 'concursos') ? `
+                            <button onclick="gerarProtocoloAgendamento('${a.id}')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.3rem 0.6rem; background: ${categoria === 'concursos' ? '#a855f7' : 'var(--primary-color)'};">
+                                <i class="fa-solid fa-print"></i> Ficha de Inscrição
                             </button>
                         ` : ''}
                     </div>
@@ -1230,11 +1285,25 @@
                 let extras = [];
                 if (camisa) extras.push(`Camisa: ${camisa}`);
                 if (titulo) extras.push(`Título: ${titulo}`);
-                if (parceiro) extras.push(`Parceiro(a): ${parceiro}`);
-                if (camisaParceiro) extras.push(`Camisa Parceiro(a): ${camisaParceiro}`);
+                if (parceiro) extras.push(`Parceiro: ${parceiro}`);
+                if (camisaParceiro) extras.push(`Camisa Parceiro: ${camisaParceiro}`);
+                
                 const extraStr = extras.length > 0 ? ` | ${extras.join(' | ')}` : '';
 
-                assuntoFinal = `[Concurso: ${concurso}] Nome: ${userName} | CPF: ${userCPF}${extraStr}` + (assuntoFinal ? ` - ${assuntoFinal}` : '');
+                // Mantém assunto curto para evitar o limite de 200 caracteres, garantindo que
+                // a contagem de camisas continue funcionando perfeitamente.
+                assuntoFinal = `[Concurso: ${concurso}]${extraStr}`;
+
+                let extrasMotivo = [];
+                if (concurso === 'Pé de Aço') {
+                    const parceiroRg = document.getElementById('ag_concurso_parceiro_rg').value;
+                    const parceiroCpf = document.getElementById('ag_concurso_parceiro_cpf').value;
+                    const parceiroTitulo = document.getElementById('ag_concurso_parceiro_titulo').value;
+                    if (parceiroRg) extrasMotivo.push(`RG Parceiro(a): ${parceiroRg}`);
+                    if (parceiroCpf) extrasMotivo.push(`CPF Parceiro(a): ${parceiroCpf}`);
+                    if (parceiroTitulo) extrasMotivo.push(`Título Parceiro(a): ${parceiroTitulo}`);
+                }
+                motivoFinal = extrasMotivo.join('\n');
             }
 
             if (tipoAtend === "Concurso") {
@@ -1242,12 +1311,15 @@
                 formData.append('secretaria_id', parseInt(dropdown.value));
                 formData.append('tipo', tipoAtend);
                 formData.append('assunto', assuntoFinal);
-                formData.append('motivo', '');
+                formData.append('motivo', motivoFinal || '');
                 
                 const foto = document.getElementById('ag_concurso_foto').files[0];
                 const pdf = document.getElementById('ag_concurso_pdf').files[0];
+                const fotoTitulo = document.getElementById('ag_concurso_parceiro_titulo_foto').files[0];
+                
                 if (foto) formData.append('foto', foto);
                 if (pdf) formData.append('pdf', pdf);
+                if (fotoTitulo) formData.append('foto_titulo', fotoTitulo);
 
                 try {
                     const res = await fetch(`${API_URL}/agendamentos/concurso`, {
@@ -1410,6 +1482,23 @@
 
                     const dataCriacao = new Date(a.criado_em).toLocaleDateString('pt-BR', optDate) + ' ' + new Date(a.criado_em).toLocaleTimeString('pt-BR', optTime);
 
+                    let statusText = 'CONFIRMADO';
+                    let statusColor = '#10b981'; // Green
+                    let statusIcon = '✅';
+                    let stampColor = '#2563eb'; // Blue default
+                    
+                    if (a.status.toLowerCase() === 'pendente') {
+                        statusText = 'PENDENTE';
+                        statusColor = '#f59e0b'; // Amber
+                        statusIcon = '⏳';
+                        stampColor = '#f59e0b';
+                    } else if (a.status.toLowerCase() === 'cancelado') {
+                        statusText = 'CANCELADO';
+                        statusColor = '#ef4444'; // Red
+                        statusIcon = '❌';
+                        stampColor = '#ef4444';
+                    }
+
                     const printWindow = window.open('', '_blank');
                     printWindow.document.write(`
                         <html>
@@ -1418,13 +1507,13 @@
                             <style>
                                 body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; color: #1e293b; }
                                 .header { text-align: center; margin-bottom: 40px; border-bottom: 4px solid #10b981; padding-bottom: 20px; }
-                                .content { background: #f0fdf4; padding: 30px; border-radius: 12px; border: 1px solid #dcfce7; }
+                                .content { background: #f8fafc; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; }
                                 .row { display: flex; margin-bottom: 15px; align-items: flex-start; }
-                                .label { min-width: 180px; font-weight: 700; color: #166534; }
+                                .label { min-width: 180px; font-weight: 700; color: #1e293b; }
                                 .stamp { margin-top: 40px; text-align: right; }
-                                .badge { padding: 10px 20px; border: 2px solid #2563eb; color: #2563eb; font-weight: 800; border-radius: 8px; display: inline-block; transform: rotate(-5deg); }
-                                .highlight { background: #dcfce7; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; }
-                                .section-title { font-weight: 700; color: #166534; font-size: 1rem; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #dcfce7; padding-bottom: 5px; }
+                                .badge { padding: 10px 20px; border: 2px solid ${stampColor}; color: ${stampColor}; font-weight: 800; border-radius: 8px; display: inline-block; transform: rotate(-5deg); }
+                                .highlight { background: #f1f5f9; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
+                                .section-title { font-weight: 700; color: #1e293b; font-size: 1rem; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; }
                                 @media print { .no-print { display: none; } }
                             </style>
                         </head>
@@ -1436,7 +1525,8 @@
                             <div class="content">
                                 <div class="row"><span class="label">PROTOCOLO:</span> <strong>${a.protocolo || a.id}</strong></div>
                                 ${a.senha ? `<div class="row"><span class="label" style="color: #2563eb;">${a.tipo === 'Concurso' ? 'Nº DE INSCRIÇÃO:' : 'SENHA:'}</span> <strong style="font-size: 1.2rem; color: #2563eb;">${a.senha}</strong></div>` : ''}
-                                <div class="row"><span class="label">SITUAÇÃO:</span> <strong style="color: #10b981;">✅ CONFIRMADO</strong></div>
+                                <div class="row"><span class="label">CIDADÃO INSC.:</span> <strong>${a.usuario_nome || 'N/A'}</strong></div>
+                                <div class="row"><span class="label">SITUAÇÃO:</span> <strong style="color: ${statusColor};">${statusIcon} ${statusText}</strong></div>
                                 <div class="row"><span class="label">DATA DA SOLICITAÇÃO:</span> ${dataCriacao}</div>
 
                                 <div class="section-title">📋 ${sectionTitle}</div>
@@ -1448,7 +1538,7 @@
 
                                 <div class="section-title">🕐 ${timeSectionTitle}</div>
                                 <div class="highlight">
-                                    <strong style="font-size: 1.3rem; color: #166534;">📌 ${dataHoraBrasilia}</strong>
+                                    <strong style="font-size: 1.3rem; color: #1e293b;">📌 ${dataHoraBrasilia}</strong>
                                 </div>
                             </div>
                             <div class="stamp"><div class="badge">${stampText}</div></div>
