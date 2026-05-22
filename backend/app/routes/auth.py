@@ -61,15 +61,37 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
 
     if DB_MODE == "firestore":
         user_docs = db.collection("usuarios").where("email", "==", form_data.username).limit(1).get()
-        if user_docs:
-            user_data = user_docs[0].to_dict()
-            user_data["id"] = user_docs[0].id
-        else:
-            admin_docs = db.collection("admin_secretarias").where("email", "==", form_data.username).limit(1).get()
+        admin_docs = db.collection("admin_secretarias").where("email", "==", form_data.username).limit(1).get()
+        
+        user_data = None
+        user_type = "cidadao"
+        
+        # 1. Try to match subadmin first if they exist and password matches
+        if admin_docs:
+            admin_data = admin_docs[0].to_dict()
+            admin_data["id"] = admin_docs[0].id
+            if verify_password(form_data.password, admin_data.get("senha_hash")):
+                user_data = admin_data
+                user_type = "subadmin"
+                
+        # 2. Try to match citizen / admin
+        if not user_data and user_docs:
+            cidadao_data = user_docs[0].to_dict()
+            cidadao_data["id"] = user_docs[0].id
+            if verify_password(form_data.password, cidadao_data.get("senha_hash")):
+                user_data = cidadao_data
+                user_type = cidadao_data.get("tipo_usuario", "cidadao")
+                
+        # 3. Fallback if password didn't match either but we found records (for standard failure path)
+        if not user_data:
             if admin_docs:
                 user_data = admin_docs[0].to_dict()
                 user_data["id"] = admin_docs[0].id
                 user_type = "subadmin"
+            elif user_docs:
+                user_data = user_docs[0].to_dict()
+                user_data["id"] = user_docs[0].id
+                user_type = user_docs[0].to_dict().get("tipo_usuario", "cidadao")
     else:
         # SQLite / MySQL Fallback
         clean_username = form_data.username.lower().strip()
@@ -81,29 +103,54 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
         if len(clean_cpf) == 11 and re.match(r'^[0-9.\-\s]+$', form_data.username.strip()):
             is_cpf = True
 
+        # Check both tables
+        user_cidadao = None
+        user_subadmin = None
+        
         if is_cpf:
-            user = db_sql.query(Usuario).filter(Usuario.cpf == clean_cpf).first()
+            user_cidadao = db_sql.query(Usuario).filter(Usuario.cpf == clean_cpf).first()
+            user_subadmin = db_sql.query(AdminSecretaria).filter(AdminSecretaria.cpf == clean_cpf).first()
         else:
-            user = db_sql.query(Usuario).filter(func.lower(Usuario.email) == clean_username).first()
+            user_cidadao = db_sql.query(Usuario).filter(func.lower(Usuario.email) == clean_username).first()
+            user_subadmin = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == clean_username).first()
 
-        if user:
-            user_type = user.tipo_usuario
+        user = None
+        user_type = None
+
+        # 1. Try to match subadmin first if password matches
+        if user_subadmin and verify_password(form_data.password, user_subadmin.senha_hash):
+            user = user_subadmin
+            user_type = "subadmin"
+        # 2. Try to match citizen / admin
+        elif user_cidadao and verify_password(form_data.password, user_cidadao.senha_hash):
+            user = user_cidadao
+            user_type = user_cidadao.tipo_usuario
             if hasattr(user_type, "value"):
                 user_type = user_type.value
             else:
                 user_type = str(user_type)
                 if "." in user_type: user_type = user_type.split(".")[-1]
-            
-            user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id, "status": user.status}
+        # 3. Fallback if password didn't match either (so standard failure path works)
         else:
-            if is_cpf:
-                user = db_sql.query(AdminSecretaria).filter(AdminSecretaria.cpf == clean_cpf).first()
-            else:
-                user = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == clean_username).first()
-            
-            if user:
-                user_data = {"email": user.email, "senha_hash": user.senha_hash, "id": user.id, "status": getattr(user, "status", "Ativo")}
+            if user_subadmin:
+                user = user_subadmin
                 user_type = "subadmin"
+            elif user_cidadao:
+                user = user_cidadao
+                user_type = user_cidadao.tipo_usuario
+                if hasattr(user_type, "value"):
+                    user_type = user_type.value
+                else:
+                    user_type = str(user_type)
+                    if "." in user_type: user_type = user_type.split(".")[-1]
+
+        if user:
+            user_data = {
+                "email": user.email, 
+                "senha_hash": user.senha_hash, 
+                "id": user.id, 
+                "status": getattr(user, "status", "Ativo") if user_type == "subadmin" else user.status
+            }
 
     if not user_data or not verify_password(form_data.password, user_data.get("senha_hash")):
         raise HTTPException(
@@ -151,21 +198,28 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
         clean_id = raw_id
 
     # 2. Find user by email or CPF - case insensitive for email
-    user = db_sql.query(Usuario).filter((func.lower(Usuario.email) == clean_id) | (Usuario.cpf == clean_id)).first()
-    if not user:
-        # Check sub-admins too
-        user = db_sql.query(AdminSecretaria).filter((func.lower(AdminSecretaria.email) == clean_id) | (AdminSecretaria.cpf == clean_id)).first()
+    user_cidadao = db_sql.query(Usuario).filter((func.lower(Usuario.email) == clean_id) | (Usuario.cpf == clean_id)).first()
+    user_subadmin = db_sql.query(AdminSecretaria).filter((func.lower(AdminSecretaria.email) == clean_id) | (AdminSecretaria.cpf == clean_id)).first()
     
-    if not user:
+    if not user_cidadao and not user_subadmin:
         raise HTTPException(status_code=404, detail="Usuário não encontrado com os dados informados.")
     
     # 3. Generate random password (8 chars)
     alphabet = string.ascii_letters + string.digits
     new_pw = ''.join(secrets.choice(alphabet) for _ in range(8))
     
-    # 4. Update in DB
-    user.senha_hash = get_password_hash(new_pw)
+    # 4. Update in DB (Sincronizado se existir em ambos para evitar conflitos!)
+    hashed_pw = get_password_hash(new_pw)
+    
+    if user_cidadao:
+        user_cidadao.senha_hash = hashed_pw
+    if user_subadmin:
+        user_subadmin.senha_hash = hashed_pw
+        
     db_sql.commit()
+    
+    # Choose primary user record for notification purposes
+    user = user_subadmin if user_subadmin else user_cidadao
     
     # 5. Mask destination for feedback
     masked_dest = ""

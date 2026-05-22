@@ -106,10 +106,13 @@
 
         <div class="divider">ou</div>
 
-        <div style="text-align: center;">
-            <a href="../index.html" style="font-size: 0.85rem; color: var(--text-secondary);">
+        <div style="text-align: center; display: flex; flex-direction: column; gap: 0.8rem; align-items: center;">
+            <a href="../index.html" style="font-size: 0.85rem; color: var(--text-secondary); text-decoration: none; display: inline-flex; align-items: center; gap: 0.4rem; transition: color 0.2s;" onmouseover="this.style.color='var(--primary-color)'" onmouseout="this.style.color='var(--text-secondary)'">
                 <i class="fa-solid fa-arrow-left"></i> Voltar ao site público
             </a>
+            <button id="clearCookiesBtn" type="button" style="background: none; border: 1px solid rgba(0, 184, 148, 0.2); color: var(--text-secondary); padding: 0.4rem 1rem; border-radius: 6px; font-size: 0.78rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; transition: all 0.3s; margin-top: 0.2rem;" onmouseover="this.style.borderColor='var(--primary-color)'; this.style.color='var(--primary-color)'; this.style.background='rgba(0, 184, 148, 0.05)'" onmouseout="this.style.borderColor='rgba(0, 184, 148, 0.2)'; this.style.color='var(--text-secondary)'; this.style.background='none'">
+                <i class="fa-solid fa-cookie-bite"></i> Limpar Cookies e Cache de Acesso
+            </button>
         </div>
     </div>
 
@@ -228,6 +231,44 @@
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i> Entrar no Painel';
             }
+        });
+
+        // Limpar cookies, localStorage e sessionStorage
+        document.getElementById('clearCookiesBtn').addEventListener('click', function() {
+            // 1. Limpar caches locais
+            localStorage.clear();
+            sessionStorage.clear();
+            
+            // 2. Limpar todos os cookies associados
+            const cookies = document.cookie.split(";");
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i];
+                const eqPos = cookie.indexOf("=");
+                const name = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+                document.cookie = name + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/;domain=" + window.location.hostname;
+            }
+            
+            // 3. Feedback visual elegante na div de erro/notificação
+            const errorMsg = document.getElementById('errorMsg');
+            const originalColor = errorMsg.style.color;
+            errorMsg.style.color = 'var(--primary-color)'; // Tom verde do tema para sucesso
+            errorMsg.style.display = 'block';
+            errorMsg.innerHTML = '<i class="fa-solid fa-circle-check"></i> Cookies, tokens e dados locais limpos com sucesso!';
+            
+            // Feedback visual no botão
+            const btn = document.getElementById('clearCookiesBtn');
+            btn.style.borderColor = 'var(--primary-color)';
+            btn.style.color = 'var(--primary-color)';
+            btn.style.background = 'rgba(0, 184, 148, 0.1)';
+            
+            setTimeout(() => {
+                errorMsg.style.display = 'none';
+                errorMsg.style.color = originalColor || 'var(--error)';
+                btn.style.borderColor = 'rgba(0, 184, 148, 0.2)';
+                btn.style.color = 'var(--text-secondary)';
+                btn.style.background = 'none';
+            }, 3000);
         });
     </script>
 </body>

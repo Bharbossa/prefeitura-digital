@@ -42,10 +42,15 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
             log_auth(f"ERR: JWT Decode: {str(e)}")
             raise credentials_exception
         
-        # User lookup - Case-insensitive
-        user = db_sql.query(Usuario).filter(func.lower(Usuario.email) == func.lower(token_data.email)).first()
-        if not user:
+        # User lookup - Case-insensitive based on token type
+        if token_data.type == "subadmin":
             user = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == func.lower(token_data.email)).first()
+            if not user:
+                user = db_sql.query(Usuario).filter(func.lower(Usuario.email) == func.lower(token_data.email)).first()
+        else:
+            user = db_sql.query(Usuario).filter(func.lower(Usuario.email) == func.lower(token_data.email)).first()
+            if not user:
+                user = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == func.lower(token_data.email)).first()
         
         if user:
             log_auth(f"User Found in DB: {user.email}")
