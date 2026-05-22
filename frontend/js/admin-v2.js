@@ -37,14 +37,30 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function initAdmin() {
-    const user = getUserInfo();
-    currentRole = user.tipo_usuario;
+    let user = getUserInfo();
+    currentRole = user ? user.tipo_usuario : "";
+    currentSecId = user ? user.secretaria_id : null;
 
-    currentSecId = user.secretaria_id;
+    // Safety net: if subadmin is missing secretaria_nome, fetch profile to refresh cache
+    if (user && currentRole === 'subadmin' && !user.secretaria_nome) {
+        try {
+            const res = await fetch(`${API_URL}/auth/me`, {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            if (res.ok) {
+                const refreshedUser = await res.json();
+                localStorage.setItem('user_info', JSON.stringify(refreshedUser));
+                user = refreshedUser;
+                currentSecId = user.secretaria_id;
+            }
+        } catch(e) {
+            console.error("Error refreshing user info:", e);
+        }
+    }
     
     // Update User Info in header
-    document.getElementById('userName').innerText = user.nome || user.email;
-    document.getElementById('userRole').innerText = currentRole === 'admin' ? 'Administrador Geral' : `Sub-Administrador (${user.secretaria_nome || 'Secretaria'})`;
+    document.getElementById('userName').innerText = user ? (user.nome || user.email) : '';
+    document.getElementById('userRole').innerText = currentRole === 'admin' ? 'Administrador Geral' : `Sub-Administrador (${(user && user.secretaria_nome) || 'Secretaria'})`;
     document.getElementById('roleDebug').innerText = `[${currentRole}]`;
     
     // Avatar Logic

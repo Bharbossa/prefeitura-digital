@@ -24,6 +24,7 @@ class UsuarioResponse(UsuarioBase):
     tipo_usuario: str
     status: str
     secretaria_id: Optional[int] = None
+    secretaria_nome: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):

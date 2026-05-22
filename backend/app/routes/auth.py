@@ -294,6 +294,7 @@ def read_users_me(current_user = Depends(get_current_user)):
         "tipo_usuario": tipo,
         "status": status_val,
         "secretaria_id": getattr(current_user, "secretaria_id", None),
+        "secretaria_nome": getattr(current_user, "secretaria_nome", None),
         "foto_perfil": getattr(current_user, "foto_perfil", None)
     }
 @router.post("/update-photo")

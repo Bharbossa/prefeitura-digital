@@ -69,6 +69,10 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
             
             if valid:
                 log_auth(f"Auth Success: role={role}")
+                sec_nome = None
+                if role == "subadmin" and hasattr(user, 'secretaria') and user.secretaria:
+                    sec_nome = user.secretaria.nome
+                    
                 from types import SimpleNamespace
                 return SimpleNamespace(
                     id=int(user.id),
@@ -80,6 +84,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
                     endereco=getattr(user, 'endereco', ""),
                     status=getattr(user, 'status', "ativo"),
                     secretaria_id=getattr(user, 'secretaria_id', None),
+                    secretaria_nome=sec_nome,
                     foto_perfil=getattr(user, 'foto_perfil', None),
                     tipo_usuario_verificado=role
                 )
