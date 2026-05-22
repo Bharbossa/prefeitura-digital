@@ -291,9 +291,23 @@
                     <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #991b1b; line-height: 1.4;">
                         Ao selecionar o <strong>Hospital Maria Loureiro</strong>, sua consulta é classificada automaticamente como <strong>EMERGÊNCIA MÉDICA</strong> para atendimento prioritário e imediato.
                     </p>
-                    <div class="form-group" style="margin: 0;">
+                    <div class="form-group" style="margin-bottom: 1rem;">
                         <label style="color: #991b1b; font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;"><i class="fa-solid fa-notes-medical"></i> Quais sintomas você está sentindo? (Urgente/Obrigatório)</label>
                         <textarea id="ag_sintomas" rows="3" placeholder="Descreva aqui detalhadamente seus sintomas (ex: dor no peito, febre alta, falta de ar) para triagem imediata..." style="width: 100%; border: 1px solid #fca5a5; border-radius: 8px; padding: 0.8rem; font-size: 0.95rem; background: #fff; color: #1e293b; resize: vertical; box-sizing: border-box;"></textarea>
+                    </div>
+
+                    <!-- Allergy Selection -->
+                    <div class="form-group" style="margin-bottom: 0.8rem;">
+                        <label style="display: inline-flex; align-items: center; gap: 8px; color: #991b1b; font-weight: 700; font-size: 0.9rem; cursor: pointer; user-select: none;">
+                            <input type="checkbox" id="ag_alergico" style="width: 18px; height: 18px; accent-color: #ef4444; cursor: pointer;">
+                            <span>Você possui alguma alergia? (Medicamentos, alimentos, etc.)</span>
+                        </label>
+                    </div>
+
+                    <!-- Allergy Description (Initially Hidden) -->
+                    <div class="form-group" id="alergia_detalhes_container" style="display: none; margin: 0;">
+                        <label style="color: #991b1b; font-weight: 700; font-size: 0.9rem; display: block; margin-bottom: 0.5rem;"><i class="fa-solid fa-hand-holding-medical"></i> Descreva a qual medicamento ou a o que é alérgico (Obrigatório)</label>
+                        <textarea id="ag_alergias_descricao" rows="2" placeholder="Ex: Alergia a Penicilina, Dipirona, Corantes, Picada de inseto..." style="width: 100%; border: 1px solid #fca5a5; border-radius: 8px; padding: 0.8rem; font-size: 0.95rem; background: #fff; color: #1e293b; resize: vertical; box-sizing: border-box;"></textarea>
                     </div>
                 </div>
                 <div class="form-group" id="group_profissional" style="display: none;">
@@ -426,6 +440,15 @@
                 sintomasInput.required = false;
                 sintomasInput.value = '';
             }
+            const agAlergico = document.getElementById('ag_alergico');
+            if (agAlergico) agAlergico.checked = false;
+            const alergiaContainer = document.getElementById('alergia_detalhes_container');
+            if (alergiaContainer) alergiaContainer.style.display = 'none';
+            const agAlergiasDesc = document.getElementById('ag_alergias_descricao');
+            if (agAlergiasDesc) {
+                agAlergiasDesc.value = '';
+                agAlergiasDesc.required = false;
+            }
             
             const filesGroup = document.getElementById('group_concurso_arquivos');
             if (filesGroup) {
@@ -516,6 +539,31 @@
                 container.style.display = 'none';
                 sintomasInput.required = false;
                 sintomasInput.value = '';
+                
+                // Reset allergy fields when changing post
+                const agAlergico = document.getElementById('ag_alergico');
+                if (agAlergico) agAlergico.checked = false;
+                const alergiaContainer = document.getElementById('alergia_detalhes_container');
+                if (alergiaContainer) alergiaContainer.style.display = 'none';
+                const agAlergiasDesc = document.getElementById('ag_alergias_descricao');
+                if (agAlergiasDesc) {
+                    agAlergiasDesc.value = '';
+                    agAlergiasDesc.required = false;
+                }
+            }
+        });
+
+        document.getElementById('ag_alergico').addEventListener('change', function() {
+            const container = document.getElementById('alergia_detalhes_container');
+            const descInput = document.getElementById('ag_alergias_descricao');
+            if (this.checked) {
+                container.style.display = 'block';
+                descInput.required = true;
+                descInput.focus();
+            } else {
+                container.style.display = 'none';
+                descInput.required = false;
+                descInput.value = '';
             }
         });
 
@@ -993,7 +1041,7 @@
 
             let sintomasHtml = (isEmergencia && a.motivo) ? `
                 <div style="background: #fff5f5; padding: 0.8rem; border-radius: 8px; border: 1px solid #fee2e2; margin-bottom: 1rem;">
-                    <p style="margin: 0; font-size: 0.9rem; color: #991b1b;">
+                    <p style="margin: 0; font-size: 0.9rem; color: #991b1b; white-space: pre-line;">
                         <i class="fa-solid fa-notes-medical" style="color: #ef4444;"></i> <strong>Sintomas Relatados:</strong> ${a.motivo}
                     </p>
                 </div>
@@ -1143,7 +1191,18 @@
                 }
                 if (posto === 'HOSPITAL MARIA LOUREIRO') {
                     assuntoFinal = `🚨 [EMERGÊNCIA] HOSPITAL MARIA LOUREIRO` + (assuntoFinal ? ': ' + assuntoFinal : '');
-                    motivoFinal = document.getElementById('ag_sintomas').value;
+                    const sintomasVal = document.getElementById('ag_sintomas').value.trim();
+                    const eAlergico = document.getElementById('ag_alergico').checked;
+                    if (eAlergico) {
+                        const alergiaDesc = document.getElementById('ag_alergias_descricao').value.trim();
+                        if (!alergiaDesc) {
+                            alert("Por favor, descreva a qual medicamento ou substância você é alérgico.");
+                            return;
+                        }
+                        motivoFinal = `${sintomasVal}\n⚠️ ALÉRGICO(A) A: ${alergiaDesc}`;
+                    } else {
+                        motivoFinal = `${sintomasVal}\n⚠️ ALÉRGICO(A): Não relatado`;
+                    }
                 } else {
                     assuntoFinal = `[${posto}] ` + assuntoFinal;
                 }
@@ -1384,7 +1443,7 @@
                                 <div class="row"><span class="label">TIPO:</span> ${a.tipo}</div>
                                 <div class="row"><span class="label">ASSUNTO / DETALHES:</span> ${a.assunto}</div>
                                 ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
-                                ${a.motivo ? `<div class="row"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
+                                ${a.motivo ? `<div class="row" style="white-space: pre-line;"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
                                 ${a.acompanhante ? `<div class="row"><span class="label">ACOMPANHANTE:</span> ${a.acompanhante}</div>` : ''}
 
                                 <div class="section-title">🕐 ${timeSectionTitle}</div>
