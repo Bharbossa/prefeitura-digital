@@ -302,27 +302,23 @@ async def update_photo(
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
 ):
-    import shutil, os, uuid
-    
     # 1. Validar extensão
     ext = file.filename.split('.')[-1].lower()
     if ext not in ['jpg', 'jpeg', 'png', 'webp']:
         raise HTTPException(status_code=400, detail="Formato de imagem inválido. Use JPG, PNG ou WEBP.")
     
-    # 2. Criar diretório se não existir
-    path = "uploads/perfil"
-    if not os.path.exists(path):
-        os.makedirs(path)
+    # 2. Ler conteúdo do arquivo e limitar em 2MB
+    file_content = await file.read()
+    if len(file_content) > 2 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="A imagem é muito grande. O limite máximo é de 2 MB.")
         
-    # 3. Gerar nome único
-    filename = f"{uuid.uuid4()}.{ext}"
-    file_path = f"{path}/{filename}"
+    # 3. Converter para base64 Data URI
+    import base64
+    base64_encoded = base64.b64encode(file_content).decode('utf-8')
+    mime_type = f"image/{ext if ext != 'jpg' else 'jpeg'}"
+    base64_data_uri = f"data:{mime_type};base64,{base64_encoded}"
     
-    # 4. Salvar arquivo
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    # 5. Atualizar no Banco de Dados
+    # 4. Atualizar no Banco de Dados
     from ..models.schema import Usuario, AdminSecretaria
     if current_user.tipo_usuario_verificado == "subadmin":
         user_db = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == current_user.id).first()
@@ -332,15 +328,19 @@ async def update_photo(
     if not user_db:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
         
-    # Deletar foto antiga se existir
-    if user_db.foto_perfil and os.path.exists(user_db.foto_perfil.replace('/uploads/', 'uploads/')):
-        try: os.remove(user_db.foto_perfil.replace('/uploads/', 'uploads/'))
-        except: pass
-        
-    user_db.foto_perfil = f"/uploads/perfil/{filename}"
+    # Limpar foto legada em disco se ela existir (apenas para manter o servidor limpo de arquivos antigos)
+    if user_db.foto_perfil and not user_db.foto_perfil.startswith('data:'):
+        import os
+        legacy_path = user_db.foto_perfil.replace('/uploads/', 'uploads/')
+        if os.path.exists(legacy_path):
+            try: os.remove(legacy_path)
+            except: pass
+            
+    user_db.foto_perfil = base64_data_uri
     db_sql.commit()
     
     return {"url": user_db.foto_perfil}
+
 
 @router.patch("/update-name")
 def update_name(data: UpdateNameRequest, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):

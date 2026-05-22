@@ -50,7 +50,8 @@ async function initAdmin() {
     // Avatar Logic
     const avatar = document.getElementById('userAvatar');
     if (user.foto_perfil) {
-        avatar.innerHTML = `<img src="${MEDIA_URL}${user.foto_perfil}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+        const src = user.foto_perfil.startsWith('data:') ? user.foto_perfil : `${MEDIA_URL}${user.foto_perfil}`;
+        avatar.innerHTML = `<img src="${src}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
     } else {
         avatar.innerText = (user.nome || user.email).charAt(0).toUpperCase();
         avatar.innerHTML = avatar.innerText; // Ensure clear previous images
@@ -1199,7 +1200,8 @@ function refreshConfigUI() {
     if (!configAvatar) return;
 
     if (user.foto_perfil) {
-        configAvatar.innerHTML = `<img src="${MEDIA_URL}${user.foto_perfil}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
+        const src = user.foto_perfil.startsWith('data:') ? user.foto_perfil : `${MEDIA_URL}${user.foto_perfil}`;
+        configAvatar.innerHTML = `<img src="${src}" style="width:100%; height:100%; border-radius:50%; object-fit:cover;">`;
     } else {
         configAvatar.innerText = (user.nome || user.email).charAt(0).toUpperCase();
     }
