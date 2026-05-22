@@ -1479,6 +1479,12 @@
                     const timeSectionTitle = a.tipo === 'Concurso' ? 'DATA DE INSCRIÇÃO' : 'HORÁRIO DESEJADO PARA ATENDIMENTO';
                     const stampText = a.tipo === 'Concurso' ? 'INSCRIÇÃO VÁLIDA' : 'AGENDAMENTO VÁLIDO';
 
+                    const isCulturaEsporte = a.tipo === 'Concurso' && a.assunto && (
+                        a.assunto.toLowerCase().includes('papa-cuscuz') || 
+                        a.assunto.toLowerCase().includes('pé de aço') || 
+                        a.assunto.toLowerCase().includes('pe de aco')
+                    );
+
                     // Formatar data/hora no horário de Brasília
                     const optDate = { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' };
                     const optTime = { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false };
@@ -1525,6 +1531,7 @@
                         </head>
                         <body>
                             <div class="header">
+                                ${isCulturaEsporte ? `<img src="imagens/logo-cultura-esporte.png" alt="Logo" style="max-height: 120px; margin-bottom: 1rem;"><br>` : ''}
                                 <h1>${iconHeader} ${titleText}</h1>
                                 <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA - AL</p>
                             </div>

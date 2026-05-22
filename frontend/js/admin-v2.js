@@ -749,6 +749,11 @@ async function imprimirAgendamento(id) {
             }
             
             const isConcurso = a.tipo === 'Concurso';
+            const isCulturaEsporte = isConcurso && a.assunto && (
+                a.assunto.toLowerCase().includes('papa-cuscuz') || 
+                a.assunto.toLowerCase().includes('pé de aço') || 
+                a.assunto.toLowerCase().includes('pe de aco')
+            );
             const titleText = isConcurso ? 'COMPROVANTE DE INSCRIÇÃO' : 'COMPROVANTE DE AGENDAMENTO';
             const iconHeader = isConcurso ? '🏆' : '📌';
             const dateLabel = isConcurso ? 'DATA DE INSCRIÇÃO:' : 'HORÁRIO MARCADO:';
@@ -788,6 +793,7 @@ async function imprimirAgendamento(id) {
                 </head>
                 <body>
                     <div class="header">
+                        ${isCulturaEsporte ? `<img src="imagens/logo-cultura-esporte.png" alt="Logo" style="max-height: 120px; margin-bottom: 1rem;"><br>` : ''}
                         <h1>${iconHeader} ${titleText}</h1>
                         <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA -AL</p>
                     </div>
@@ -1826,6 +1832,7 @@ async function imprimirResumoCamisas() {
 </head>
 <body>
     <div class="header">
+        <img src="imagens/logo-cultura-esporte.png" alt="Logo" style="max-height: 120px; margin-bottom: 1rem;"><br>
         <h1>🏆 Relatório Consolidado de Camisas</h1>
         <p>CONCURSO ESPORTIVO: PÉ DE AÇO | COLÔNIA LEOPOLDINA</p>
     </div>
