@@ -149,6 +149,9 @@ class ChangePasswordRequest(BaseModel):
 class UpdateNameRequest(BaseModel):
     nome: str
 
+class UpdateAddressRequest(BaseModel):
+    endereco: str
+
 class AvisoBase(BaseModel):
     titulo: str
     mensagem: str

@@ -604,7 +604,7 @@ async function loadAgendamentos() {
                             ${a.motivo ? `<div style="font-size: 0.8rem; color: #ef4444; margin-top: 4px; font-weight: 500; white-space: pre-line;"><i class="fa-solid fa-notes-medical"></i> <strong>Sintomas:</strong> ${a.motivo}</div>` : ''}
                         </td>
                         <td>${a.usuario_nome || 'N/A'}</td>
-                        <td>${new Date(a.data_hora).toLocaleString()}</td>
+                        <td>${new Date(a.data_hora).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })} ${new Date(a.data_hora).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })}</td>
                         <td><span class="badge badge-${s === 'confirmado' ? 'done' : (s === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
                         <td>
                             <div style="display: flex; flex-direction: column; gap: 0.2rem;">
@@ -680,7 +680,7 @@ async function loadConcursos() {
                             ${a.assunto}
                             ${a.motivo ? `<div style="font-size: 0.85rem; color: #a855f7; margin-top: 5px; font-weight: 500; white-space: pre-line;"><i class="fa-solid fa-id-card"></i> <strong>Dados Extra:</strong><br>${a.motivo}</div>` : ''}
                         </td>
-                        <td>${new Date(a.data_hora).toLocaleString()}</td>
+                        <td>${new Date(a.data_hora).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })} ${new Date(a.data_hora).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })}</td>
                         <td><span class="badge badge-${s === 'confirmado' ? 'done' : (s === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
@@ -832,7 +832,7 @@ async function imprimirAgendamento(id) {
                         ${a.motivo ? `<div class="row" style="white-space: pre-line;"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
                         ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
                         ${a.acompanhante ? `<div class="row"><span class="label">ACOMPANHANTE:</span> ${a.acompanhante}</div>` : ''}
-                        <div class="row" style="background: #f1f5f9; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;"><span class="label">${dateLabel}</span> <strong style="font-size: 1.2rem; color: #1e293b;">${new Date(a.data_hora).toLocaleString()}</strong></div>
+                        <div class="row" style="background: #f1f5f9; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;"><span class="label">${dateLabel}</span> <strong style="font-size: 1.2rem; color: #1e293b;">${(() => { const d = new Date(a.data_hora); const od = { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' }; const ot = { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }; return d.toLocaleDateString('pt-BR', od) + ' às ' + d.toLocaleTimeString('pt-BR', ot) + ' (Horário de Brasília)'; })()}</strong></div>
                         <div class="row"><span class="label">SITUAÇÃO:</span> <strong style="color: ${statusColor};">${statusText}</strong></div>
                     </div>
                     <div class="stamp"><div class="badge">${badgeText}</div></div>
@@ -1579,7 +1579,7 @@ async function imprimirRelatorioSecretaria(secId, secNome) {
                             ${agendamentos.map(a => `
                                 <tr>
                                     <td><strong>${a.protocolo || a.id}</strong></td>
-                                    <td>${new Date(a.data_hora).toLocaleString()}</td>
+                                    <td>${new Date(a.data_hora).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })} ${new Date(a.data_hora).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })}</td>
                                     <td>${a.usuario_nome || 'N/A'}</td>
                                     <td>${a.assunto}</td>
                                     <td><span class="badge badge-${a.status.toLowerCase() === 'confirmado' ? 'done' : (a.status.toLowerCase() === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
@@ -1720,7 +1720,7 @@ async function imprimirContabilidadeGeral() {
                                 ${secAgs.map(a => `
                                     <tr>
                                         <td><strong>${a.protocolo || a.id}</strong></td>
-                                        <td>${new Date(a.data_hora).toLocaleString()}</td>
+                                        <td>${new Date(a.data_hora).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })} ${new Date(a.data_hora).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })}</td>
                                         <td>${a.usuario_nome || 'N/A'}</td>
                                         <td>${a.assunto}</td>
                                         <td><span class="badge badge-${a.status.toLowerCase() === 'confirmado' ? 'done' : (a.status.toLowerCase() === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>

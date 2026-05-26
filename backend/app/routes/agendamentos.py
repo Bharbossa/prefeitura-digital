@@ -96,8 +96,10 @@ def criar_agendamento_viagem(
         raise HTTPException(status_code=403, detail="Apenas cidadãos podem criar agendamentos pelo perfil.")
         
     try:
-        # Tenta converter a string ISO para datetime
-        data_obj = datetime.fromisoformat(data_hora.replace('Z', '+00:00')).replace(tzinfo=None)
+        # Remove qualquer sufixo de timezone para preservar o horário exato escolhido pelo usuário
+        import re
+        clean_data_hora = re.sub(r'[Zz]$|[+-]\d{2}:\d{2}$', '', data_hora.strip())
+        data_obj = datetime.fromisoformat(clean_data_hora)
     except ValueError:
         raise HTTPException(status_code=400, detail="Formato de data inválido. Use ISO 8601.")
         
@@ -213,6 +215,13 @@ def criar_agendamento_concurso(
     protocolo = generate_protocol()
     data_hora_atual = get_brasilia_time()
 
+    # SAFEGUARD: Forçar concursos para a Secretaria de Cultura e Esporte
+    cultura_sec = db_sql.query(Secretaria).filter(
+        func.upper(Secretaria.nome).like('%CULTURA%ESPORTE%')
+    ).first()
+    if cultura_sec:
+        secretaria_id = cultura_sec.id
+    
     novo_agendamento = Agendamento(
         protocolo=protocolo,
         senha=senha,

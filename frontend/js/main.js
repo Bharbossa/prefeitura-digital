@@ -164,7 +164,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </label>
             </div>
             <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <button onclick="abrirModalTrocaSenha()" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;"><i class="fa-solid fa-key"></i></button>
+                <button onclick="if(typeof abrirModalMinhaConta === 'function'){abrirModalMinhaConta();}else{window.location.href='dashboard.html';}" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;"><i class="fa-solid fa-user"></i> Minha Conta</button>
                 <button onclick="logout()" class="btn btn-outline" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;">Sair</button>
             </div>
         `;
@@ -266,6 +266,7 @@ function initBackgroundAnimation(containerId) {
             frames[currentFrame].classList.remove('active');
             currentFrame = (currentFrame + 1) % totalFrames;
             frames[currentFrame].classList.add('active');
+        }, frameInterval);
     }
 }
 

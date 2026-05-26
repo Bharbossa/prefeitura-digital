@@ -445,7 +445,50 @@
         </div>
     </div>
 
-    <script src="js/main.js?v=1.0.5"></script>
+    <!-- Modal Minha Conta -->
+    <div id="modalMinhaConta"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:2000; backdrop-filter: blur(5px); overflow-y:auto;">
+        <div class="form-container fade-in"
+            style="margin: 5vh auto; max-width: 500px; position: relative; background: var(--bg-card); padding: 2rem; border-radius: 15px;">
+            <i class="fa-solid fa-times"
+                style="position: absolute; right: 20px; top: 20px; cursor: pointer; color: var(--text-secondary);"
+                onclick="document.getElementById('modalMinhaConta').style.display='none'"></i>
+            <h3 style="margin-bottom: 1.5rem; color: var(--primary-color); text-align: center;"><i class="fa-solid fa-user"></i> Minha Conta</h3>
+            
+            <div style="border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 1rem; color: var(--text-primary);"><i class="fa-solid fa-image"></i> Foto de Perfil</h4>
+                <form id="formFotoPerfil">
+                   <div style="display: flex; align-items: center; gap: 15px; margin-bottom: 1rem;">
+                      <img id="minhaContaFotoPreview" src="" alt="Sem foto" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary-color); background: #f1f5f9; display: flex; align-items: center; justify-content: center; font-size: 0.8rem; color: #94a3b8;">
+                      <div>
+                         <label for="mc_foto" class="btn btn-outline" style="cursor: pointer; font-size: 0.85rem;"><i class="fa-solid fa-camera"></i> Escolher Foto</label>
+                         <input type="file" id="mc_foto" accept="image/png, image/jpeg, image/webp" style="display: none;" onchange="previewMinhaContaFoto(this)">
+                      </div>
+                   </div>
+                   <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 0.9rem;">Atualizar Foto</button>
+                </form>
+            </div>
+
+            <div style="border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 1rem; color: var(--text-primary);"><i class="fa-solid fa-map-location-dot"></i> Meu Endereço</h4>
+                <form id="formEnderecoConta">
+                   <div class="form-group" style="margin-bottom: 1rem;">
+                       <input type="text" id="mc_endereco" required style="width: 100%; border: 1px solid var(--border); padding: 0.8rem; border-radius: 8px; color: var(--text-primary); background: var(--bg-body);">
+                   </div>
+                   <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 0.9rem;">Atualizar Endereço</button>
+                </form>
+            </div>
+
+            <div>
+                <h4 style="margin-bottom: 1rem; color: var(--text-primary);"><i class="fa-solid fa-lock"></i> Segurança</h4>
+                <button type="button" class="btn btn-outline" style="width: 100%; color: #2563eb; border-color: #2563eb;" onclick="document.getElementById('modalMinhaConta').style.display='none'; abrirModalTrocaSenha();">
+                    <i class="fa-solid fa-key"></i> Mudar Minha Senha
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js?v=1.0.7"></script>
     <script>
         if (!checkAuth()) {
             window.location.href = 'register.html';
@@ -1160,7 +1203,7 @@
                     ${a.cartao_sus ? `<p style="margin-bottom: 0.5rem;"><strong>Cartão SUS:</strong> ${a.cartao_sus}</p>` : ''}
                     <div style="background: var(--bg-body); padding: 0.8rem; border-radius: 8px; border: 1px dashed var(--primary-color); margin-bottom: 1rem;">
                         <p style="color: var(--primary-color); font-weight: 700; margin-bottom: 0;">
-                            <i class="fa-solid fa-clock"></i> ${categoria === 'concursos' ? 'INSCRIÇÃO EM:' : 'AGENDADO PARA:'} ${new Date(a.data_hora || a.criado_em).toLocaleString()}
+                            <i class="fa-solid fa-clock"></i> ${categoria === 'concursos' ? 'INSCRIÇÃO EM:' : 'AGENDADO PARA:'} ${new Date(a.data_hora || a.criado_em).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })} às ${new Date(a.data_hora || a.criado_em).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })} (Brasília)
                         </p>
                     </div>
                     <span class="status-badge ${statusClass}">${a.status}</span>
@@ -1383,7 +1426,7 @@
                 formData.append('assunto', assuntoFinal);
                 formData.append('motivo', document.getElementById('ag_motivo').value);
                 formData.append('acompanhante', document.getElementById('ag_acompanhante').value);
-                formData.append('data_hora', dataObjeto ? dataObjeto.toISOString() : '');
+                formData.append('data_hora', (dataDate && dataTime) ? `${dataDate}T${dataTime}:00` : '');
                 formData.append('cartao_sus', '');
 
                 const fileInput = document.getElementById('ag_comprovante');
@@ -1413,7 +1456,7 @@
                     assunto: assuntoFinal,
                     motivo: motivoFinal,
                     acompanhante: null,
-                    data_hora: dataObjeto ? dataObjeto.toISOString() : '',
+                    data_hora: (dataDate && dataTime) ? `${dataDate}T${dataTime}:00` : '',
                     cartao_sus: document.getElementById('ag_cartao_sus').value
                 };
 
@@ -1606,6 +1649,88 @@
                 }
             } catch (e) { alert("Erro ao imprimir."); }
         }
+
+        window.abrirModalMinhaConta = async function() {
+            document.getElementById('modalMinhaConta').style.display = 'block';
+            try {
+                const res = await fetch(`${API_URL}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    document.getElementById('mc_endereco').value = data.endereco || '';
+                    if (data.foto_perfil) {
+                        document.getElementById('minhaContaFotoPreview').src = data.foto_perfil;
+                    } else {
+                        document.getElementById('minhaContaFotoPreview').src = '';
+                    }
+                }
+            } catch (e) {
+                console.error("Erro ao carregar dados do usuário", e);
+            }
+        };
+
+        window.previewMinhaContaFoto = function(input) {
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('minhaContaFotoPreview').src = e.target.result;
+                }
+                reader.readAsDataURL(input.files[0]);
+            }
+        };
+
+        document.getElementById('formFotoPerfil').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const fileInput = document.getElementById('mc_foto');
+            if (!fileInput.files.length) {
+                alert('Selecione uma foto primeiro.');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/update-photo`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${getToken()}` },
+                    body: formData
+                });
+                if (res.ok) {
+                    alert('Foto atualizada com sucesso!');
+                    // Optionally refresh the nav bar if you display it there
+                } else {
+                    const err = await res.json();
+                    alert('Erro: ' + (err.detail || 'Não foi possível atualizar a foto.'));
+                }
+            } catch (err) {
+                alert('Erro de conexão.');
+            }
+        });
+
+        document.getElementById('formEnderecoConta').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const endereco = document.getElementById('mc_endereco').value;
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/update-address`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}` 
+                    },
+                    body: JSON.stringify({ endereco: endereco })
+                });
+                if (res.ok) {
+                    alert('Endereço atualizado com sucesso!');
+                } else {
+                    const err = await res.json();
+                    alert('Erro: ' + (err.detail || 'Não foi possível atualizar o endereço.'));
+                }
+            } catch (err) {
+                alert('Erro de conexão.');
+            }
+        });
 
         function abrirModalTrocaSenha() {
             document.getElementById('modalAlterarSenha').style.display = 'block';
