@@ -1613,6 +1613,225 @@ async function imprimirRelatorioSecretaria(secId, secNome) {
     }
 }
 
+async function imprimirContabilidadeGeral() {
+    const loadingBtn = document.getElementById('btnImprimirGeral');
+    if (!loadingBtn) return;
+    const originalContent = loadingBtn.innerHTML;
+    loadingBtn.disabled = true;
+    loadingBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Gerando Relatório...';
+
+    try {
+        // Fetch secretarias, ocorrencias and agendamentos
+        const [secRes, ocRes, agRes] = await Promise.all([
+            fetch(`${API_URL}/secretarias`, { headers: { 'Authorization': `Bearer ${getToken()}` } }),
+            fetch(`${API_URL}/ocorrencias`, { headers: { 'Authorization': `Bearer ${getToken()}` } }),
+            fetch(`${API_URL}/agendamentos`, { headers: { 'Authorization': `Bearer ${getToken()}` } })
+        ]);
+
+        if (!secRes.ok || !ocRes.ok || !agRes.ok) throw new Error("Erro ao buscar dados do servidor.");
+
+        const secretarias = await secRes.json();
+        const ocorrencias = await ocRes.json();
+        const agendamentos = await agRes.json();
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert("Por favor, permita popups para gerar a impressão.");
+            return;
+        }
+        
+        let secretariasHtml = '';
+        
+        secretarias.forEach(sec => {
+            const secOcs = ocorrencias.filter(o => parseInt(o.secretaria_id) === parseInt(sec.id));
+            const secAgs = agendamentos.filter(a => parseInt(a.secretaria_id) === parseInt(sec.id));
+            
+            if (secOcs.length === 0 && secAgs.length === 0) {
+                return; // Omit empty ones for cleaner output
+            }
+            
+            secretariasHtml += `
+                <div style="page-break-inside: avoid; border-bottom: 2px dashed #cbd5e1; padding-bottom: 30px; margin-bottom: 40px;">
+                    <h2 style="color: #1e3a8a; border-bottom: 2px solid #3b82f6; padding-bottom: 8px; text-transform: uppercase; font-size: 1.4rem; margin-top: 20px;">
+                        ${sec.nome}
+                    </h2>
+                    
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <div>Total de Serviços</div>
+                            <div>${secOcs.length + secAgs.length}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div>Ocorrências Atendidas</div>
+                            <div>${secOcs.length}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div>Agendamentos Registrados</div>
+                            <div>${secAgs.length}</div>
+                        </div>
+                        <div class="summary-card">
+                            <div>Taxa de Resolução</div>
+                            <div>${secOcs.length > 0 ? Math.round(secOcs.filter(o => o.status.toLowerCase() === 'resolvido').length / secOcs.length * 100) : 0}%</div>
+                        </div>
+                    </div>
+
+                    <h4 style="margin: 20px 0 10px; color: #334155; font-size: 1.1rem;"><i class="fa-solid fa-clipboard-list"></i> Ocorrências Relacionadas (${secOcs.length})</h4>
+                    ${secOcs.length > 0 ? `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Protocolo</th>
+                                    <th>Data</th>
+                                    <th>Cidadão</th>
+                                    <th>Título/Assunto</th>
+                                    <th>Status</th>
+                                    <th>Localização</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${secOcs.map(o => `
+                                    <tr>
+                                        <td><strong>${o.protocolo || o.id}</strong></td>
+                                        <td>${new Date(o.data).toLocaleDateString()}</td>
+                                        <td>${o.usuario_nome || 'N/A'}</td>
+                                        <td>${o.titulo}</td>
+                                        <td><span class="badge badge-${o.status.toLowerCase() === 'resolvido' ? 'done' : (o.status.toLowerCase() === 'em_atendimento' ? 'progress' : 'pending')}">${o.status}</span></td>
+                                        <td>${o.rua || 'N/A'}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    ` : '<p class="no-data">Nenhuma ocorrência registrada para esta secretaria.</p>'}
+
+                    <h4 style="margin: 20px 0 10px; color: #334155; font-size: 1.1rem;"><i class="fa-solid fa-calendar-check"></i> Agendamentos e Atendimentos (${secAgs.length})</h4>
+                    ${secAgs.length > 0 ? `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Protocolo</th>
+                                    <th>Data/Hora</th>
+                                    <th>Cidadão</th>
+                                    <th>Assunto</th>
+                                    <th>Status</th>
+                                    <th>Senha/Informações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${secAgs.map(a => `
+                                    <tr>
+                                        <td><strong>${a.protocolo || a.id}</strong></td>
+                                        <td>${new Date(a.data_hora).toLocaleString()}</td>
+                                        <td>${a.usuario_nome || 'N/A'}</td>
+                                        <td>${a.assunto}</td>
+                                        <td><span class="badge badge-${a.status.toLowerCase() === 'confirmado' ? 'done' : (a.status.toLowerCase() === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
+                                        <td>
+                                            ${a.senha ? `<strong style="color: #2563eb;">Senha: ${a.senha}</strong>` : '---'}
+                                            ${a.motivo ? `<br><small style="color: #64748b;">Obs: ${a.motivo}</small>` : ''}
+                                        </td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    ` : '<p class="no-data">Nenhum agendamento registrado para esta secretaria.</p>'}
+                </div>
+            `;
+        });
+
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Relatório Contábil Geral de Atendimentos - Colônia Digital</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #334155; line-height: 1.5; }
+                    .header { text-align: center; margin-bottom: 40px; border-bottom: 4px double #1e3a8a; padding-bottom: 25px; }
+                    .header h1 { margin: 0; color: #1e3a8a; text-transform: uppercase; font-size: 2rem; letter-spacing: 1px; }
+                    .header p { margin: 8px 0 0; color: #475569; font-weight: 700; font-size: 1.2rem; }
+                    
+                    .summary-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin: 15px 0 25px; }
+                    .summary-card { border: 1px solid #cbd5e1; padding: 12px; border-radius: 8px; text-align: center; background: #f8fafc; }
+                    .summary-card div:first-child { font-size: 0.7rem; color: #64748b; text-transform: uppercase; margin-bottom: 3px; font-weight: 600; }
+                    .summary-card div:last-child { font-size: 1.3rem; font-weight: 800; color: #0f172a; }
+                    
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.8rem; }
+                    th { background: #f1f5f9; text-align: left; padding: 10px; border-bottom: 2px solid #cbd5e1; color: #334155; font-weight: 700; }
+                    td { padding: 10px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+                    
+                    .badge { padding: 3px 6px; border-radius: 4px; font-size: 0.65rem; font-weight: 700; text-transform: uppercase; display: inline-block; }
+                    .badge-pending { background: #fef3c7; color: #92400e; }
+                    .badge-progress { background: #dbeafe; color: #1e40af; }
+                    .badge-done { background: #dcfce7; color: #166534; }
+                    .badge-danger { background: #fee2e2; color: #991b1b; }
+                    
+                    .no-data { padding: 10px; color: #94a3b8; font-style: italic; font-size: 0.8rem; }
+                    
+                    @media print {
+                        .no-print { display: none; }
+                        body { padding: 0; }
+                        .summary-card { border: 1px solid #94a3b8; background: #fff; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>Prefeitura de Colônia Leopoldina</h1>
+                    <p>Relatório Consolidado de Atendimentos e Serviços Municipais</p>
+                    <div style="margin-top: 10px; font-size: 0.85rem; color: #64748b;">
+                        <strong>Gerado por:</strong> Administrador Geral &bull; 
+                        <strong>Data de Emissão:</strong> ${new Date().toLocaleString()}
+                    </div>
+                </div>
+
+                <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 10px; padding: 20px; margin-bottom: 40px;">
+                    <h3 style="margin-top: 0; color: #166534;"><i class="fa-solid fa-chart-pie"></i> Resumo Consolidado do Município</h3>
+                    <div class="summary-grid" style="margin-bottom: 0;">
+                        <div class="summary-card" style="background: white;">
+                            <div>Total Geral de Atendimentos</div>
+                            <div style="color: #2563eb;">${ocorrencias.length + agendamentos.length}</div>
+                        </div>
+                        <div class="summary-card" style="background: white;">
+                            <div>Total de Ocorrências</div>
+                            <div>${ocorrencias.length}</div>
+                        </div>
+                        <div class="summary-card" style="background: white;">
+                            <div>Total de Agendamentos</div>
+                            <div>${agendamentos.length}</div>
+                        </div>
+                        <div class="summary-card" style="background: white;">
+                            <div>Taxa Geral de Resolução</div>
+                            <div style="color: #166534;">${ocorrencias.length > 0 ? Math.round(ocorrencias.filter(o => o.status.toLowerCase() === 'resolvido').length / ocorrencias.length * 100) : 0}%</div>
+                        </div>
+                    </div>
+                </div>
+
+                ${secretariasHtml}
+
+                <div style="text-align: center; margin-top: 50px;" class="no-print">
+                    <button onclick="window.print()" style="padding: 15px 50px; background: #1e3a8a; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 1.1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);">
+                        <i class="fa-solid fa-print"></i> Confirmar Impressão do Relatório Geral
+                    </button>
+                </div>
+                
+                <div style="margin-top: 60px; border-top: 1px solid #cbd5e1; padding-top: 20px; text-align: center; font-size: 0.8rem; color: #64748b;">
+                    Relatório Administrativo Oficial &bull; Colônia Digital &copy; 2026<br>
+                    Prefeitura Municipal de Colônia Leopoldina - AL
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao gerar relatório geral: " + e.message);
+    } finally {
+        loadingBtn.disabled = false;
+        loadingBtn.innerHTML = originalContent;
+    }
+}
+
+window.imprimirContabilidadeGeral = imprimirContabilidadeGeral;
+window.imprimirRelatorioSecretaria = imprimirRelatorioSecretaria;
+
+
 async function handleConcursosUpload(e) {
     e.preventDefault();
     const concurso = document.getElementById('uploadConcursoSelect').value;
