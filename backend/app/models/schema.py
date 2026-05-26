@@ -147,3 +147,14 @@ class LogAuditoria(Base):
     detalhes = Column(Text)
     data = Column(DateTime, default=get_brasilia_time)
 
+class Aviso(Base):
+    __tablename__ = "avisos"
+
+    id = Column(Integer, primary_key=True, index=True)
+    titulo = Column(String(200), nullable=False)
+    mensagem = Column(Text, nullable=False)
+    tipo = Column(String(50), default="info") # info, alerta, urgente
+    ativo = Column(Integer, default=1) # 1 for active, 0 for inactive. Using Integer for sqlite compatibility if needed, or Boolean
+    data_criacao = Column(DateTime, default=get_brasilia_time)
+    autor_id = Column(Integer, nullable=True) # ID of the admin who created it
+

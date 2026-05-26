@@ -148,3 +148,18 @@ class ChangePasswordRequest(BaseModel):
 
 class UpdateNameRequest(BaseModel):
     nome: str
+
+class AvisoBase(BaseModel):
+    titulo: str
+    mensagem: str
+    tipo: str = "info"
+
+class AvisoCreate(AvisoBase):
+    pass
+
+class AvisoResponse(AvisoBase):
+    id: int
+    ativo: int
+    data_criacao: datetime
+    autor_id: Optional[int] = None
+    model_config = ConfigDict(from_attributes=True)

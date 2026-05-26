@@ -125,7 +125,12 @@ function checkAuth(requireAdmin = false) {
     }
     
     if (requireAdmin) {
-        const isAdmin = user.tipo_usuario === 'admin' || user.tipo_usuario === 'subadmin';
+        let role = user.tipo_usuario || '';
+        if (typeof role === 'string' && role.includes('.')) {
+            role = role.split('.').pop();
+        }
+        
+        const isAdmin = role === 'admin' || role === 'subadmin';
         if (!isAdmin) {
             // Usuário logado mas não é admin — enviar para dashboard cidadão
             window.location.href = 'dashboard.html';
@@ -142,7 +147,11 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const user = getUserInfo();
     if (user) {
-        let dashboardLink = (user.tipo_usuario === 'admin' || user.tipo_usuario === 'subadmin') ? 'admin.html' : 'dashboard.html';
+        let role = user.tipo_usuario || '';
+        if (typeof role === 'string' && role.includes('.')) {
+            role = role.split('.').pop();
+        }
+        let dashboardLink = (role === 'admin' || role === 'subadmin') ? 'admin.html' : 'dashboard.html';
         navLinks.innerHTML = `
             <a href="index.html">Início</a>
             <a href="${dashboardLink}">Meu Painel</a>
@@ -256,6 +265,68 @@ function initBackgroundAnimation(containerId) {
             frames[currentFrame].classList.remove('active');
             currentFrame = (currentFrame + 1) % totalFrames;
             frames[currentFrame].classList.add('active');
-        }, frameInterval);
     }
 }
+
+// ==========================================
+// MURAL DE AVISOS (CIDADÃO)
+// ==========================================
+async function fetchAvisos() {
+    const container = document.getElementById('citizenAvisosContainer');
+    if (!container) return; // Only runs on dashboard
+
+    try {
+        const res = await fetch(`${API_URL}/avisos`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        if (data.length === 0) {
+            container.style.display = 'none';
+            return;
+        }
+
+        container.style.display = 'block';
+        let html = '';
+        data.forEach(a => {
+            let bgColor = 'var(--bg-body)';
+            let borderColor = '#3b82f6';
+            let iconClass = 'fa-circle-info';
+            let titleColor = '#1e3a8a';
+            
+            if (a.tipo === 'alerta') {
+                borderColor = '#f59e0b';
+                iconClass = 'fa-triangle-exclamation';
+                titleColor = '#92400e';
+                bgColor = '#fffbeb';
+            } else if (a.tipo === 'urgente') {
+                borderColor = '#ef4444';
+                iconClass = 'fa-circle-exclamation';
+                titleColor = '#991b1b';
+                bgColor = '#fef2f2';
+            }
+
+            html += `
+                <div style="background: ${bgColor}; border-left: 5px solid ${borderColor}; padding: 1.5rem; border-radius: 8px; margin-bottom: 1rem; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); position: relative;">
+                    <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                        <i class="fa-solid ${iconClass}" style="font-size: 1.5rem; color: ${borderColor}; margin-top: 3px;"></i>
+                        <div style="flex: 1;">
+                            <h4 style="color: ${titleColor}; margin-bottom: 0.5rem; font-size: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span>${a.titulo}</span>
+                                <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: normal;"><i class="fa-regular fa-clock"></i> ${new Date(a.data_criacao).toLocaleDateString()}</span>
+                            </h4>
+                            <p style="color: var(--text-color); font-size: 0.95rem; line-height: 1.6;">${a.mensagem.replace(/\n/g, '<br>')}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+        container.innerHTML = html;
+    } catch (e) {
+        console.error("Erro ao carregar avisos:", e);
+    }
+}
+
+// Call on load if container exists
+document.addEventListener('DOMContentLoaded', () => {
+    fetchAvisos();
+});

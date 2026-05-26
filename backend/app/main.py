@@ -44,9 +44,25 @@ def startup_db_init():
                     conn.execute(text(cmd))
                     conn.commit()
                 except: pass
+                
+            try:
+                conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS avisos (
+                    id SERIAL PRIMARY KEY,
+                    titulo VARCHAR(200) NOT NULL,
+                    mensagem TEXT NOT NULL,
+                    tipo VARCHAR(50) DEFAULT 'info',
+                    ativo INTEGER DEFAULT 1,
+                    data_criacao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    autor_id INTEGER
+                )
+                """))
+                conn.commit()
+            except Exception as e: print(f"Error creating avisos table: {e}")
+            
     except Exception as e: print(f"DB Init Error: {e}")
 
-from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users, agendamentos, admin_metrics
+from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users, agendamentos, admin_metrics, avisos
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(ocorrencias.router, prefix="/api/ocorrencias", tags=["ocorrencias"])
 app.include_router(secretarias.router, prefix="/api/secretarias", tags=["secretarias"])
@@ -54,6 +70,7 @@ app.include_router(chat_ia.router, prefix="/api/chat-ia", tags=["chat_ia"])
 app.include_router(admin_users.router, prefix="/api/admin/users", tags=["admin_users"])
 app.include_router(agendamentos.router, prefix="/api/agendamentos", tags=["agendamentos"])
 app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["admin_metrics"])
+app.include_router(avisos.router, prefix="/api/avisos", tags=["avisos"])
 
 @app.get("/api/health")
 def health():

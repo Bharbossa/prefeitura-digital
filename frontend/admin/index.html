@@ -116,7 +116,7 @@
         </div>
     </div>
 
-    <script src="../js/main.js?v=1.0.3"></script>
+    <script src="../js/main.js?v=1.0.5"></script>
     <script>
         initBackgroundAnimation('bg-animation');
 
@@ -160,8 +160,14 @@
                     if (userRes.ok) {
                         const userData = await userRes.json();
 
+                        let role = userData.tipo_usuario || '';
+                        if (typeof role === 'string' && role.includes('.')) {
+                            role = role.split('.').pop();
+                            userData.tipo_usuario = role; // Normalize
+                        }
+
                         // Only allow admin and subadmin users
-                        if (userData.tipo_usuario !== 'admin' && userData.tipo_usuario !== 'subadmin') {
+                        if (role !== 'admin' && role !== 'subadmin') {
                             localStorage.removeItem('access_token');
                             errorMsg.innerText = 'Acesso negado. Esta área é restrita a administradores.';
                             errorMsg.style.display = 'block';

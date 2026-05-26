@@ -601,3 +601,116 @@ input:checked + .slider:before {
         bottom: 80px;
     }
 }
+
+/* ==========================================
+   💎 PREMIUM VISUAL & INTERACTIVE UPGRADES
+   ========================================== */
+
+/* Transições dinâmicas elásticas para botões e cartões */
+.btn, 
+.how-it-works-card, 
+.stat-card, 
+.ocorrencia-card, 
+.form-container, 
+.navbar, 
+.sidebar,
+.badge,
+.quick-chip {
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1) !important;
+}
+
+/* Efeito Hover elástico nos cards interativos */
+.how-it-works-card:hover, 
+.stat-card:hover, 
+.ocorrencia-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 30px rgba(0, 184, 148, 0.15) !important;
+}
+
+/* Foco Neon com brilho nos inputs do sistema */
+.form-group input:focus, 
+.form-group textarea:focus, 
+.form-group select:focus {
+    outline: none !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 3px rgba(0, 184, 148, 0.18), 0 0 12px rgba(0, 184, 148, 0.12) !important;
+    transform: translateY(-1px);
+}
+
+/* Estilo para sugestões rápidas (Chips) da IA */
+.chat-quick-chips {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.6rem 0.8rem;
+    background: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+    overflow-x: auto;
+    scrollbar-width: none; /* Firefox */
+}
+.chat-quick-chips::-webkit-scrollbar {
+    display: none; /* Safari e Chrome */
+}
+.quick-chip {
+    background: var(--bg-color);
+    border: 1px solid var(--primary-color);
+    color: var(--primary-color);
+    padding: 0.3rem 0.8rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.quick-chip:hover {
+    background: var(--primary-color);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+/* Estilização para mensagens formatadas do Chatbot (Markdown) */
+.chat-msg p {
+    margin-bottom: 0.5rem;
+}
+.chat-msg p:last-child {
+    margin-bottom: 0;
+}
+.chat-msg ul, .chat-msg ol {
+    margin-left: 1.2rem;
+    margin-top: 0.3rem;
+    margin-bottom: 0.3rem;
+}
+.chat-msg li {
+    margin-bottom: 0.2rem;
+}
+.chat-msg a {
+    color: #ffffff;
+    text-decoration: underline;
+    font-weight: 600;
+}
+.msg-ia a {
+    color: var(--primary-color);
+}
+
+/* Indicador dinâmico de força da senha */
+.password-strength-container {
+    margin-top: 0.5rem;
+}
+.password-strength-bar {
+    height: 4px;
+    width: 0%;
+    border-radius: 2px;
+    background-color: var(--border-color);
+    transition: width 0.4s cubic-bezier(0.25, 0.8, 0.25, 1), background-color 0.3s;
+}
+.password-strength-text {
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-top: 0.25rem;
+    display: block;
+    color: var(--text-secondary);
+    transition: color 0.3s;
+}
+.strength-weak { width: 33%; background-color: #ef4444 !important; color: #ef4444 !important; }
+.strength-medium { width: 66%; background-color: #f59e0b !important; color: #f59e0b !important; }
+.strength-strong { width: 100%; background-color: #10b981 !important; color: #10b981 !important; }
+

@@ -39,6 +39,9 @@ document.addEventListener('DOMContentLoaded', () => {
 async function initAdmin() {
     let user = getUserInfo();
     currentRole = user ? user.tipo_usuario : "";
+    if (typeof currentRole === 'string' && currentRole.includes('.')) {
+        currentRole = currentRole.split('.').pop();
+    }
     currentSecId = user ? user.secretaria_id : null;
 
     // Safety net: if subadmin is missing secretaria_nome, fetch profile to refresh cache
@@ -126,6 +129,9 @@ function setupSidebar() {
             <div class="nav-item" onclick="showSection('contabilidade', this)">
                 <i class="fa-solid fa-chart-bar"></i><span>Contabilidade</span>
             </div>
+            <div class="nav-item" onclick="showSection('avisos', this)">
+                <i class="fa-solid fa-bullhorn"></i><span>Mural de Avisos</span>
+            </div>
         `;
     }
 
@@ -139,7 +145,7 @@ function setupSidebar() {
 
 function showSection(sectionId, element) {
     // Role check for specific sections
-    const restricted = ['usuarios', 'admins', 'auditoria', 'usuarios-todos', 'contabilidade'];
+    const restricted = ['usuarios', 'admins', 'auditoria', 'usuarios-todos', 'contabilidade', 'avisos'];
     if (restricted.includes(sectionId) && currentRole !== 'admin') {
 
         alert("Acesso restrito ao Administrador Geral.");
@@ -162,9 +168,10 @@ function showSection(sectionId, element) {
         'usuarios': 'Gestão de Cidadãos',
         'admins': 'Sub-Administradores',
         'auditoria': 'Logs de Auditoria',
-        'usuarios-todos': 'Gestão de Todos os Usuários',
+        'usuarios-todos': 'Todas as Pessoas Cadastradas',
         'contabilidade': 'Contabilidade por Secretaria',
-        'config': 'Minha Conta'
+        'config': 'Minha Conta',
+        'avisos': 'Mural de Avisos'
     };
     document.getElementById('pageTitle').innerText = titles[sectionId];
     document.getElementById('breadcrumb').innerText = `Início / ${titles[sectionId]}`;
@@ -179,6 +186,7 @@ function showSection(sectionId, element) {
     if (sectionId === 'auditoria') loadAuditLogs();
     if (sectionId === 'usuarios-todos') loadAllCombinedUsers();
     if (sectionId === 'contabilidade') loadPerformance();
+    if (sectionId === 'avisos') loadAvisosAdmin();
     if (sectionId === 'config') { refreshConfigUI(); toggleResetCard(); }
 
     // Close sidebar on mobile after selection
@@ -1993,3 +2001,118 @@ async function imprimirResumoCamisas() {
 
 window.imprimirResumoCamisas = imprimirResumoCamisas;
 
+// ==========================================
+// MURAL DE AVISOS
+// ==========================================
+async function loadAvisosAdmin() {
+    const container = document.getElementById('avisosTableContainer');
+    container.innerHTML = '<p>Carregando avisos...</p>';
+    try {
+        const res = await fetch(`${API_URL}/avisos`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) throw new Error("Erro ao buscar avisos");
+        const data = await res.json();
+        
+        if (data.length === 0) {
+            container.innerHTML = '<div class="stat-card" style="text-align: center; color: var(--text-muted);"><p>Nenhum aviso ativo no momento.</p></div>';
+            return;
+        }
+
+        let html = `
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted);">
+                        <th style="padding: 10px;">Data</th>
+                        <th style="padding: 10px;">Tipo</th>
+                        <th style="padding: 10px;">Título</th>
+                        <th style="padding: 10px;">Mensagem</th>
+                        <th style="padding: 10px;">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        data.forEach(a => {
+            let badgeClass = 'bg-blue-100 text-blue-800';
+            if (a.tipo === 'alerta') badgeClass = 'bg-yellow-100 text-yellow-800';
+            if (a.tipo === 'urgente') badgeClass = 'bg-red-100 text-red-800';
+
+            html += `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 10px;">${new Date(a.data_criacao).toLocaleString()}</td>
+                    <td style="padding: 10px;"><span style="padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;" class="${badgeClass.split(' ')[0]} ${badgeClass.split(' ')[1]}">${a.tipo}</span></td>
+                    <td style="padding: 10px; font-weight: 600;">${a.titulo}</td>
+                    <td style="padding: 10px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${a.mensagem}</td>
+                    <td style="padding: 10px;">
+                        <button class="btn btn-outline" style="color: #ef4444; border-color: #ef4444; padding: 4px 10px; font-size: 0.8rem;" onclick="deleteAviso(${a.id})"><i class="fa-solid fa-trash"></i> Excluir</button>
+                    </td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        container.innerHTML = html;
+
+    } catch (e) {
+        console.error(e);
+        container.innerHTML = '<p style="color: red;">Erro ao carregar avisos.</p>';
+    }
+}
+
+async function createAviso(e) {
+    e.preventDefault();
+    const titulo = document.getElementById('avisoTitulo').value;
+    const tipo = document.getElementById('avisoTipo').value;
+    const mensagem = document.getElementById('avisoMensagem').value;
+    
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Publicando...';
+
+    try {
+        const res = await fetch(`${API_URL}/avisos`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ titulo, mensagem, tipo })
+        });
+
+        if (res.ok) {
+            closeModal('modalNovoAviso');
+            document.getElementById('formAviso').reset();
+            loadAvisosAdmin();
+        } else {
+            const err = await res.json();
+            alert("Erro ao publicar: " + (err.detail || ""));
+        }
+    } catch (err) {
+        console.error(err);
+        alert("Erro de conexão.");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function deleteAviso(id) {
+    if(!confirm("Tem certeza que deseja remover este aviso? Ele sumirá do painel dos cidadãos.")) return;
+    
+    try {
+        const res = await fetch(`${API_URL}/avisos/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok || res.status === 204) {
+            loadAvisosAdmin();
+        } else {
+            alert("Erro ao deletar aviso.");
+        }
+    } catch (e) {
+        console.error(e);
+        alert("Erro de conexão.");
+    }
+}

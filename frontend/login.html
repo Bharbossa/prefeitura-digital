@@ -156,7 +156,7 @@
         }
     </style>
 
-    <script src="js/main.js"></script>
+    <script src="js/main.js?v=1.0.5"></script>
     <script>
         // Check for session errors
         window.addEventListener('DOMContentLoaded', () => {
@@ -244,8 +244,14 @@
 
                     if (userRes.ok) {
                         const userData = await userRes.json();
+                        let role = userData.tipo_usuario || '';
+                        if (typeof role === 'string' && role.includes('.')) {
+                            role = role.split('.').pop();
+                            userData.tipo_usuario = role; // Normalize
+                        }
+
                         localStorage.setItem('user_info', JSON.stringify(userData));
-                        if (userData.tipo_usuario === 'admin' || userData.tipo_usuario === 'subadmin') {
+                        if (role === 'admin' || role === 'subadmin') {
                             localStorage.removeItem('access_token');
                             localStorage.removeItem('user_info');
                             errorMsg.innerText = "Administrador, utilize o portal restrito: /admin/";
