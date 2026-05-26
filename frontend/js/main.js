@@ -91,8 +91,9 @@ window.fetch = async (...args) => {
                 localStorage.removeItem('access_token');
                 localStorage.removeItem('user_info');
                 const path = window.location.pathname;
+                const isAdminLoginPage = path.includes('admin/index.html') || path === '/admin' || path === '/admin/';
                 // Redirecionar para a página de login correta conforme o contexto
-                if (!path.includes('login.html') && !path.includes('admin/index.html')) {
+                if (!path.includes('login.html') && !isAdminLoginPage) {
                     if (path.includes('admin.html') || path.includes('/admin/')) {
                         window.location.href = '/admin/index.html';
                     } else {

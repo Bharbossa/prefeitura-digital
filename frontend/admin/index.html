@@ -123,8 +123,14 @@
         // If already logged in as admin, redirect directly
         const existingUser = getUserInfo();
         const existingToken = getToken();
-        if (existingUser && existingToken && (existingUser.tipo_usuario === 'admin' || existingUser.tipo_usuario === 'subadmin')) {
-            window.location.href = '../admin.html';
+        if (existingUser && existingToken) {
+            let role = existingUser.tipo_usuario || '';
+            if (typeof role === 'string' && role.includes('.')) {
+                role = role.split('.').pop();
+            }
+            if (role === 'admin' || role === 'subadmin') {
+                window.location.href = '../admin.html';
+            }
         }
 
         document.getElementById('adminLoginForm').addEventListener('submit', async function(e) {
