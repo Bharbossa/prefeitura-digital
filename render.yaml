@@ -18,6 +18,10 @@ services:
         value: "60"
       - key: OPENAI_API_KEY
         sync: false
+      - key: ZAPI_INSTANCE_ID
+        value: "3F3BF8CBA41E3168C899B26D6B588ED8"
+      - key: ZAPI_TOKEN
+        value: "2FBDDE3FEA7EC43E8AE0E0C8"
 
   - type: static
     name: prefeitura-digital-frontend
