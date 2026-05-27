@@ -479,6 +479,16 @@
                 </form>
             </div>
 
+            <div style="border-bottom: 1px solid var(--border); padding-bottom: 1.5rem; margin-bottom: 1.5rem;">
+                <h4 style="margin-bottom: 1rem; color: var(--text-primary);"><i class="fa-solid fa-phone"></i> Meu Telefone</h4>
+                <form id="formTelefoneConta">
+                   <div class="form-group" style="margin-bottom: 1rem;">
+                       <input type="text" id="mc_telefone" required placeholder="Ex: 81999999999" style="width: 100%; border: 1px solid var(--border); padding: 0.8rem; border-radius: 8px; color: var(--text-primary); background: var(--bg-body);">
+                   </div>
+                   <button type="submit" class="btn btn-primary" style="width: 100%; font-size: 0.9rem;">Atualizar Telefone</button>
+                </form>
+            </div>
+
             <div>
                 <h4 style="margin-bottom: 1rem; color: var(--text-primary);"><i class="fa-solid fa-lock"></i> Segurança</h4>
                 <button type="button" class="btn btn-outline" style="width: 100%; color: #2563eb; border-color: #2563eb;" onclick="document.getElementById('modalMinhaConta').style.display='none'; abrirModalTrocaSenha();">
@@ -1659,6 +1669,7 @@
                 if (res.ok) {
                     const data = await res.json();
                     document.getElementById('mc_endereco').value = data.endereco || '';
+                    document.getElementById('mc_telefone').value = data.telefone || '';
                     if (data.foto_perfil) {
                         document.getElementById('minhaContaFotoPreview').src = data.foto_perfil;
                     } else {
@@ -1726,6 +1737,30 @@
                 } else {
                     const err = await res.json();
                     alert('Erro: ' + (err.detail || 'Não foi possível atualizar o endereço.'));
+                }
+            } catch (err) {
+                alert('Erro de conexão.');
+            }
+        });
+
+        document.getElementById('formTelefoneConta').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const telefone = document.getElementById('mc_telefone').value;
+            
+            try {
+                const res = await fetch(`${API_URL}/auth/update-phone`, {
+                    method: 'PATCH',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}` 
+                    },
+                    body: JSON.stringify({ telefone: telefone })
+                });
+                if (res.ok) {
+                    alert('Telefone atualizado com sucesso!');
+                } else {
+                    const err = await res.json();
+                    alert('Erro: ' + (err.detail || 'Não foi possível atualizar o telefone.'));
                 }
             } catch (err) {
                 alert('Erro de conexão.');

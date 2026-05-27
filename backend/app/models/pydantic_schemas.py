@@ -152,6 +152,9 @@ class UpdateNameRequest(BaseModel):
 class UpdateAddressRequest(BaseModel):
     endereco: str
 
+class UpdatePhoneRequest(BaseModel):
+    telefone: str
+
 class AvisoBase(BaseModel):
     titulo: str
     mensagem: str

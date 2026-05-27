@@ -9,7 +9,7 @@ from ..database import get_db
 from ..models.schema import Usuario, AdminSecretaria, StatusUsuario
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from ..models.pydantic_schemas import UsuarioCreate, UsuarioResponse, Token, ForgotPasswordRequest, ChangePasswordRequest, UpdateNameRequest, UpdateAddressRequest
+from ..models.pydantic_schemas import UsuarioCreate, UsuarioResponse, Token, ForgotPasswordRequest, ChangePasswordRequest, UpdateNameRequest, UpdateAddressRequest, UpdatePhoneRequest
 from ..core.security import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from ..core.auth_deps import get_current_user
 
@@ -400,3 +400,36 @@ def update_address(data: UpdateAddressRequest, current_user = Depends(get_curren
     db_sql.commit()
     
     return {"message": "Endereço atualizado com sucesso!", "endereco": data.endereco}
+
+@router.patch("/update-phone")
+def update_phone(data: UpdatePhoneRequest, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+    from ..models.schema import Usuario, AdminSecretaria
+    
+    if current_user.tipo_usuario_verificado == "subadmin":
+        user_db = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == current_user.id).first()
+    else:
+        user_db = db_sql.query(Usuario).filter(Usuario.id == current_user.id).first()
+        
+    if not user_db:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    
+    # Strip any non-numeric characters before saving, like the SMS service expects or standard formats
+    import re
+    clean_phone = re.sub(r'\D', '', data.telefone)
+    
+    old_phone = user_db.telefone
+    user_db.telefone = clean_phone
+    db_sql.commit()
+    
+    # Audit log
+    from ..models.schema import LogAuditoria
+    log = LogAuditoria(
+        usuario_id=current_user.id,
+        usuario_tipo="admin" if current_user.tipo_usuario_verificado in ["admin", "subadmin"] else "cidadao",
+        acao="update_phone",
+        detalhes=f"Usuário {current_user.email} alterou telefone de '{old_phone}' para '{clean_phone}'"
+    )
+    db_sql.add(log)
+    db_sql.commit()
+    
+    return {"message": "Telefone atualizado com sucesso!", "telefone": clean_phone}
