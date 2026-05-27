@@ -62,7 +62,7 @@ def send_status_sms(phone: str, message: str):
     return True
 
 def get_resolved_message(titulo: str):
-    return "OBRIGADO POR USAR O COLÔNIADIGITAL! seu problema foi resolvido com sucesso."
+    return "OBRIGADO POR USAR O COLÔNIA DIGITAL. SUA SOLICITAÇÃO JÁ FOI RESOLVIDA!"
 
 def get_confirmed_message(assunto: str, data_hora: str):
     return f"COLÔNIA DIGITAL: Seu agendamento ({assunto}) para {data_hora} foi CONFIRMADO."
