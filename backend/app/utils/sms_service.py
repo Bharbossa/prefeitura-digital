@@ -25,6 +25,7 @@ def send_status_sms(phone: str, message: str):
     
     ZAPI_INSTANCE_ID = os.environ.get("ZAPI_INSTANCE_ID", "")
     ZAPI_TOKEN = os.environ.get("ZAPI_TOKEN", "")
+    ZAPI_CLIENT_TOKEN = os.environ.get("ZAPI_CLIENT_TOKEN", "")
 
     if ZAPI_INSTANCE_ID and ZAPI_TOKEN:
         import requests
@@ -37,7 +38,11 @@ def send_status_sms(phone: str, message: str):
                 "message": message
             }
             
-            response = requests.post(url, json=payload, timeout=10)
+            headers = {}
+            if ZAPI_CLIENT_TOKEN:
+                headers["Client-Token"] = ZAPI_CLIENT_TOKEN
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
             
             if response.status_code in [200, 201]:
                 logger.info(f"WhatsApp enviado para {clean_phone} via Z-API.")

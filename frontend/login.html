@@ -98,20 +98,13 @@
                 <div class="form-group" style="margin-bottom: 2rem;">
                     <label style="font-weight: 600; color: #333; margin-bottom: 1rem; display: block;">Como deseja
                         receber a nova senha?</label>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: 1fr; gap: 1rem;">
                         <label
-                            style="border: 2px solid #edf2f7; border-radius: 12px; padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.2s;"
+                            style="border: 2px solid var(--primary-color); background-color: #e0f2f1; color: var(--primary-color); border-radius: 12px; padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.2s;"
                             class="method-card">
-                            <input type="radio" name="recoveryMethod" value="email" checked style="display: none;">
-                            <i class="fa-solid fa-envelope" style="font-size: 1.25rem;"></i>
-                            <span style="font-weight: 500;">E-mail</span>
-                        </label>
-                        <label
-                            style="border: 2px solid #edf2f7; border-radius: 12px; padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.2s;"
-                            class="method-card">
-                            <input type="radio" name="recoveryMethod" value="sms" style="display: none;">
-                            <i class="fa-solid fa-comment-sms" style="font-size: 1.25rem;"></i>
-                            <span style="font-weight: 500;">SMS</span>
+                            <input type="radio" name="recoveryMethod" value="sms" checked style="display: none;">
+                            <i class="fa-brands fa-whatsapp" style="font-size: 1.5rem;"></i>
+                            <span style="font-weight: 600;">Receber via WhatsApp</span>
                         </label>
                     </div>
                 </div>
