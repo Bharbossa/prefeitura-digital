@@ -22,6 +22,8 @@ services:
         value: "3F3BF8CBA41E3168C899B26D6B588ED8"
       - key: ZAPI_TOKEN
         value: "2FBDDE3FEA7EC43E8AE0E0C8"
+      - key: ZAPI_CLIENT_TOKEN
+        value: "Fb2e570ac64e04418bbdc5b1c67ada554S"
 
   - type: static
     name: prefeitura-digital-frontend
