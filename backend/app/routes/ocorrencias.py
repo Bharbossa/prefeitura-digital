@@ -144,14 +144,20 @@ async def update_status(
         if resposta:
             db_sql.add(Resposta(mensagem=resposta, ocorrencia_id=id, admin_id=current_user.id if current_user.tipo_usuario_verificado == "subadmin" else None))
             
-        db_sql.commit()
-        
-        # Send WhatsApp if resolved
+        # Pega as informações ANTES de dar commit, pois o commit expira os objetos do SQLAlchemy
+        should_send = False
+        phone_to_send = None
+        msg_titulo = ocorrencia.titulo
         if status.lower().strip() == "resolvido" and ocorrencia.usuario:
             phone_to_send = ocorrencia.usuario.whatsapp or ocorrencia.usuario.telefone
-            if phone_to_send:
-                msg = get_resolved_message(ocorrencia.titulo)
-                send_status_sms(phone_to_send, msg)
+            should_send = True
+
+        db_sql.commit()
+        
+        # Envia a mensagem após salvar o status com sucesso
+        if should_send and phone_to_send:
+            msg = get_resolved_message(msg_titulo)
+            send_status_sms(phone_to_send, msg)
                 
         return {"message": "Status atualizado"}
     except Exception as e:
