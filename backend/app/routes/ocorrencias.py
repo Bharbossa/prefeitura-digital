@@ -145,6 +145,14 @@ async def update_status(
             db_sql.add(Resposta(mensagem=resposta, ocorrencia_id=id, admin_id=current_user.id if current_user.tipo_usuario_verificado == "subadmin" else None))
             
         db_sql.commit()
+        
+        # Send WhatsApp if resolved
+        if status.lower().strip() == "resolvido" and ocorrencia.usuario:
+            phone_to_send = ocorrencia.usuario.whatsapp or ocorrencia.usuario.telefone
+            if phone_to_send:
+                msg = get_resolved_message(ocorrencia.titulo)
+                send_status_sms(phone_to_send, msg)
+                
         return {"message": "Status atualizado"}
     except Exception as e:
         db_sql.rollback()
