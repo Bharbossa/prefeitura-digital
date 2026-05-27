@@ -6,9 +6,7 @@ import os
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SMS_SERVICE")
 
-TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID", "")
-TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN", "")
-TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER", "")
+# Z-API Configuration Variables are retrieved dynamically in the function
 
 def send_status_sms(phone: str, message: str):
     """
@@ -25,25 +23,30 @@ def send_status_sms(phone: str, message: str):
         clean_phone = "55" + clean_phone
     formatted_phone = "+" + clean_phone
     
-    if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER:
+    ZAPI_INSTANCE_ID = os.environ.get("ZAPI_INSTANCE_ID", "")
+    ZAPI_TOKEN = os.environ.get("ZAPI_TOKEN", "")
+
+    if ZAPI_INSTANCE_ID and ZAPI_TOKEN:
+        import requests
         try:
-            from twilio.rest import Client
-            client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+            # Endpoint padrão do Z-API para envio de texto
+            url = f"https://api.z-api.io/instances/{ZAPI_INSTANCE_ID}/token/{ZAPI_TOKEN}/send-text"
             
-            # Check if using WhatsApp
-            if TWILIO_PHONE_NUMBER.startswith("whatsapp:"):
-                formatted_phone = "whatsapp:" + formatted_phone
+            payload = {
+                "phone": clean_phone, # Z-API aceita o formato 5511999999999 sem o +
+                "message": message
+            }
             
-            client_msg = client.messages.create(
-                body=message,
-                from_=TWILIO_PHONE_NUMBER,
-                to=formatted_phone
-            )
-            logger.info(f"Mensagem enviada para {formatted_phone}: SID {client_msg.sid}")
-            return True
+            response = requests.post(url, json=payload, timeout=10)
+            
+            if response.status_code in [200, 201]:
+                logger.info(f"WhatsApp enviado para {clean_phone} via Z-API.")
+                return True
+            else:
+                logger.error(f"Erro no Z-API ({response.status_code}): {response.text}")
         except Exception as e:
-            logger.error(f"Erro ao enviar mensagem via Twilio para {formatted_phone}: {str(e)}")
-            # Fallback to simulation if there's an error
+            logger.error(f"Exceção ao enviar via Z-API para {clean_phone}: {str(e)}")
+            # Fallback para simulação em caso de erro
             pass
 
     logger.info(f"--- SMS SIMULADO ---")
