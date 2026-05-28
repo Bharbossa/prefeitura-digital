@@ -10,20 +10,37 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 
-<body
-    style="display: flex; justify-content: center; min-height: 100vh; position: relative; overflow-x: hidden; padding: 2rem 1rem; box-sizing: border-box;">
+<body style="display: flex; flex-direction: column; min-height: 100vh; position: relative; overflow-x: hidden;">
+
+    <nav class="navbar" style="width: 100%;">
+        <div class="logo">
+            <i class="fa-solid fa-city"></i>
+            Colônia Digital
+        </div>
+        <div class="hamburger" id="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="nav-links" id="nav-links">
+            <a href="index.html" class="btn btn-outline" style="margin-right: 1rem;">Início</a>
+            <a href="login.html" class="btn btn-outline" style="margin-right: 1rem;">Entrar</a>
+            <a href="register.html" class="btn btn-primary">Cadastrar</a>
+            <div class="theme-switch-wrapper">
+                <label class="theme-switch" for="checkbox">
+                    <input type="checkbox" id="checkbox" />
+                    <div class="slider round"></div>
+                </label>
+            </div>
+        </div>
+    </nav>
 
     <div class="bg-animation-container" id="bg-animation"></div>
     <div class="bg-overlay"></div>
 
     <div class="form-container fade-in"
-        style="width: 100%; max-width: 400px; margin: 1rem; position: relative; z-index: 10;">
-        <div style="position: absolute; top: -50px; left: 0;">
-            <a href="index.html"
-                style="color: white; text-decoration: none; display: flex; align-items: center; gap: 0.5rem; font-weight: 600; text-shadow: 0 2px 4px rgba(0,0,0,0.3);">
-                <i class="fa-solid fa-arrow-left"></i> Início
-            </a>
-        </div>
+        style="width: 100%; max-width: 400px; margin: auto; position: relative; z-index: 10;">
+        
         <div style="text-align: center; margin-bottom: 2rem;">
             <h1 style="color: var(--primary-color); font-size: 2rem;">
                 <i class="fa-solid fa-city"></i> Colônia Digital
