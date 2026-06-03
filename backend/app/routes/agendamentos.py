@@ -10,7 +10,7 @@ from datetime import datetime
 from ..database import get_db
 from ..models.schema import Usuario, AdminSecretaria, Agendamento, LogAuditoria, Secretaria
 from ..models.pydantic_schemas import AgendamentoCreate, AgendamentoResponse
-from ..core.auth_deps import get_current_user, get_current_admin
+from ..core.auth_deps import get_current_user, get_current_admin, get_general_admin
 from ..utils.sms_service import send_status_sms, get_confirmed_message
 from ..utils.notification_helper import notify_admins_of_new_record
 from ..core.utils import generate_protocol, get_brasilia_time, generate_ticket_number
