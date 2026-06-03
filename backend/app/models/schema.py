@@ -14,6 +14,7 @@ class StatusOcorrencia(str, enum.Enum):
     pendente = "pendente"
     em_atendimento = "em_atendimento"
     resolvido = "resolvido"
+    cancelado = "cancelado"
 
 class StatusUsuario(str, enum.Enum):
     pendente = "pendente"
@@ -131,7 +132,7 @@ class Agendamento(Base):
     cartao_sus = Column(String(50), nullable=True)
     data_hora = Column(DateTime)
     status = Column(String(50), default="Pendente") # Pendente, Confirmado, Cancelado
-    anexo = Column(String(255), nullable=True) # Path/URL for the uploaded proof
+    anexo = Column(Text, nullable=True) # Path/URL for the uploaded proof
     criado_em = Column(DateTime, default=get_brasilia_time)
 
     usuario = relationship("Usuario", back_populates="agendamentos")
