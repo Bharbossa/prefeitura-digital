@@ -398,7 +398,7 @@ async function loadOcorrencias() {
                 const s = o.status.toLowerCase();
                 const statusBtn = s === 'resolvido' ? 
                     `<button class="btn btn-outline" onclick="imprimirProtocolo('${o.id}')"><i class="fa-solid fa-print"></i></button>` :
-                    `<button class="btn btn-primary" onclick="openResponseModal('${o.id}', '${o.titulo}')">Resolver</button>`;
+                    `<button class="btn btn-primary" onclick="openResponseModal('${o.id}', '${o.titulo}')">Atualizar</button>`;
 
                 html += `
                     <tr>
@@ -411,7 +411,7 @@ async function loadOcorrencias() {
                         </td>
                         ${currentRole==='admin' ? `<td>${o.secretaria_nome || 'N/A'}</td>` : ''}
                         <td>${new Date(o.data).toLocaleString()}</td>
-                        <td><span class="badge badge-${s === 'resolvido' ? 'done' : (s === 'em_atendimento' ? 'progress' : 'pending')}">${o.status}</span></td>
+                        <td><span class="badge badge-${s === 'resolvido' ? 'done' : (s === 'em_atendimento' ? 'progress' : (s === 'cancelado' ? 'danger' : 'pending'))}">${o.status}</span></td>
                         <td>
                             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                 ${statusBtn}
@@ -435,7 +435,7 @@ async function loadOcorrencias() {
 // ... Additional list loaders (Agendamentos, Users, Admins, Logs) follow similar patterns ...
 
 function openResponseModal(id, title) {
-    document.getElementById('modalResponseTitle').innerText = `Resolver #${id}`;
+    document.getElementById('modalResponseTitle').innerText = `Atualizar #${id}`;
     document.getElementById('modalResponseSubtitle').innerText = title;
     document.getElementById('respText').value = "";
     document.getElementById('modalResponse').style.display = 'flex';
@@ -454,9 +454,10 @@ async function confirmResolution(id) {
     if (fotoInput && fotoInput.files.length > 0) {
         formData.append('foto_resolucao', fotoInput.files[0]);
     }
+    const selStatus = document.getElementById('respStatus') ? document.getElementById('respStatus').value : 'resolvido';
     
     try {
-        const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=resolvido`, {
+        const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=${selStatus}`, {
             method: 'PATCH',
             headers: { 'Authorization': `Bearer ${getToken()}` },
             body: formData
@@ -466,7 +467,7 @@ async function confirmResolution(id) {
             if (document.getElementById('respFoto')) document.getElementById('respFoto').value = "";
             loadOcorrencias();
             loadDashboard();
-            alert("Ocorrência resolvida com sucesso!");
+            alert("Resposta enviada com sucesso!");
         } else {
             const err = await res.json().catch(() => ({}));
             alert("Erro ao resolver: " + (err.detail || res.statusText));
@@ -488,7 +489,7 @@ async function cobrarSecretaria(id) {
             alert("Erro ao enviar alerta: " + (err.detail || res.statusText));
         }
     } catch(e) {
-        alert("Erro de conexão.");
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'});
     }
 }
 
@@ -564,7 +565,12 @@ async function loadAgendamentos() {
         const res = await fetch(`${API_URL}/agendamentos`, { headers: { 'Authorization': `Bearer ${getToken()}` } });
         if (res.ok) {
             let list = await res.json();
-            if (currentSecId) list = list.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
+            const userInfo = getUserInfo();
+            if (userInfo && userInfo.email === 'denilmalucass@gmail.com') {
+                list = list.filter(a => a.assunto && a.assunto.toUpperCase().includes('HOSPITAL MARIA LOUREIRO'));
+            } else if (currentSecId) {
+                list = list.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
+            }
             list = list.filter(a => a.tipo !== 'Concurso');
             
             const container = document.getElementById('agendamentosTableContainer');
@@ -647,6 +653,8 @@ async function loadConcursos() {
             if (currentSecId) list = list.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
             list = list.filter(a => a.tipo === 'Concurso');
             
+            window.todasInscricoes = list;
+            
             const container = document.getElementById('concursosTableContainer');
             if (list.length === 0) {
                 container.innerHTML = '<p style="padding: 2rem; text-align: center;">Nenhuma inscrição encontrada.</p>';
@@ -684,9 +692,12 @@ async function loadConcursos() {
                         <td><span class="badge badge-${s === 'confirmado' ? 'done' : (s === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
-                                ${s === 'pendente' ? `<button class="btn btn-primary" style="background: #a855f7; border-color: #a855f7;" onclick="updateAgendamento('${a.id}', 'Confirmado')">Confirmar</button>` : ''}
+                                ${s === 'pendente' ? `<button class="btn btn-primary" style="background: #a855f7; border-color: #a855f7;" onclick="abrirModalConfirmacaoInscricao('${a.id}')">Confirmar</button>` : ''}
+                                <button class="btn btn-outline" title="Visualizar Detalhes" style="border-color: #64748b; color: #64748b;" onclick="alert('Detalhes da Inscrição:\\n\\nInscrito: ${a.usuario_nome}\\nProtocolo: ${a.protocolo}\\nAssunto: ${a.assunto.replace(/'/g, "\\'")}\\n\\nMotivo/Dados Extra:\\n${(a.motivo || 'Nenhum').replace(/'/g, "\\'")}\\n\\nAnexos:\\n${a.anexo ? 'Sim (Clique nos botões de foto/pdf para ver)' : 'Nenhuma foto ou documento anexado nesta inscrição.'}')"><i class="fa-solid fa-eye"></i></button>
                                 <button class="btn btn-outline" title="Imprimir Comprovante" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>
+                                <button class="btn btn-outline" style="border-color: #3b82f6; color: #3b82f6;" title="Imprimir Documentação" onclick="imprimirDocumentacao('${a.id}')"><i class="fa-solid fa-images"></i> Imprimir Documentação</button>
                                 ${anexosButtons}
+                                ${!currentSecId ? `<button class="btn btn-outline" title="Excluir Inscrição" style="border-color: #ef4444; color: #ef4444;" onclick="deletarAgendamento('${a.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
                             </div>
                         </td>
                     </tr>
@@ -699,22 +710,39 @@ async function loadConcursos() {
         console.error("Error loading concursos:", e);
     }
 }
+async function deletarAgendamento(id) {
+    const result = await Swal.fire({title: 'Atenção', text: 'TEM CERTEZA que deseja excluir esta inscrição/agendamento? Esta ação é IRREVERSÍVEL!', icon: 'warning', showCancelButton: true, confirmButtonText: 'Sim, Excluir', cancelButtonText: 'Cancelar'}); if (!result.isConfirmed) return;
+    try {
+        const res = await fetch(`${API_URL}/agendamentos/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok || res.status === 204) {
+            Swal.fire({icon: 'success', title: 'Sucesso', text: 'Inscrição/Agendamento excluído com sucesso!'});
+            loadAgendamentos();
+            loadConcursos();
+            loadDashboard();
+        } else {
+            Swal.fire({icon: 'error', title: 'Erro', text: 'Erro ao excluir.'});
+        }
+    } catch(e) { Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'}); }
+}
 
 async function updateOcorrenciaStatus(id, status) {
-    if (!confirm(`Mudar status para ${status}?`)) return;
+    const result = await Swal.fire({title: 'Atenção', text: `Mudar status para ${status}?`, icon: 'warning', showCancelButton: true, confirmButtonText: 'Sim', cancelButtonText: 'Não'}); if (!result.isConfirmed) return;
     try {
         const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=${status}`, {
             method: 'PATCH',
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
         if (res.ok) {
-            alert("Status atualizado!");
+            Swal.fire({icon: 'success', title: 'Sucesso', text: 'Status atualizado!'});
             loadOcorrencias();
             loadDashboard();
         } else {
-            alert("Erro ao atualizar status.");
+            Swal.fire({icon: 'error', title: 'Erro', text: 'Erro ao atualizar status.'});
         }
-    } catch(e) { alert("Erro de conexão."); }
+    } catch(e) { Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'}); }
 }
 
 async function resolveOcorrencia(id) {
@@ -727,13 +755,99 @@ async function resolveOcorrencia(id) {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
         if (res.ok) {
-            alert("Ocorrência resolvida com sucesso!");
+            Swal.fire({icon: 'success', title: 'Sucesso', text: 'Ocorrência resolvida com sucesso!'});
             loadOcorrencias();
             loadDashboard();
         } else {
-            alert("Erro ao resolver ocorrência.");
+            Swal.fire({icon: 'error', title: 'Erro', text: 'Erro ao resolver ocorrência.'});
         }
-    } catch(e) { alert("Erro de conexão."); }
+    } catch(e) { Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'}); }
+}
+
+function abrirModalConfirmacaoInscricao(id) {
+    const a = window.todasInscricoes ? window.todasInscricoes.find(i => i.id == id) : null;
+    if (!a) {
+        Swal.fire({icon: 'warning', title: 'Atenção', text: 'Inscrição não encontrada na memória. Recarregue a página.'});
+        return;
+    }
+    
+    const anexoStr = a.anexo || '';
+    const usuarioNome = a.usuario_nome || 'N/A';
+    const assunto = a.assunto || 'N/A';
+
+    let anexosHtml = '';
+    if (anexoStr) {
+        const files = anexoStr.split(',');
+        files.forEach(f => {
+            const trimFile = f.trim();
+            if (!trimFile) return;
+            const isImg = trimFile.match(/\.(jpeg|jpg|gif|png|webp)/i);
+            if (isImg) {
+                anexosHtml += `<div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 5px; width: 45%; background: white; text-align: center;"><img src="${MEDIA_URL}/${trimFile.replace(/\\/g, '/')}" style="max-width: 100%; max-height: 250px; border-radius: 4px; cursor: pointer; object-fit: contain;" onclick="window.open(this.src, '_blank')"></div>`;
+            } else {
+                anexosHtml += `<div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 15px; background: #f1f5f9; width: 45%; text-align: center; display: flex; align-items: center; justify-content: center;"><a href="${MEDIA_URL}/${trimFile.replace(/\\/g, '/')}" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: none;"><i class="fa-solid fa-file-pdf"></i> Ver PDF</a></div>`;
+            }
+        });
+    } else {
+        anexosHtml = '<p style="color: #64748b; font-style: italic; width: 100%; text-align: center;">Nenhum documento anexado.</p>';
+    }
+
+    const modalId = 'modalConfirmarInscricaoDinamico';
+    let modal = document.getElementById(modalId);
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = modalId;
+        modal.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; display:flex; justify-content:center; align-items:center; backdrop-filter: blur(5px);';
+        document.body.appendChild(modal);
+    }
+    
+    modal.innerHTML = `
+        <div style="background: #fff; border-radius: 12px; width: 90%; max-width: 700px; max-height: 90vh; overflow-y: auto; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); position: relative;">
+            <i class="fa-solid fa-times" style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem; color: #64748b;" onclick="document.getElementById('${modalId}').style.display='none'"></i>
+            <h2 style="color: #a855f7; margin-top: 0; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px;"><i class="fa-solid fa-clipboard-check"></i> Revisar Inscrição</h2>
+            
+            <div style="margin-bottom: 20px;">
+                <p><strong>Cidadão:</strong> ${usuarioNome}</p>
+                <p><strong>Assunto:</strong> ${assunto}</p>
+            </div>
+            
+            <h3 style="color: #1e293b; margin-bottom: 10px; font-size: 1.1rem;">Documentos Anexados (Verifique antes de aprovar)</h3>
+            <div style="display: flex; gap: 15px; flex-wrap: wrap; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 20px; justify-content: center;">
+                ${anexosHtml}
+            </div>
+            
+            <div style="display: flex; gap: 10px; justify-content: flex-end; border-top: 2px solid #e2e8f0; padding-top: 15px;">
+                <button onclick="document.getElementById('${modalId}').style.display='none'" class="btn btn-outline" style="background: #f1f5f9; color: #475569; border-color: #cbd5e1;">Cancelar</button>
+                <button onclick="imprimirAgendamento('${id}')" class="btn btn-outline" style="background: #3b82f6; color: white; border-color: #3b82f6; font-weight: bold;"><i class="fa-solid fa-print"></i> Imprimir Ficha</button>
+                <button onclick="document.getElementById('${modalId}').style.display='none'; imprimirDocumentacao('${id}')" class="btn btn-outline" style="border-color: #3b82f6; color: #3b82f6; font-weight: bold;"><i class="fa-solid fa-images"></i> Imprimir Documentação</button>
+                <button onclick="document.getElementById('${modalId}').style.display='none'; executarUpdateAgendamento('${id}', 'Confirmado');" class="btn btn-primary" style="background: #10b981; border-color: #10b981; font-weight: bold;"><i class="fa-solid fa-check"></i> Aprovar Inscrição</button>
+            </div>
+        </div>
+    `;
+    modal.style.display = 'flex';
+}
+
+async function executarUpdateAgendamento(id, status) {
+    try {
+        const res = await fetch(`${API_URL}/agendamentos/${id}/status?status=${status}`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            Swal.fire({icon: 'success', title: 'Inscrição concluída com sucesso!', text: 'O comprovante com os documentos será gerado agora para impressão.', confirmButtonText: 'Ok'});
+            loadAgendamentos();
+            loadConcursos();
+            loadDashboard();
+            
+            // Imprime automaticamente junto com a confirmação
+            imprimirAgendamento(id);
+        } else {
+            const err = await res.json();
+            Swal.fire({icon: 'error', title: 'Falha', text: 'Falha ao atualizar status: ' + (err.detail || '')});
+        }
+    } catch(e) { 
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'}); 
+    }
 }
 
 async function updateAgendamento(id, status) {
@@ -750,10 +864,10 @@ async function updateAgendamento(id, status) {
             loadDashboard(); // Update metrics too
         } else {
             const err = await res.json();
-            alert("Falha ao atualizar status: " + (err.detail || ""));
+            Swal.fire({icon: 'error', title: 'Falha', text: 'Falha ao atualizar status: ' + (err.detail || '')});
         }
     } catch(e) { 
-        alert("Erro de conexão."); 
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'}); 
     }
 }
 
@@ -834,6 +948,23 @@ async function imprimirAgendamento(id) {
                         ${a.acompanhante ? `<div class="row"><span class="label">ACOMPANHANTE:</span> ${a.acompanhante}</div>` : ''}
                         <div class="row" style="background: #f1f5f9; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;"><span class="label">${dateLabel}</span> <strong style="font-size: 1.2rem; color: #1e293b;">${(() => { const d = new Date(a.data_hora); const od = { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' }; const ot = { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }; return d.toLocaleDateString('pt-BR', od) + ' às ' + d.toLocaleTimeString('pt-BR', ot) + ' (Horário de Brasília)'; })()}</strong></div>
                         <div class="row"><span class="label">SITUAÇÃO:</span> <strong style="color: ${statusColor};">${statusText}</strong></div>
+                        ${(() => {
+                            if (!a.anexo) return '';
+                            let anexosHtml = '<div style="margin-top: 20px; page-break-inside: avoid;"><h3 style="border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; color: #1e293b;">Documentos Anexados</h3><div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">';
+                            const files = a.anexo.split(',');
+                            files.forEach(f => {
+                                const trimFile = f.trim();
+                                if (!trimFile) return;
+                                const isImg = trimFile.match(/\.(jpeg|jpg|gif|png|webp)/i);
+                                if (isImg) {
+                                    anexosHtml += `<div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 5px; width: 45%; background: white;"><img src="${MEDIA_URL}/${trimFile.replace(/\\/g, '/')}" style="max-width: 100%; height: auto; border-radius: 4px;"></div>`;
+                                } else {
+                                    anexosHtml += `<div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 15px; background: #f1f5f9; width: 45%;"><a href="${MEDIA_URL}/${trimFile.replace(/\\/g, '/')}" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: none;">📄 Documento PDF Em Anexo</a></div>`;
+                                }
+                            });
+                            anexosHtml += '</div></div>';
+                            return anexosHtml;
+                        })()}
                     </div>
                     <div class="stamp"><div class="badge">${badgeText}</div></div>
                     <div style="text-align: center; margin-top: 40px;">
@@ -997,7 +1128,7 @@ async function deleteAdmin(id) {
             alert(err.detail || "Erro ao excluir administrador.");
         }
     } catch(e) {
-        alert("Erro de conexão.");
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'});
     }
 }
 
@@ -1041,7 +1172,7 @@ async function deleteCombinedUser(id, source) {
     try {
         const res = await fetch(url, { method: 'DELETE', headers: { 'Authorization': `Bearer ${getToken()}` } });
         if (res.ok) { loadAllCombinedUsers(); loadDashboard(); }
-    } catch(e) { alert("Erro ao excluir."); }
+    } catch(e) { Swal.fire({icon: 'error', title: 'Erro', text: 'Erro ao excluir.'}); }
 }
 
 function openPasswordModal(id, source, nome) {
@@ -1079,7 +1210,7 @@ document.getElementById('formAlterarSenha').addEventListener('submit', async fun
             alert(err.detail || "Erro ao alterar senha.");
         }
     } catch(e) {
-        alert("Erro de conexão.");
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'});
     }
 });
 
@@ -2310,7 +2441,7 @@ async function createAviso(e) {
         }
     } catch (err) {
         console.error(err);
-        alert("Erro de conexão.");
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'});
     } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
@@ -2332,6 +2463,96 @@ async function deleteAviso(id) {
         }
     } catch (e) {
         console.error(e);
-        alert("Erro de conexão.");
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'});
     }
 }
+
+
+window.verDetalhesInscricao = function(id) {
+    const a = window.todasInscricoes ? window.todasInscricoes.find(i => i.id == id) : null;
+    if (!a) return;
+    
+    let html = '<div style="text-align: left; font-size: 0.9rem;">';
+    html += '<p><strong>Inscrito:</strong> ' + (a.usuario_nome || 'N/A') + '</p>';
+    html += '<p><strong>Protocolo:</strong> ' + (a.protocolo || a.id) + '</p>';
+    html += '<p><strong>Assunto:</strong> ' + (a.assunto || 'N/A') + '</p>';
+    if (a.motivo) html += '<p><strong>Motivo/Dados Extra:</strong><br>' + a.motivo.replace(/\n/g, '<br>') + '</p>';
+    
+    html += '<hr><p><strong>Anexos/Fotos:</strong></p>';
+    if (a.anexo) {
+        const files = a.anexo.split(',');
+        html += '<div style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px;">';
+        files.forEach(f => {
+            const trim = f.trim();
+            if (!trim) return;
+            if (trim.match(/\.(jpeg|jpg|gif|png|webp)/i)) {
+                html += '<img src="' + MEDIA_URL + '/' + trim.replace(/\\/g, '/') + '" style="max-width: 100%; border-radius: 4px; border: 1px solid #ccc; max-height: 200px; cursor: pointer;" onclick="window.open(this.src, \'_blank\')">';
+            } else {
+                html += '<a href="' + MEDIA_URL + '/' + trim.replace(/\\/g, '/') + '" target="_blank" class="btn btn-outline"><i class="fa-solid fa-file-pdf"></i> Ver PDF</a>';
+            }
+        });
+        html += '</div>';
+    } else {
+        html += '<p style="color: #ef4444; font-weight: bold;">Nenhuma foto ou documento foi anexado nesta inscrição! O usuário provavelmente se inscreveu antes da trava obrigatória de fotos.</p>';
+    }
+    html += '</div>';
+    
+    Swal.fire({
+        title: 'Detalhes da Inscrição',
+        html: html,
+        width: 600,
+        confirmButtonText: 'Fechar'
+    });
+};
+
+window.imprimirDocumentacao = function(id) {
+    const a = window.todasInscricoes ? window.todasInscricoes.find(i => i.id == id) : null;
+    if (!a) return;
+    
+    if (!a.anexo) {
+        Swal.fire({icon: 'warning', title: 'Sem Documentos', text: 'Esta inscrição não possui nenhuma foto ou documento anexado para impressão.'});
+        return;
+    }
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <html>
+        <head>
+            <title>Documentação - ${a.protocolo || a.id}</title>
+            <style>
+                body { font-family: 'Inter', sans-serif; padding: 20px; text-align: center; }
+                h1 { color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+                .doc-img { max-width: 100%; margin-bottom: 30px; border: 2px solid #e2e8f0; border-radius: 8px; page-break-inside: avoid; }
+                @media print { .no-print { display: none; } }
+            </style>
+        </head>
+        <body>
+            <h1>Documentação Anexada - ${a.usuario_nome}</h1>
+            <p style="margin-bottom: 30px;"><strong>Protocolo:</strong> ${a.protocolo || a.id}</p>
+    `);
+    
+    const files = a.anexo.split(',');
+    let hasImages = false;
+    files.forEach(f => {
+        const trimFile = f.trim();
+        if (!trimFile) return;
+        if (trimFile.match(/\.(jpeg|jpg|gif|png|webp)/i)) {
+            hasImages = true;
+            printWindow.document.write(`<img class="doc-img" src="${MEDIA_URL}/${trimFile.replace(/\\/g, '/')}"><br>`);
+        }
+    });
+
+    if (!hasImages) {
+        printWindow.document.write('<p>Existem apenas arquivos PDF anexados. Para imprimi-los, abra os PDFs individualmente.</p>');
+    }
+
+    printWindow.document.write(`
+            <div style="margin-top: 40px;" class="no-print">
+                <button onclick="window.print()" style="padding: 10px 30px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 1.1rem; font-weight: bold;">Imprimir</button>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
+};
+

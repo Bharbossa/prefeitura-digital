@@ -10,7 +10,7 @@ from ..database import get_db
 from ..models.schema import Ocorrencia, Resposta, AdminSecretaria, LogAuditoria, Secretaria
 from ..models.pydantic_schemas import OcorrenciaResponse, RespostaResponse
 from ..core.auth_deps import get_current_user, get_current_admin
-from ..utils.sms_service import send_status_sms, get_resolved_message
+from ..utils.sms_service import send_status_sms, get_resolved_message, get_progress_message, get_cancelled_message
 from ..utils.notification_helper import notify_admins_of_new_record
 from ..core.utils import generate_protocol
 from datetime import datetime
@@ -148,7 +148,9 @@ async def update_status(
         should_send = False
         phone_to_send = None
         msg_titulo = ocorrencia.titulo
-        if status.lower().strip() == "resolvido" and ocorrencia.usuario:
+        status_limpo = status.lower().strip()
+        
+        if status_limpo in ["resolvido", "em_atendimento", "cancelado"] and ocorrencia.usuario:
             phone_to_send = ocorrencia.usuario.whatsapp or ocorrencia.usuario.telefone
             should_send = True
 
@@ -156,8 +158,15 @@ async def update_status(
         
         # Envia a mensagem após salvar o status com sucesso
         if should_send and phone_to_send:
-            msg = get_resolved_message(msg_titulo)
-            send_status_sms(phone_to_send, msg)
+            if status_limpo == "resolvido":
+                msg = get_resolved_message(msg_titulo)
+            elif status_limpo == "em_atendimento":
+                msg = get_progress_message(msg_titulo)
+            elif status_limpo == "cancelado":
+                msg = get_cancelled_message(msg_titulo)
+                
+            if 'msg' in locals():
+                send_status_sms(phone_to_send, msg)
                 
         return {"message": "Status atualizado"}
     except Exception as e:

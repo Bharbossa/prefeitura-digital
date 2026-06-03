@@ -2,12 +2,20 @@
 <html lang="pt-BR" data-theme="light">
 
 <head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel do Cidadão - Colônia Digital</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="css/style.css?v=1.0.4">
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
     <style>
     @keyframes borderPulse {
         0% { border-color: #ef4444; box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
@@ -235,13 +243,13 @@
                 </div>
                 <div class="form-group">
                     <label>Secretaria (Destino do Agendamento)</label>
-                    <select id="ag_secretaria" required>
+                    <select id="ag_secretaria">
                         <option value="">Carregando...</option>
                     </select>
                 </div>
                 <div class="form-group">
                     <label>Tipo de Atendimento</label>
-                    <select id="ag_tipo" required>
+                    <select id="ag_tipo">
                         <option value="">Selecione...</option>
                         <option value="Consulta Presencial">Consulta Presencial</option>
                     </select>
@@ -323,16 +331,16 @@
                 </div>
                 <div class="form-group">
                     <label id="ag_assunto_label">Assunto</label>
-                    <input type="text" id="ag_assunto" placeholder="" required>
+                    <input type="text" id="ag_assunto" placeholder="">
                 </div>
                 <div id="group_data_hora">
                     <div class="form-group">
                         <label>Data Desejada</label>
-                        <input type="date" id="ag_data_date" required>
+                        <input type="date" id="ag_data_date">
                     </div>
                     <div class="form-group">
                         <label>Horário Desejado</label>
-                        <input type="time" id="ag_data_time" required>
+                        <input type="time" id="ag_data_time">
                     </div>
                 </div>
                 <div class="form-group" id="group_sus" style="display: none;">
@@ -353,26 +361,28 @@
                 </div>
                 <div class="form-group" id="group_concurso_arquivos" style="display: none;">
                     <label style="margin-top: 10px; display: block;">Sua Idade</label>
-                    <input type="number" id="ag_concurso_idade" placeholder="Ex: 25" style="margin-bottom: 10px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; font-size: 0.95rem; background: var(--bg-body); color: var(--text-primary); box-sizing: border-box;" min="0" required>
+                    <input type="number" id="ag_concurso_idade" placeholder="Ex: 25" style="margin-bottom: 10px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; font-size: 0.95rem; background: var(--bg-body); color: var(--text-primary); box-sizing: border-box;" min="0">
 
-                    <label style="margin-top: 10px; display: block;">Tamanho da Camisa (Sua)</label>
-                    <select id="ag_concurso_camisa" style="margin-bottom: 10px;">
-                        <option value="">Selecione...</option>
-                        <option value="P">P</option>
-                        <option value="M">M</option>
-                        <option value="G">G</option>
-                        <option value="GG">GG</option>
-                    </select>
+                    <div id="concurso_camisa_fields">
+                        <label style="margin-top: 10px; display: block;">Tamanho da Camisa (Sua)</label>
+                        <select id="ag_concurso_camisa" style="margin-bottom: 10px;">
+                            <option value="">Selecione...</option>
+                            <option value="P">P</option>
+                            <option value="M">M</option>
+                            <option value="G">G</option>
+                            <option value="GG">GG</option>
+                        </select>
+                    </div>
 
                     <label style="margin-top: 10px; display: block;">Número do Título de Eleitor</label>
                     <input type="text" id="ag_concurso_titulo" placeholder="Ex: 123456789012" style="margin-bottom: 10px;">
 
                     <div id="concurso_parceiro_fields">
                         <label style="margin-top: 10px; display: block;">Nome do Parceiro(a) (Dança/Dupla)</label>
-                        <input type="text" id="ag_concurso_parceiro" placeholder="Ex: Maria da Silva" style="margin-bottom: 10px;" required>
+                        <input type="text" id="ag_concurso_parceiro" placeholder="Ex: Maria da Silva" style="margin-bottom: 10px;">
 
                         <label style="margin-top: 10px; display: block;">Idade do Parceiro(a)</label>
-                        <input type="number" id="ag_concurso_parceiro_idade" placeholder="Ex: 28" style="margin-bottom: 10px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; font-size: 0.95rem; background: var(--bg-body); color: var(--text-primary); box-sizing: border-box;" min="0" required>
+                        <input type="number" id="ag_concurso_parceiro_idade" placeholder="Ex: 28" style="margin-bottom: 10px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; font-size: 0.95rem; background: var(--bg-body); color: var(--text-primary); box-sizing: border-box;" min="0">
 
                         <label style="margin-top: 10px; display: block;">Tamanho da Camisa do Parceiro(a)</label>
                         <select id="ag_concurso_camisa_parceiro" style="margin-bottom: 10px;">
@@ -386,6 +396,33 @@
 
                     <!-- Campos adicionais específicos do Pé de Aço (RG, CPF, Título e Foto do Título) -->
                     <div id="concurso_pe_de_aco_fields" style="display: none; border: 1px dashed #a855f7; padding: 12px; border-radius: 8px; margin-top: 15px; margin-bottom: 15px; background: rgba(168, 85, 247, 0.03);">
+                        
+                        <div style="margin-bottom: 15px; padding-bottom: 15px; border-bottom: 1px solid rgba(168, 85, 247, 0.2);">
+                            <label style="font-weight: bold; color: var(--primary); display: block; margin-bottom: 8px;"><i class="fa-solid fa-id-card"></i> Seus Documentos (Obrigatório)</label>
+                            
+                            <label style="display: block; margin-top: 10px; font-size: 0.85rem; font-weight: 600;">Seu RG</label>
+                            <input type="text" id="ag_concurso_cidadao_rg_text" placeholder="Ex: 1234567-SSP/AL" style="margin-bottom: 10px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; font-size: 0.95rem; background: var(--bg-body); color: var(--text-primary); box-sizing: border-box;">
+                            
+                            <label style="display: block; margin-top: 10px; font-size: 0.85rem; font-weight: 600;">Seu CPF</label>
+                            <input type="text" id="ag_concurso_cidadao_cpf_text" placeholder="Ex: 000.000.000-00" style="margin-bottom: 15px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; font-size: 0.95rem; background: var(--bg-body); color: var(--text-primary); box-sizing: border-box;">
+
+                            
+                            <label for="ag_concurso_cidadao_rg" style="display: block; cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 8px 12px; border-radius: 6px; text-align: center; color: #495057; font-weight: bold; font-size: 0.85rem; transition: background 0.2s; margin-bottom: 10px;" id="lbl_ag_concurso_cidadao_rg">
+                                <i class="fa-solid fa-file-arrow-up"></i> Enviar Foto/PDF do RG (Frente e Verso)
+                            </label>
+                            <input type="file" id="ag_concurso_cidadao_rg" accept="image/*, .pdf" style="display: none;" onchange="document.getElementById('lbl_ag_concurso_cidadao_rg').innerHTML = '<i class=\'fa-solid fa-check\'></i> RG Selecionado: ' + this.files[0].name; document.getElementById('lbl_ag_concurso_cidadao_rg').style.background = '#d1e7dd'; document.getElementById('lbl_ag_concurso_cidadao_rg').style.color = '#0f5132';">
+
+                            <label for="ag_concurso_cidadao_cpf" style="display: block; cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 8px 12px; border-radius: 6px; text-align: center; color: #495057; font-weight: bold; font-size: 0.85rem; transition: background 0.2s; margin-bottom: 10px;" id="lbl_ag_concurso_cidadao_cpf">
+                                <i class="fa-solid fa-file-arrow-up"></i> Enviar Foto/PDF do CPF
+                            </label>
+                            <input type="file" id="ag_concurso_cidadao_cpf" accept="image/*, .pdf" style="display: none;" onchange="document.getElementById('lbl_ag_concurso_cidadao_cpf').innerHTML = '<i class=\'fa-solid fa-check\'></i> CPF Selecionado: ' + this.files[0].name; document.getElementById('lbl_ag_concurso_cidadao_cpf').style.background = '#d1e7dd'; document.getElementById('lbl_ag_concurso_cidadao_cpf').style.color = '#0f5132';">
+
+                            <label for="ag_concurso_cidadao_titulo" style="display: block; cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 8px 12px; border-radius: 6px; text-align: center; color: #495057; font-weight: bold; font-size: 0.85rem; transition: background 0.2s;" id="lbl_ag_concurso_cidadao_titulo">
+                                <i class="fa-solid fa-file-arrow-up"></i> Enviar Foto/PDF do Título de Eleitor
+                            </label>
+                            <input type="file" id="ag_concurso_cidadao_titulo" accept="image/*, .pdf" style="display: none;" onchange="document.getElementById('lbl_ag_concurso_cidadao_titulo').innerHTML = '<i class=\'fa-solid fa-check\'></i> Título Selecionado: ' + this.files[0].name; document.getElementById('lbl_ag_concurso_cidadao_titulo').style.background = '#d1e7dd'; document.getElementById('lbl_ag_concurso_cidadao_titulo').style.color = '#0f5132';">
+                        </div>
+
                         <label style="font-weight: bold; color: #a855f7; display: block; margin-bottom: 8px;"><i class="fa-solid fa-users"></i> Dados Completos do Parceiro(a)</label>
                         
                         <label style="display: block; margin-top: 10px; font-size: 0.85rem; font-weight: 600;">RG do Parceiro(a)</label>
@@ -397,19 +434,40 @@
                         <label style="display: block; margin-top: 10px; font-size: 0.85rem; font-weight: 600;">Título de Eleitor do Parceiro(a)</label>
                         <input type="text" id="ag_concurso_parceiro_titulo" placeholder="Ex: 123456789012" style="margin-bottom: 15px; width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 0.6rem; font-size: 0.95rem; background: var(--bg-body); color: var(--text-primary); box-sizing: border-box;">
 
-                        <label for="ag_concurso_parceiro_titulo_foto" style="display: block; cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 8px 12px; border-radius: 6px; text-align: center; color: #495057; font-weight: bold; font-size: 0.85rem; transition: background 0.2s;" id="lbl_ag_concurso_parceiro_titulo_foto">
-                            <i class="fa-solid fa-image"></i> Enviar Foto do Título do Parceiro(a)
+                        <label style="font-weight: bold; color: #a855f7; display: block; margin-bottom: 8px; margin-top: 15px;"><i class="fa-solid fa-id-card"></i> Documentos do Parceiro(a) (Obrigatório)</label>
+                        
+                        <label for="ag_concurso_parceiro_rg_foto" style="display: block; cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 8px 12px; border-radius: 6px; text-align: center; color: #495057; font-weight: bold; font-size: 0.85rem; transition: background 0.2s; margin-bottom: 10px;" id="lbl_ag_concurso_parceiro_rg_foto">
+                            <i class="fa-solid fa-file-arrow-up"></i> Enviar Foto/PDF do RG do Parceiro(a) (Frente e Verso)
                         </label>
-                        <input type="file" id="ag_concurso_parceiro_titulo_foto" accept="image/*" style="display: none;" onchange="document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').innerHTML = '<i class=\'fa-solid fa-check\'></i> Foto Selecionada: ' + this.files[0].name; document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').style.background = '#d1e7dd'; document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').style.color = '#0f5132';">
+                        <input type="file" id="ag_concurso_parceiro_rg_foto" accept="image/*, .pdf" style="display: none;" onchange="document.getElementById('lbl_ag_concurso_parceiro_rg_foto').innerHTML = '<i class=\'fa-solid fa-check\'></i> RG Selecionado: ' + this.files[0].name; document.getElementById('lbl_ag_concurso_parceiro_rg_foto').style.background = '#d1e7dd'; document.getElementById('lbl_ag_concurso_parceiro_rg_foto').style.color = '#0f5132';">
+
+                        <label for="ag_concurso_parceiro_cpf_foto" style="display: block; cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 8px 12px; border-radius: 6px; text-align: center; color: #495057; font-weight: bold; font-size: 0.85rem; transition: background 0.2s; margin-bottom: 10px;" id="lbl_ag_concurso_parceiro_cpf_foto">
+                            <i class="fa-solid fa-file-arrow-up"></i> Enviar Foto/PDF do CPF do Parceiro(a)
+                        </label>
+                        <input type="file" id="ag_concurso_parceiro_cpf_foto" accept="image/*, .pdf" style="display: none;" onchange="document.getElementById('lbl_ag_concurso_parceiro_cpf_foto').innerHTML = '<i class=\'fa-solid fa-check\'></i> CPF Selecionado: ' + this.files[0].name; document.getElementById('lbl_ag_concurso_parceiro_cpf_foto').style.background = '#d1e7dd'; document.getElementById('lbl_ag_concurso_parceiro_cpf_foto').style.color = '#0f5132';">
+
+                        <label for="ag_concurso_parceiro_titulo_foto" style="display: block; cursor: pointer; background: #e9ecef; border: 1px solid #ced4da; padding: 8px 12px; border-radius: 6px; text-align: center; color: #495057; font-weight: bold; font-size: 0.85rem; transition: background 0.2s;" id="lbl_ag_concurso_parceiro_titulo_foto">
+                            <i class="fa-solid fa-file-arrow-up"></i> Enviar Foto/PDF do Título de Eleitor do Parceiro(a)
+                        </label>
+                        <input type="file" id="ag_concurso_parceiro_titulo_foto" accept="image/*, .pdf" style="display: none;" onchange="document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').innerHTML = '<i class=\'fa-solid fa-check\'></i> Título Selecionado: ' + this.files[0].name; document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').style.background = '#d1e7dd'; document.getElementById('lbl_ag_concurso_parceiro_titulo_foto').style.color = '#0f5132';">
+                        
+                        <div style="margin-top: 15px; padding: 10px; background: rgba(239, 68, 68, 0.1); border-left: 4px solid #ef4444; border-radius: 4px;">
+                            <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; width: 100%;">
+                                <input type="checkbox" id="ag_concurso_pe_de_aco_apto" style="margin-top: 4px; transform: scale(1.2); flex-shrink: 0; width: auto !important;">
+                                <span style="font-size: 0.85rem; font-weight: bold; color: #b91c1c; flex: 1; line-height: 1.4; word-wrap: break-word;">Declaro que ambos estamos aptos física e clinicamente para a competição, assumindo inteira responsabilidade por qualquer eventualidade. (Obrigatório)</span>
+                            </label>
+                        </div>
                     </div>
 
-                    <label style="margin-top: 10px; display: block;">Enviar Foto (Opcional - JPEG, PNG)</label>
-                    <input type="file" id="ag_concurso_foto" accept="image/*" style="margin-bottom: 10px;">
-                    
-                    <label style="margin-top: 10px; display: block;">Enviar Arquivo PDF (Opcional)</label>
-                    <input type="file" id="ag_concurso_pdf" accept=".pdf,application/pdf">
+                    <div id="generic_concurso_files">
+                        <label style="margin-top: 10px; display: block;">Enviar Foto (Opcional - JPEG, PNG)</label>
+                        <input type="file" id="ag_concurso_foto" accept="image/*" style="margin-bottom: 10px;">
+                        
+                        <label style="margin-top: 10px; display: block;">Enviar Arquivo PDF (Opcional)</label>
+                        <input type="file" id="ag_concurso_pdf" accept=".pdf,application/pdf">
+                    </div>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; background: var(--success);">Confirmar
+                <button type="submit" id="btnSubmitAgendamento" class="btn btn-primary" style="width: 100%; background: var(--success);">Confirmar
                     Agendamento</button>
             </form>
         </div>
@@ -506,10 +564,13 @@
 
         function resetAgendamentoModalFields() {
             document.getElementById('group_data_hora').style.display = 'block';
-            document.getElementById('ag_data_date').required = true;
-            document.getElementById('ag_data_time').required = true;
+            document.getElementById('ag_data_date').required = false;
+            document.getElementById('ag_data_time').required = false;
             
             // Reset health post selection & professional
+            const btnSubmit = document.getElementById('btnSubmitAgendamento');
+            if (btnSubmit) btnSubmit.innerText = 'Confirmar Agendamento';
+            
             const agPosto = document.getElementById('ag_posto');
             if (agPosto) agPosto.value = '';
             const agProf = document.getElementById('ag_profissional');
@@ -581,8 +642,8 @@
             tipoSelect.value = "Consulta Presencial";
 
             document.getElementById('group_sus').style.display = 'block';
-            document.getElementById('ag_cartao_sus').required = true;
-            document.getElementById('ag_assunto').required = true;
+            document.getElementById('ag_cartao_sus').required = false;
+            document.getElementById('ag_assunto').required = false;
 
             const secSelect = document.getElementById('ag_secretaria');
             for (let i = 0; i < secSelect.options.length; i++) {
@@ -600,10 +661,10 @@
             document.getElementById('ag_assunto').required = false;
 
             document.getElementById('group_profissional').style.display = 'block';
-            document.getElementById('ag_profissional').required = true;
+            document.getElementById('ag_profissional').required = false;
 
             document.getElementById('group_posto').style.display = 'block';
-            document.getElementById('ag_posto').required = true;
+            document.getElementById('ag_posto').required = false;
             document.getElementById('group_motivo').style.display = 'none';
             document.getElementById('group_acompanhante').style.display = 'none';
             document.getElementById('group_comprovante').style.display = 'none';
@@ -624,7 +685,7 @@
 
             if (isSaude) {
                 susGroup.style.display = 'block';
-                susInput.required = true;
+                susInput.required = false;
             } else {
                 susGroup.style.display = 'none';
                 susInput.required = false;
@@ -641,7 +702,7 @@
             const sintomasInput = document.getElementById('ag_sintomas');
             if (postoVal === 'HOSPITAL MARIA LOUREIRO') {
                 container.style.display = 'block';
-                sintomasInput.required = true;
+                sintomasInput.required = false;
                 sintomasInput.focus();
             } else {
                 container.style.display = 'none';
@@ -666,7 +727,7 @@
             const descInput = document.getElementById('ag_alergias_descricao');
             if (this.checked) {
                 container.style.display = 'block';
-                descInput.required = true;
+                descInput.required = false;
                 descInput.focus();
             } else {
                 container.style.display = 'none';
@@ -696,7 +757,7 @@
 
             document.getElementById('ag_assunto_label').innerText = 'Assunto (Para qual assunto/secretário deseja agendar?)';
             document.getElementById('ag_assunto').placeholder = 'Ex: Reunião sobre alvará, Falar com Secretário de Obras, etc.';
-            document.getElementById('ag_assunto').required = true;
+            document.getElementById('ag_assunto').required = false;
 
             document.getElementById('group_profissional').style.display = 'none';
             document.getElementById('ag_profissional').required = false;
@@ -737,7 +798,7 @@
 
             document.getElementById('ag_assunto_label').innerText = 'Destino da Viagem';
             document.getElementById('ag_assunto').placeholder = 'Ex: Maceió, Recife, etc.';
-            document.getElementById('ag_assunto').required = true;
+            document.getElementById('ag_assunto').required = false;
 
             document.getElementById('group_profissional').style.display = 'none';
             document.getElementById('ag_profissional').required = false;
@@ -747,10 +808,10 @@
             document.getElementById('group_sus').style.display = 'none';
             document.getElementById('ag_cartao_sus').required = false;
             document.getElementById('group_motivo').style.display = 'block';
-            document.getElementById('ag_motivo').required = true;
+            document.getElementById('ag_motivo').required = false;
             document.getElementById('group_acompanhante').style.display = 'block';
             document.getElementById('group_comprovante').style.display = 'block';
-            document.getElementById('ag_comprovante').required = true;
+            document.getElementById('ag_comprovante').required = false;
             
             document.getElementById('group_concurso').style.display = 'none';
             document.getElementById('ag_concurso').required = false;
@@ -814,16 +875,20 @@
             document.getElementById('ag_data_time').value = '';
             
             document.getElementById('group_concurso_arquivos').style.display = 'block';
-            document.getElementById('ag_concurso_camisa').required = true;
-            document.getElementById('ag_concurso_titulo').required = true;
+            document.getElementById('ag_concurso_camisa').required = false;
+            document.getElementById('ag_concurso_titulo').required = false;
             document.getElementById('ag_concurso_parceiro').required = false;
             document.getElementById('ag_concurso_camisa_parceiro').required = false;
-            document.getElementById('ag_concurso_idade').required = true;
+            document.getElementById('ag_concurso_idade').required = false;
             document.getElementById('ag_concurso_parceiro_idade').required = false;
             document.getElementById('concurso_parceiro_fields').style.display = 'none';
+            document.getElementById('concurso_camisa_fields').style.display = 'none';
 
             document.getElementById('modalNovoAgendamento').style.display = 'block';
             document.getElementById('modalAgTitle').innerText = 'Inscrição em Concursos';
+            
+            const btnSubmit = document.getElementById('btnSubmitAgendamento');
+            if (btnSubmit) btnSubmit.innerText = 'Confirmar Inscrição';
 
             const tipoSelect = document.getElementById('ag_tipo');
             tipoSelect.innerHTML = `<option value="Concurso">Concurso Cultural / Esportivo</option>`;
@@ -862,7 +927,7 @@
 
             document.getElementById('group_concurso').style.display = 'block';
             document.getElementById('ag_concurso').value = '';
-            document.getElementById('ag_concurso').required = true;
+            document.getElementById('ag_concurso').required = false;
             document.getElementById('concurso_regras_desc').style.display = 'none';
 
             document.getElementById('group_dados_usuario').style.display = 'block';
@@ -892,6 +957,16 @@
 
             if (!concurso) {
                 container.style.display = 'none';
+                
+                const parceiroFieldsContainer = document.getElementById('concurso_parceiro_fields');
+                if (parceiroFieldsContainer) parceiroFieldsContainer.style.display = 'none';
+                
+                const camisaFieldsContainer = document.getElementById('concurso_camisa_fields');
+                if (camisaFieldsContainer) camisaFieldsContainer.style.display = 'none';
+                
+                const peDeAcoFields = document.getElementById('concurso_pe_de_aco_fields');
+                if (peDeAcoFields) peDeAcoFields.style.display = 'none';
+                
                 return;
             }
 
@@ -951,24 +1026,49 @@
             const parceiroIdade = document.getElementById('ag_concurso_parceiro_idade');
             const parceiroCamisa = document.getElementById('ag_concurso_camisa_parceiro');
             
-            if (parceiroNome) parceiroNome.required = requiresParceiro;
-            if (parceiroIdade) parceiroIdade.required = requiresParceiro;
-            if (parceiroCamisa) parceiroCamisa.required = requiresParceiro;
+            if (parceiroNome) parceiroNome.required = false;
+            if (parceiroIdade) parceiroIdade.required = false;
+            if (parceiroCamisa) parceiroCamisa.required = false;
+
+            // Controle da camisa (não necessária no Papa-Cuscuz)
+            const camisaFieldsContainer = document.getElementById('concurso_camisa_fields');
+            const requiresCamisa = (concurso !== 'Papa-Cuscuz');
+            if (camisaFieldsContainer) {
+                camisaFieldsContainer.style.display = requiresCamisa ? 'block' : 'none';
+            }
+            const camisaSua = document.getElementById('ag_concurso_camisa');
+            if (camisaSua) camisaSua.required = false;
 
             // Controle dos campos específicos do Pé de Aço
             const peDeAcoFields = document.getElementById('concurso_pe_de_aco_fields');
+            const genericFiles = document.getElementById('generic_concurso_files');
             const isPeDeAco = (concurso === 'Pé de Aço');
+            
             if (peDeAcoFields) {
                 peDeAcoFields.style.display = isPeDeAco ? 'block' : 'none';
+            }
+            if (genericFiles) {
+                genericFiles.style.display = isPeDeAco ? 'none' : 'block';
             }
             
             const rgInput = document.getElementById('ag_concurso_parceiro_rg');
             const cpfInput = document.getElementById('ag_concurso_parceiro_cpf');
             const tituloInput = document.getElementById('ag_concurso_parceiro_titulo');
+            const aptoInput = document.getElementById('ag_concurso_pe_de_aco_apto');
             
-            if (rgInput) rgInput.required = isPeDeAco;
-            if (cpfInput) cpfInput.required = isPeDeAco;
-            if (tituloInput) tituloInput.required = isPeDeAco;
+            const cidadaoRgDoc = document.getElementById('ag_concurso_cidadao_rg');
+            const cidadaoCpfDoc = document.getElementById('ag_concurso_cidadao_cpf');
+            const cidadaoTituloDoc = document.getElementById('ag_concurso_cidadao_titulo');
+            
+            const parceiroRgDoc = document.getElementById('ag_concurso_parceiro_rg_foto');
+            const parceiroCpfDoc = document.getElementById('ag_concurso_parceiro_cpf_foto');
+            const parceiroTituloDoc = document.getElementById('ag_concurso_parceiro_titulo_foto');
+            
+            if (rgInput) rgInput.required = false;
+            if (cpfInput) cpfInput.required = false;
+            if (tituloInput) tituloInput.required = false;
+            if (aptoInput) aptoInput.required = false;
+
         }
 
         async function loadSecretarias() {
@@ -1301,15 +1401,25 @@
 
         document.getElementById('formAgendamento').addEventListener('submit', async (e) => {
             e.preventDefault();
+            
+            try {
 
             const dropdown = document.getElementById('ag_secretaria');
+            if (!dropdown.value) {
+                Swal.fire({icon: 'warning', title: 'Atenção', text: 'Selecione uma secretaria.'});
+                return;
+            }
             const nomeSecretaria = dropdown.options[dropdown.selectedIndex].text;
             const tipoAtend = document.getElementById('ag_tipo').value;
+            if (!tipoAtend) {
+                Swal.fire({icon: 'warning', title: 'Atenção', text: 'Selecione o tipo de atendimento.'});
+                return;
+            }
             const dataDate = document.getElementById('ag_data_date').value;
             const dataTime = document.getElementById('ag_data_time').value;
 
             if (tipoAtend !== "Concurso" && (!dataDate || !dataTime)) {
-                alert("Selecione data e hora.");
+                Swal.fire({icon: 'warning', title: 'Atenção', text: 'Selecione data e hora.'});
                 return;
             }
 
@@ -1320,7 +1430,7 @@
             if (document.getElementById('group_profissional').style.display !== 'none') {
                 const prof = document.getElementById('ag_profissional').value;
                 if (!prof) {
-                    alert("Selecione o Profissional.");
+                    Swal.fire({icon: 'warning', title: 'Atenção', text: 'Selecione o Profissional.'});
                     return;
                 }
                 assuntoFinal = prof + (assuntoFinal ? ': ' + assuntoFinal : '');
@@ -1328,7 +1438,7 @@
             if (document.getElementById('group_posto').style.display !== 'none') {
                 const posto = document.getElementById('ag_posto').value;
                 if (!posto) {
-                    alert("Selecione um Posto de Saúde.");
+                    Swal.fire({icon: 'warning', title: 'Atenção', text: 'Selecione um Posto de Saúde.'});
                     return;
                 }
                 if (posto === 'HOSPITAL MARIA LOUREIRO') {
@@ -1338,7 +1448,7 @@
                     if (eAlergico) {
                         const alergiaDesc = document.getElementById('ag_alergias_descricao').value.trim();
                         if (!alergiaDesc) {
-                            alert("Por favor, descreva a qual medicamento ou substância você é alérgico.");
+                            Swal.fire({icon: 'warning', title: 'Atenção', text: 'Por favor, descreva a qual medicamento ou substância você é alérgico.'});
                             return;
                         }
                         motivoFinal = `${sintomasVal}\n⚠️ ALÉRGICO(A) A: ${alergiaDesc}`;
@@ -1359,7 +1469,7 @@
             if (tipoAtend === "Concurso") {
                 const concurso = document.getElementById('ag_concurso').value;
                 if (!concurso) {
-                    alert("Selecione o Concurso.");
+                    Swal.fire({icon: 'warning', title: 'Atenção', text: 'Selecione o Concurso.'});
                     return;
                 }
                 const userName = document.getElementById('ag_nome').value;
@@ -1387,10 +1497,45 @@
                 if (idade) extrasMotivo.push(`Idade: ${idade}`);
                 if (parceiroIdade) extrasMotivo.push(`Idade Parceiro(a): ${parceiroIdade}`);
 
+                if (concurso === 'Papa-Cuscuz') {
+                    if (!idade) { Swal.fire({icon: 'warning', title: 'Atenção', text: 'Por favor, preencha a sua idade.'}); return; }
+                    if (!titulo) { Swal.fire({icon: 'warning', title: 'Atenção', text: 'Por favor, preencha o número do seu Título de Eleitor.'}); return; }
+                }
+
                 if (concurso === 'Pé de Aço') {
-                    const parceiroRg = document.getElementById('ag_concurso_parceiro_rg').value;
-                    const parceiroCpf = document.getElementById('ag_concurso_parceiro_cpf').value;
-                    const parceiroTitulo = document.getElementById('ag_concurso_parceiro_titulo').value;
+                    if (!idade) { Swal.fire({icon: 'warning', title: 'Atenção', text: 'Por favor, preencha a sua idade.'}); return; }
+                    if (!camisa) { Swal.fire({icon: 'warning', title: 'Atenção', text: 'Por favor, selecione o tamanho da sua camisa.'}); return; }
+                    if (!titulo) { Swal.fire({icon: 'warning', title: 'Atenção', text: 'Por favor, preencha o número do seu Título de Eleitor.'}); return; }
+                    if (!parceiro) { Swal.fire({icon: 'warning', title: 'Atenção', text: 'Por favor, preencha o nome do seu parceiro(a).'}); return; }
+                    if (!parceiroIdade) { Swal.fire({icon: 'warning', title: 'Atenção', text: 'Por favor, preencha a idade do seu parceiro(a).'}); return; }
+                    if (!camisaParceiro) { Swal.fire({icon: 'warning', title: 'Atenção', text: 'Por favor, selecione o tamanho da camisa do parceiro(a).'}); return; }
+                    
+                    const aptoInput = document.getElementById('ag_concurso_pe_de_aco_apto');
+                    if (aptoInput && !aptoInput.checked) {
+                        Swal.fire({icon: 'error', title: 'Declaração Obrigatória', text: 'Você precisa marcar a declaração obrigatória confirmando que ambos estão aptos e de acordo com as regras.'});
+                        return;
+                    }
+
+                    const cidadaoRg = document.getElementById('ag_concurso_cidadao_rg_text') ? document.getElementById('ag_concurso_cidadao_rg_text').value.trim() : '';
+                    const cidadaoCpf = document.getElementById('ag_concurso_cidadao_cpf_text') ? document.getElementById('ag_concurso_cidadao_cpf_text').value.trim() : '';
+                    
+                    if (!cidadaoRg || !cidadaoCpf) {
+                        Swal.fire({icon: 'warning', title: 'Documentos Incompletos', text: 'Por favor, preencha o seu RG e CPF completos.'});
+                        return;
+                    }
+                    
+                    if (cidadaoRg) extrasMotivo.push(`RG: ${cidadaoRg}`);
+                    if (cidadaoCpf) extrasMotivo.push(`CPF: ${cidadaoCpf}`);
+
+                    const parceiroRg = document.getElementById('ag_concurso_parceiro_rg').value.trim();
+                    const parceiroCpf = document.getElementById('ag_concurso_parceiro_cpf').value.trim();
+                    const parceiroTitulo = document.getElementById('ag_concurso_parceiro_titulo').value.trim();
+                    
+                    if (!parceiroRg || !parceiroCpf) {
+                        Swal.fire({icon: 'warning', title: 'Documentos Incompletos', text: 'Por favor, preencha o RG e CPF do parceiro(a).'});
+                        return;
+                    }
+                    
                     if (parceiroRg) extrasMotivo.push(`RG Parceiro(a): ${parceiroRg}`);
                     if (parceiroCpf) extrasMotivo.push(`CPF Parceiro(a): ${parceiroCpf}`);
                     if (parceiroTitulo) extrasMotivo.push(`Título Parceiro(a): ${parceiroTitulo}`);
@@ -1405,13 +1550,35 @@
                 formData.append('assunto', assuntoFinal);
                 formData.append('motivo', motivoFinal || '');
                 
-                const foto = document.getElementById('ag_concurso_foto').files[0];
-                const pdf = document.getElementById('ag_concurso_pdf').files[0];
-                const fotoTitulo = document.getElementById('ag_concurso_parceiro_titulo_foto').files[0];
+                const foto = document.getElementById('ag_concurso_foto') ? document.getElementById('ag_concurso_foto').files[0] : null;
+                const pdf = document.getElementById('ag_concurso_pdf') ? document.getElementById('ag_concurso_pdf').files[0] : null;
+                
+                const cidadaoRgDoc = document.getElementById('ag_concurso_cidadao_rg') ? document.getElementById('ag_concurso_cidadao_rg').files[0] : null;
+                const cidadaoCpfDoc = document.getElementById('ag_concurso_cidadao_cpf') ? document.getElementById('ag_concurso_cidadao_cpf').files[0] : null;
+                const cidadaoTituloDoc = document.getElementById('ag_concurso_cidadao_titulo') ? document.getElementById('ag_concurso_cidadao_titulo').files[0] : null;
+
+                const parceiroRgDoc = document.getElementById('ag_concurso_parceiro_rg_foto') ? document.getElementById('ag_concurso_parceiro_rg_foto').files[0] : null;
+                const parceiroCpfDoc = document.getElementById('ag_concurso_parceiro_cpf_foto') ? document.getElementById('ag_concurso_parceiro_cpf_foto').files[0] : null;
+                const parceiroTituloDoc = document.getElementById('ag_concurso_parceiro_titulo_foto') ? document.getElementById('ag_concurso_parceiro_titulo_foto').files[0] : null;
+                
+                const concurso = document.getElementById('ag_concurso').value;
+                if (concurso === 'Pé de Aço') {
+                    if (!cidadaoRgDoc || !cidadaoCpfDoc || !cidadaoTituloDoc || !parceiroRgDoc || !parceiroCpfDoc || !parceiroTituloDoc) {
+                        Swal.fire({icon: 'error', title: 'Fotos Obrigatórias', text: 'Todas as 6 fotos (RG, CPF e Título do titular e do parceiro) são OBRIGATÓRIAS para o concurso Pé de Aço. Verifique se faltou anexar alguma.'});
+                        return;
+                    }
+                }
                 
                 if (foto) formData.append('foto', foto);
                 if (pdf) formData.append('pdf', pdf);
-                if (fotoTitulo) formData.append('foto_titulo', fotoTitulo);
+                
+                if (cidadaoRgDoc) formData.append('cidadao_rg', cidadaoRgDoc);
+                if (cidadaoCpfDoc) formData.append('cidadao_cpf', cidadaoCpfDoc);
+                if (cidadaoTituloDoc) formData.append('cidadao_titulo', cidadaoTituloDoc);
+                
+                if (parceiroRgDoc) formData.append('parceiro_rg_foto', parceiroRgDoc);
+                if (parceiroCpfDoc) formData.append('parceiro_cpf_foto', parceiroCpfDoc);
+                if (parceiroTituloDoc) formData.append('parceiro_titulo_foto', parceiroTituloDoc);
 
                 try {
                     const res = await fetch(`${API_URL}/agendamentos/concurso`, {
@@ -1420,13 +1587,13 @@
                         body: formData
                     });
                     if (res.ok) {
-                        alert('Inscrição realizada com sucesso! Aguarde a confirmação.');
+                        Swal.fire({icon: 'success', title: 'Inscrição Concluída!', text: 'Sua inscrição foi realizada com sucesso. Boa sorte no concurso Pé de Aço!', confirmButtonText: 'Ok, Entendi', confirmButtonColor: '#10b981'});
                         document.getElementById('modalNovoAgendamento').style.display = 'none';
                         e.target.reset();
                         loadAgendamentos();
                     } else {
                         const errorData = await res.json().catch(() => ({}));
-                        alert('Erro ao realizar inscrição: ' + (errorData.detail || 'Verifique os campos.'));
+                        Swal.fire({icon: 'error', title: 'Erro ao inscrever', text: errorData.detail || 'Verifique os campos e as fotos enviadas.'});
                     }
                 } catch (e) { alert('Erro de conexão.'); }
             } else if (tipoAtend === "Marcação de Viagem") {
@@ -1456,9 +1623,14 @@
                         e.target.reset();
                         loadAgendamentos();
                     } else {
-                        alert('Erro ao agendar viagem.');
+                        try {
+                            const errData = await res.json();
+                            alert(errData.detail || 'Erro ao agendar viagem.');
+                        } catch(err) {
+                            alert('Erro ao agendar viagem.');
+                        }
                     }
-                } catch (e) { alert('Erro de conexao.'); }
+                } catch (e) { Swal.fire({icon: 'error', title: 'Erro de Conexão', text: 'Não foi possível conectar ao servidor.'}); }
             } else {
                 const data = {
                     secretaria_id: parseInt(dropdown.value),
@@ -1484,7 +1656,12 @@
                     } else {
                         alert('Erro ao agendar.');
                     }
-                } catch (e) { alert('Erro de conexao.'); }
+                } catch (e) { Swal.fire({icon: 'error', title: 'Erro de Conexão', text: 'Não foi possível conectar ao servidor.'}); }
+            }
+            
+            } catch (globalErr) {
+                console.error('ERRO NO FORMULÁRIO:', globalErr);
+                alert('ERRO INTERNO: ' + globalErr.message + '\n\nPor favor, tire um print desta mensagem e envie ao suporte.');
             }
         });
 
@@ -1502,6 +1679,9 @@
                     printWindow.document.write(`
                         <html>
                         <head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
                             <title>Protocolo - PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA -AL - ${o.protocolo || o.id}</title>
                             <style>
                                 body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; color: #1e293b; }
@@ -1607,6 +1787,9 @@
                     printWindow.document.write(`
                         <html>
                         <head>
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
                             <title>${titleText} - ${a.protocolo || a.id}</title>
                             <style>
                                 body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; color: #1e293b; }
@@ -1647,6 +1830,23 @@
                                 <div class="highlight">
                                     <strong style="font-size: 1.3rem; color: #1e293b;">📌 ${dataHoraBrasilia}</strong>
                                 </div>
+                                ${(() => {
+                                    if (!a.anexo) return '';
+                                    let anexosHtml = '<div style="margin-top: 20px; page-break-inside: avoid;"><h3 style="border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; color: #1e293b;">Documentos Anexados</h3><div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">';
+                                    const files = a.anexo.split(',');
+                                    files.forEach(f => {
+                                        const trimFile = f.trim();
+                                        if (!trimFile) return;
+                                        const isImg = trimFile.match(/\.(jpeg|jpg|gif|png|webp)/i);
+                                        if (isImg) {
+                                            anexosHtml += `<div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 5px; width: 45%; background: white;"><img src="${MEDIA_URL}/${trimFile.replace(/\\/g, '/')}" style="max-width: 100%; height: auto; border-radius: 4px;"></div>`;
+                                        } else {
+                                            anexosHtml += `<div style="border: 1px solid #cbd5e1; border-radius: 8px; padding: 15px; background: #f1f5f9; width: 45%;"><a href="${MEDIA_URL}/${trimFile.replace(/\\/g, '/')}" target="_blank" style="color: #2563eb; font-weight: bold; text-decoration: none;">📄 Documento PDF Em Anexo</a></div>`;
+                                        }
+                                    });
+                                    anexosHtml += '</div></div>';
+                                    return anexosHtml;
+                                })()}
                             </div>
                             <div class="stamp"><div class="badge">${stampText}</div></div>
                             <div style="text-align: center; margin-top: 40px;">
@@ -1836,7 +2036,7 @@
 
             if (select.value === 'Outro') {
                 customGroup.style.display = 'block';
-                customInput.required = true;
+                customInput.required = false;
             } else {
                 customGroup.style.display = 'none';
                 customInput.required = false;

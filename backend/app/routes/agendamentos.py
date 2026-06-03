@@ -103,6 +103,17 @@ def criar_agendamento_viagem(
     except ValueError:
         raise HTTPException(status_code=400, detail="Formato de data inválido. Use ISO 8601.")
         
+    # Limite de 5 viagens por dia
+    data_escolhida = data_obj.date()
+    count = db_sql.query(Agendamento).filter(
+        Agendamento.tipo == tipo,
+        func.date(Agendamento.data_hora) == data_escolhida
+    ).count()
+    
+    if count >= 5:
+        raise HTTPException(status_code=400, detail="Limite diário de 5 viagens atingido para esta data.")
+
+        
     arquivo_path = save_upload_file(comprovante) if comprovante else None
     protocolo = generate_protocol()
     senha = generate_ticket_number()
@@ -140,7 +151,12 @@ def criar_agendamento_concurso(
     motivo: Optional[str] = Form(None),
     foto: Optional[UploadFile] = File(None),
     pdf: Optional[UploadFile] = File(None),
-    foto_titulo: Optional[UploadFile] = File(None),
+    cidadao_rg: Optional[UploadFile] = File(None),
+    cidadao_cpf: Optional[UploadFile] = File(None),
+    cidadao_titulo: Optional[UploadFile] = File(None),
+    parceiro_rg_foto: Optional[UploadFile] = File(None),
+    parceiro_cpf_foto: Optional[UploadFile] = File(None),
+    parceiro_titulo_foto: Optional[UploadFile] = File(None),
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
 ):
@@ -149,13 +165,18 @@ def criar_agendamento_concurso(
 
     # Restrição de casal único no Concurso Pé de Aço
     if assunto and "Pé de Aço" in assunto:
+        if not cidadao_rg or not cidadao_rg.filename or not cidadao_cpf or not cidadao_cpf.filename or not cidadao_titulo or not cidadao_titulo.filename:
+            raise HTTPException(status_code=400, detail="O envio do seu RG, CPF e Título é obrigatório para a inscrição no Pé de Aço.")
+        if not parceiro_rg_foto or not parceiro_rg_foto.filename or not parceiro_cpf_foto or not parceiro_cpf_foto.filename or not parceiro_titulo_foto or not parceiro_titulo_foto.filename:
+            raise HTTPException(status_code=400, detail="O envio do RG, CPF e Título do seu parceiro(a) é obrigatório para a inscrição no Pé de Aço.")
+        
         import re
         def clean_cpf(c: str) -> str:
             if not c:
                 return ""
             return "".join([char for char in c if char.isdigit()])
 
-        cidadao_cpf = clean_cpf(current_user.cpf)
+        cidadao_cpf_str = clean_cpf(current_user.cpf)
         
         parceiro_cpf = ""
         if motivo:
@@ -171,6 +192,12 @@ def criar_agendamento_concurso(
             Agendamento.status != "Cancelado"
         ).all()
 
+        if len(concursos_ativos) >= 50:
+            raise HTTPException(
+                status_code=400,
+                detail="LIMITE DE INSCRIÇÕES JÁ FEITAS!"
+            )
+
         for c_ativo in concursos_ativos:
             c_cidadao_cpf = clean_cpf(c_ativo.usuario.cpf if c_ativo.usuario else "")
             
@@ -181,7 +208,7 @@ def criar_agendamento_concurso(
                     c_parceiro_cpf = clean_cpf(match_c.group(1))
 
             # Valida duplicidade do CPF do cidadão solicitante
-            if cidadao_cpf and (cidadao_cpf == c_cidadao_cpf or cidadao_cpf == c_parceiro_cpf):
+            if cidadao_cpf_str and (cidadao_cpf_str == c_cidadao_cpf or cidadao_cpf_str == c_parceiro_cpf):
                 raise HTTPException(
                     status_code=400, 
                     detail="Seu CPF já está inscrito no concurso Pé de Aço (como candidato ou parceiro)."
@@ -201,14 +228,23 @@ def criar_agendamento_concurso(
     # Salvar arquivos se existirem
     anexos = []
     if foto and foto.filename:
-        foto_path = save_upload_file(foto)
-        anexos.append(foto_path)
+        anexos.append(save_upload_file(foto))
     if pdf and pdf.filename:
-        pdf_path = save_upload_file(pdf)
-        anexos.append(pdf_path)
-    if foto_titulo and foto_titulo.filename:
-        foto_titulo_path = save_upload_file(foto_titulo)
-        anexos.append(foto_titulo_path)
+        anexos.append(save_upload_file(pdf))
+        
+    if cidadao_rg and cidadao_rg.filename:
+        anexos.append(save_upload_file(cidadao_rg))
+    if cidadao_cpf and cidadao_cpf.filename:
+        anexos.append(save_upload_file(cidadao_cpf))
+    if cidadao_titulo and cidadao_titulo.filename:
+        anexos.append(save_upload_file(cidadao_titulo))
+        
+    if parceiro_rg_foto and parceiro_rg_foto.filename:
+        anexos.append(save_upload_file(parceiro_rg_foto))
+    if parceiro_cpf_foto and parceiro_cpf_foto.filename:
+        anexos.append(save_upload_file(parceiro_cpf_foto))
+    if parceiro_titulo_foto and parceiro_titulo_foto.filename:
+        anexos.append(save_upload_file(parceiro_titulo_foto))
     
     anexo_str = ",".join(anexos) if anexos else None
 
@@ -451,4 +487,26 @@ def fazer_upload_documento_concurso(
     
     return {"message": "Documento atualizado com sucesso!", "path": path}
 
-
+@router.delete("/{agendamento_id}", status_code=status.HTTP_204_NO_CONTENT)
+def deletar_agendamento(agendamento_id: int, current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+    """Deleta um agendamento ou inscrição no concurso. Apenas o administrador geral."""
+    from app.models.schema import LogAuditoria
+    
+    ag = db_sql.query(Agendamento).filter(Agendamento.id == agendamento_id).first()
+    if not ag:
+        raise HTTPException(status_code=404, detail="Agendamento/Inscrição não encontrado.")
+    
+    protocolo = ag.protocolo
+    tipo = ag.tipo
+    
+    db_sql.delete(ag)
+    
+    log = LogAuditoria(
+        admin_id=current_admin.id,
+        acao="delete_agendamento",
+        detalhes=f"Deletado {tipo} protocolo {protocolo}"
+    )
+    db_sql.add(log)
+    db_sql.commit()
+    
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
