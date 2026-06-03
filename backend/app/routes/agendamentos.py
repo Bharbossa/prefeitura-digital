@@ -502,7 +502,8 @@ def deletar_agendamento(agendamento_id: int, current_admin = Depends(get_general
     db_sql.delete(ag)
     
     log = LogAuditoria(
-        admin_id=current_admin.id,
+        usuario_id=current_admin.id,
+        usuario_tipo="admin",
         acao="delete_agendamento",
         detalhes=f"Deletado {tipo} protocolo {protocolo}"
     )

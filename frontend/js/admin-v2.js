@@ -2538,7 +2538,12 @@ window.imprimirDocumentacao = function(id) {
         if (!trimFile) return;
         if (trimFile.match(/\.(jpeg|jpg|gif|png|webp)/i)) {
             hasImages = true;
-            printWindow.document.write(`<img class="doc-img" src="${MEDIA_URL}/${trimFile.replace(/\\/g, '/')}"><br>`);
+            let cleanPath = trimFile.replace(/\\/g, '/');
+            if (cleanPath.startsWith('/')) cleanPath = cleanPath.substring(1);
+            let baseMedia = MEDIA_URL;
+            if (baseMedia.endsWith('/')) baseMedia = baseMedia.substring(0, baseMedia.length - 1);
+            let fullUrl = `${baseMedia}/${cleanPath}`;
+            printWindow.document.write(`<img class="doc-img" src="${encodeURI(fullUrl)}"><br>`);
         }
     });
 
