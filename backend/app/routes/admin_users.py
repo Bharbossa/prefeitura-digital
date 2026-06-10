@@ -137,8 +137,9 @@ def delete_user(user_id: int, current_admin = Depends(get_general_admin), db_sql
     return {"message": "Usuário excluído com sucesso."}
 
 @router.get("/secretaria-admins", response_model=List[AdminSecretariaResponse])
-def get_secretaria_admins(current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
-    # Only General Admin can see list of sub-admins
+def get_secretaria_admins(current_admin = Depends(get_current_admin), db_sql: Session = Depends(get_db)):
+    if current_admin.tipo_usuario_verificado == "subadmin":
+        return db_sql.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == current_admin.secretaria_id).all()
     return db_sql.query(AdminSecretaria).all()
 
 @router.post("/secretaria-admins", response_model=AdminSecretariaResponse)
@@ -232,18 +233,22 @@ def get_all_combined_users(current_admin = Depends(get_general_admin), db_sql: S
 @router.patch("/password-reset")
 def reset_user_password(
     data: AdminPasswordUpdate, 
-    current_admin = Depends(get_general_admin), 
+    current_admin = Depends(get_current_admin), 
     db_sql: Session = Depends(get_db)
 ):
     hashed_password = get_password_hash(data.new_password)
     
     if data.source == "usuario":
+        if current_admin.tipo_usuario_verificado == "subadmin":
+            raise HTTPException(status_code=403, detail="Sub-admin não pode resetar senhas de cidadãos.")
         user = db_sql.query(Usuario).filter(Usuario.id == data.user_id).first()
         if not user: raise HTTPException(status_code=404, detail="Usuário não encontrado")
         user.senha_hash = hashed_password
     elif data.source == "subadmin":
         sadmin = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == data.user_id).first()
         if not sadmin: raise HTTPException(status_code=404, detail="Sub-admin não encontrado")
+        if current_admin.tipo_usuario_verificado == "subadmin" and sadmin.secretaria_id != current_admin.secretaria_id:
+            raise HTTPException(status_code=403, detail="Você só pode alterar senhas de membros da sua própria secretaria.")
         sadmin.senha_hash = hashed_password
     else:
         raise HTTPException(status_code=400, detail="Fonte inválida")
@@ -251,10 +256,21 @@ def reset_user_password(
     # Audit log
     log = LogAuditoria(
         usuario_id=current_admin.id,
-        usuario_tipo="admin",
+        usuario_tipo=current_admin.tipo_usuario_verificado,
         acao="reset_password",
         detalhes=f"Resetou senha do {data.source} ID {data.user_id}"
     )
     db_sql.add(log)
     db_sql.commit()
+    
+    # Optional: Update Firestore if DB_MODE == "firestore"
+    from ..core.firebase_config import DB_MODE, db
+    if DB_MODE == "firestore":
+        if data.source == "usuario" and user:
+            user_docs = db.collection("usuarios").where("email", "==", user.email).limit(1).get()
+            if user_docs: db.collection("usuarios").document(user_docs[0].id).update({"senha_hash": hashed_password})
+        elif data.source == "subadmin" and sadmin:
+            admin_docs = db.collection("admin_secretarias").where("email", "==", sadmin.email).limit(1).get()
+            if admin_docs: db.collection("admin_secretarias").document(admin_docs[0].id).update({"senha_hash": hashed_password})
+            
     return {"message": "Senha alterada com sucesso"}

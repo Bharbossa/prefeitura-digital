@@ -218,6 +218,20 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
         
     db_sql.commit()
     
+    if DB_MODE == "firestore":
+        if user_cidadao:
+            user_docs = db.collection("usuarios").where("email", "==", clean_id).limit(1).get()
+            if not user_docs:
+                user_docs = db.collection("usuarios").where("cpf", "==", clean_id).limit(1).get()
+            if user_docs:
+                db.collection("usuarios").document(user_docs[0].id).update({"senha_hash": hashed_pw})
+        if user_subadmin:
+            admin_docs = db.collection("admin_secretarias").where("email", "==", clean_id).limit(1).get()
+            if not admin_docs:
+                admin_docs = db.collection("admin_secretarias").where("cpf", "==", clean_id).limit(1).get()
+            if admin_docs:
+                db.collection("admin_secretarias").document(admin_docs[0].id).update({"senha_hash": hashed_pw})
+    
     # Choose primary user record for notification purposes
     user = user_subadmin if user_subadmin else user_cidadao
     
@@ -252,13 +266,43 @@ def change_password(data: ChangePasswordRequest, current_user = Depends(get_curr
         user_db = db_sql.query(Usuario).filter(Usuario.id == current_user.id).first()
         
     if not user_db:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
-
-    if not verify_password(data.senha_atual, user_db.senha_hash):
-        raise HTTPException(status_code=401, detail="Senha atual incorreta.")
-    
-    user_db.senha_hash = get_password_hash(data.nova_senha)
-    db_sql.commit()
+        # Check Firestore directly if not found in SQL
+        if DB_MODE == "firestore":
+            if current_user.tipo_usuario_verificado == "subadmin":
+                admin_docs = db.collection("admin_secretarias").where("email", "==", current_user.email).limit(1).get()
+                if not admin_docs:
+                    raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+                admin_doc = admin_docs[0]
+                if not verify_password(data.senha_atual, admin_doc.to_dict().get("senha_hash")):
+                    raise HTTPException(status_code=401, detail="Senha atual incorreta.")
+                db.collection("admin_secretarias").document(admin_doc.id).update({"senha_hash": get_password_hash(data.nova_senha)})
+            else:
+                user_docs = db.collection("usuarios").where("email", "==", current_user.email).limit(1).get()
+                if not user_docs:
+                    raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+                user_doc = user_docs[0]
+                if not verify_password(data.senha_atual, user_doc.to_dict().get("senha_hash")):
+                    raise HTTPException(status_code=401, detail="Senha atual incorreta.")
+                db.collection("usuarios").document(user_doc.id).update({"senha_hash": get_password_hash(data.nova_senha)})
+        else:
+            raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    else:
+        if not verify_password(data.senha_atual, user_db.senha_hash):
+            raise HTTPException(status_code=401, detail="Senha atual incorreta.")
+        
+        new_hash = get_password_hash(data.nova_senha)
+        user_db.senha_hash = new_hash
+        db_sql.commit()
+        
+        if DB_MODE == "firestore":
+            if current_user.tipo_usuario_verificado == "subadmin":
+                admin_docs = db.collection("admin_secretarias").where("email", "==", current_user.email).limit(1).get()
+                if admin_docs:
+                    db.collection("admin_secretarias").document(admin_docs[0].id).update({"senha_hash": new_hash})
+            else:
+                user_docs = db.collection("usuarios").where("email", "==", current_user.email).limit(1).get()
+                if user_docs:
+                    db.collection("usuarios").document(user_docs[0].id).update({"senha_hash": new_hash})
     
     # Audit log
     from ..models.schema import LogAuditoria

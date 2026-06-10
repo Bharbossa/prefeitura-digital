@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum, Float
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, Enum, Float, LargeBinary
 from sqlalchemy.orm import relationship
 import enum
 import datetime
@@ -159,3 +159,11 @@ class Aviso(Base):
     data_criacao = Column(DateTime, default=get_brasilia_time)
     autor_id = Column(Integer, nullable=True) # ID of the admin who created it
 
+class FileStorage(Base):
+    __tablename__ = "file_storage"
+
+    id = Column(String(36), primary_key=True, index=True) # UUID
+    filename = Column(String(255), nullable=False)
+    content_type = Column(String(100), nullable=False)
+    data = Column(LargeBinary, nullable=False)
+    criado_em = Column(DateTime, default=get_brasilia_time)

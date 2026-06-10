@@ -117,9 +117,6 @@ function setupSidebar() {
             <div class="nav-item" onclick="showSection('usuarios', this)">
                 <i class="fa-solid fa-users"></i><span>Gestão de Cidadãos</span>
             </div>
-            <div class="nav-item" onclick="showSection('admins', this)">
-                <i class="fa-solid fa-user-shield"></i><span>Gerenciar Sub-Admins</span>
-            </div>
             <div class="nav-item" onclick="showSection('auditoria', this)">
                 <i class="fa-solid fa-fingerprint"></i><span>Auditoria Global</span>
             </div>
@@ -134,6 +131,14 @@ function setupSidebar() {
             </div>
         `;
     }
+    
+    if (currentRole === 'admin' || currentRole === 'subadmin') {
+        html += `
+            <div class="nav-item" onclick="showSection('admins', this)">
+                <i class="fa-solid fa-user-shield"></i><span>Equipe da Secretaria</span>
+            </div>
+        `;
+    }
 
     html += `
         <div class="nav-item" onclick="showSection('config', this)">
@@ -145,7 +150,7 @@ function setupSidebar() {
 
 function showSection(sectionId, element) {
     // Role check for specific sections
-    const restricted = ['usuarios', 'admins', 'auditoria', 'usuarios-todos', 'contabilidade', 'avisos'];
+    const restricted = ['usuarios', 'auditoria', 'usuarios-todos', 'contabilidade', 'avisos'];
     if (restricted.includes(sectionId) && currentRole !== 'admin') {
 
         alert("Acesso restrito ao Administrador Geral.");
@@ -1053,6 +1058,16 @@ async function loadAdmins() {
             const list = await res.json();
             const container = document.getElementById('adminsTableContainer');
             
+            const btnNew = document.getElementById('btnNewAdminHeader');
+            const titleSection = document.getElementById('adminsSectionTitle');
+            if (currentRole === 'subadmin') {
+                if (btnNew) btnNew.style.display = 'none';
+                if (titleSection) titleSection.innerText = 'Equipe da Secretaria';
+            } else {
+                if (btnNew) btnNew.style.display = 'block';
+                if (titleSection) titleSection.innerText = 'Sub-Administradores (Secretarias)';
+            }
+            
             // Need secretarias map for display
             const sRes = await fetch(`${API_URL}/secretarias`);
             const secs = await sRes.json();
@@ -1063,6 +1078,17 @@ async function loadAdmins() {
 
             let html = `<table class="data-table"><thead><tr><th>Nome</th><th>Secretaria</th><th>E-mail</th><th>Telefone</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(a => {
+                let actionButtons = `
+                    <button class="btn btn-primary" style="font-size: 0.7rem; padding: 4px 10px;" onclick="openPasswordModal('${a.id}', 'subadmin', '${a.nome}')"><i class="fa-solid fa-key"></i> Trocar Senha</button>
+                `;
+                
+                if (currentRole === 'admin') {
+                    actionButtons += `
+                        <button class="btn" style="background-color: #f59e0b; color: white; border: none; font-size: 0.7rem; padding: 4px 10px; border-radius: 6px; display: flex; align-items: center; gap: 4px;" title="Notificar Pendências" onclick="notificarSubAdmin('${a.id}', '${a.nome}')"><i class="fa-solid fa-bell"></i> Notificar</button>
+                        <button class="btn btn-outline" style="color: var(--danger); font-size: 0.7rem; padding: 4px 10px;" onclick="deleteAdmin('${a.id}')"><i class="fa-solid fa-trash"></i></button>
+                    `;
+                }
+
                 html += `
                     <tr>
                         <td>${a.nome}</td>
@@ -1071,9 +1097,7 @@ async function loadAdmins() {
                         <td>${a.telefone || '-'}</td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
-                                <button class="btn btn-primary" style="font-size: 0.7rem; padding: 4px 10px;" onclick="openPasswordModal('${a.id}', 'subadmin', '${a.nome}')"><i class="fa-solid fa-key"></i> Trocar Senha</button>
-                                <button class="btn" style="background-color: #f59e0b; color: white; border: none; font-size: 0.7rem; padding: 4px 10px; border-radius: 6px; display: flex; align-items: center; gap: 4px;" title="Notificar Pendências" onclick="notificarSubAdmin('${a.id}', '${a.nome}')"><i class="fa-solid fa-bell"></i> Notificar</button>
-                                <button class="btn btn-outline" style="color: var(--danger); font-size: 0.7rem; padding: 4px 10px;" onclick="deleteAdmin('${a.id}')"><i class="fa-solid fa-trash"></i></button>
+                                ${actionButtons}
                             </div>
                         </td>
                     </tr>
@@ -1215,7 +1239,8 @@ document.getElementById('formAlterarSenha').addEventListener('submit', async fun
 });
 
 // Admin self-password update (from config section)
-async function updatePassword() {
+async function updatePassword(e) {
+    if (e) e.preventDefault();
     const current = document.getElementById('pwCurrent').value;
     const newPw = document.getElementById('pwNew').value;
     const confirm = document.getElementById('pwConfirm').value;

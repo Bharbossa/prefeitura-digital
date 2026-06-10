@@ -8,7 +8,8 @@ import shutil
 from datetime import datetime
 
 from ..database import get_db
-from ..models.schema import Usuario, AdminSecretaria, Agendamento, LogAuditoria, Secretaria
+from ..models.schema import Usuario, AdminSecretaria, Agendamento, LogAuditoria, Secretaria, FileStorage
+import io
 from ..models.pydantic_schemas import AgendamentoCreate, AgendamentoResponse
 from ..core.auth_deps import get_current_user, get_current_admin, get_general_admin
 from ..utils.sms_service import send_status_sms, get_confirmed_message
@@ -22,17 +23,47 @@ UPLOAD_DIR = "uploads"
 if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
-def save_upload_file(upload_file: UploadFile) -> str:
+def save_upload_file(upload_file: UploadFile, db_sql: Session) -> str:
     allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.pdf', '.txt'}
     file_ext = os.path.splitext(upload_file.filename)[1].lower()
     if file_ext not in allowed_extensions:
         raise HTTPException(status_code=400, detail=f"Extensão de arquivo '{file_ext}' não permitida.")
         
-    file_name = f"{uuid.uuid4()}{file_ext}"
-    file_path = os.path.join(UPLOAD_DIR, file_name)
-    with open(file_path, "wb") as buffer:
-        shutil.copyfileobj(upload_file.file, buffer)
-    return file_path
+    file_id = str(uuid.uuid4())
+    content = upload_file.file.read()
+    
+    # Compress images to save space in the DB
+    if file_ext in {'.jpg', '.jpeg', '.png', '.webp'}:
+        try:
+            from PIL import Image
+            img = Image.open(io.BytesIO(content))
+            # Convert to RGB if necessary
+            if img.mode in ("RGBA", "P"): img = img.convert("RGB")
+            # Resize if too large
+            img.thumbnail((1200, 1200))
+            output = io.BytesIO()
+            img.save(output, format="JPEG", quality=75)
+            content = output.getvalue()
+            file_ext = ".jpg" # Force jpg
+            upload_file.content_type = "image/jpeg"
+        except ImportError:
+            pass # Pillow not installed, save as is
+        except Exception:
+            pass # Failed to compress, save as is
+            
+    content_type = upload_file.content_type or "application/octet-stream"
+    
+    new_file = FileStorage(
+        id=file_id,
+        filename=f"{file_id}{file_ext}",
+        content_type=content_type,
+        data=content
+    )
+    db_sql.add(new_file)
+    db_sql.commit()
+    
+    # Return relative path for frontend
+    return f"api/files/{file_id}"
 
 @router.post("", response_model=AgendamentoResponse)
 def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
@@ -114,7 +145,7 @@ def criar_agendamento_viagem(
         raise HTTPException(status_code=400, detail="Limite diário de 5 viagens atingido para esta data.")
 
         
-    arquivo_path = save_upload_file(comprovante) if comprovante else None
+    arquivo_path = save_upload_file(comprovante, db_sql) if comprovante else None
     protocolo = generate_protocol()
     senha = generate_ticket_number()
 
@@ -228,23 +259,23 @@ def criar_agendamento_concurso(
     # Salvar arquivos se existirem
     anexos = []
     if foto and foto.filename:
-        anexos.append(save_upload_file(foto))
+        anexos.append(save_upload_file(foto, db_sql))
     if pdf and pdf.filename:
-        anexos.append(save_upload_file(pdf))
+        anexos.append(save_upload_file(pdf, db_sql))
         
     if cidadao_rg and cidadao_rg.filename:
-        anexos.append(save_upload_file(cidadao_rg))
+        anexos.append(save_upload_file(cidadao_rg, db_sql))
     if cidadao_cpf and cidadao_cpf.filename:
-        anexos.append(save_upload_file(cidadao_cpf))
+        anexos.append(save_upload_file(cidadao_cpf, db_sql))
     if cidadao_titulo and cidadao_titulo.filename:
-        anexos.append(save_upload_file(cidadao_titulo))
+        anexos.append(save_upload_file(cidadao_titulo, db_sql))
         
     if parceiro_rg_foto and parceiro_rg_foto.filename:
-        anexos.append(save_upload_file(parceiro_rg_foto))
+        anexos.append(save_upload_file(parceiro_rg_foto, db_sql))
     if parceiro_cpf_foto and parceiro_cpf_foto.filename:
-        anexos.append(save_upload_file(parceiro_cpf_foto))
+        anexos.append(save_upload_file(parceiro_cpf_foto, db_sql))
     if parceiro_titulo_foto and parceiro_titulo_foto.filename:
-        anexos.append(save_upload_file(parceiro_titulo_foto))
+        anexos.append(save_upload_file(parceiro_titulo_foto, db_sql))
     
     anexo_str = ",".join(anexos) if anexos else None
 
@@ -476,7 +507,7 @@ def fazer_upload_documento_concurso(
         if not sec or not ("CULTURA E ESPORTE" in sec.nome.upper()):
             raise HTTPException(status_code=403, detail="Apenas sub-administradores da Secretaria de Cultura e Esporte podem atualizar documentos de concursos.")
 
-    path = save_upload_file(arquivo)
+    path = save_upload_file(arquivo, db_sql)
     
     docs = load_concursos_docs()
     if concurso not in docs:
