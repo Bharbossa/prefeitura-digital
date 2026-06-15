@@ -24,7 +24,7 @@ if not os.path.exists(UPLOAD_DIR):
     os.makedirs(UPLOAD_DIR)
 
 def save_upload_file(upload_file: UploadFile, db_sql: Session) -> str:
-    allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.pdf', '.txt'}
+    allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.pdf', '.txt', '.heic', '.heif'}
     file_ext = os.path.splitext(upload_file.filename)[1].lower()
     if file_ext not in allowed_extensions:
         raise HTTPException(status_code=400, detail=f"Extensão de arquivo '{file_ext}' não permitida.")
@@ -33,7 +33,7 @@ def save_upload_file(upload_file: UploadFile, db_sql: Session) -> str:
     content = upload_file.file.read()
     
     # Compress images to save space in the DB
-    if file_ext in {'.jpg', '.jpeg', '.png', '.webp'}:
+    if file_ext in {'.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif'}:
         try:
             from PIL import Image
             img = Image.open(io.BytesIO(content))
@@ -295,7 +295,7 @@ def criar_agendamento_concurso(
         usuario_id=current_user.id,
         secretaria_id=secretaria_id,
         tipo=tipo,
-        assunto=assunto,
+        assunto=assunto[:200] if assunto else "",
         motivo=motivo if motivo else "",
         data_hora=data_hora_atual,
         anexo=anexo_str,

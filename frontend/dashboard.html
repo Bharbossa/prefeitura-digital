@@ -1580,6 +1580,10 @@
                 if (parceiroCpfDoc) formData.append('parceiro_cpf_foto', parceiroCpfDoc);
                 if (parceiroTituloDoc) formData.append('parceiro_titulo_foto', parceiroTituloDoc);
 
+                const btnSubmit = e.target.querySelector('button[type="submit"]');
+                const originalText = btnSubmit ? btnSubmit.innerText : 'Confirmar';
+                if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.innerText = 'Enviando...'; }
+
                 try {
                     const res = await fetch(`${API_URL}/agendamentos/concurso`, {
                         method: 'POST',
@@ -1595,7 +1599,11 @@
                         const errorData = await res.json().catch(() => ({}));
                         Swal.fire({icon: 'error', title: 'Erro ao inscrever', text: errorData.detail || 'Verifique os campos e as fotos enviadas.'});
                     }
-                } catch (e) { alert('Erro de conexão.'); }
+                } catch (err) { 
+                    alert('Erro de conexão.'); 
+                } finally {
+                    if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.innerText = originalText; }
+                }
             } else if (tipoAtend === "Marcação de Viagem") {
                 const formData = new FormData();
                 formData.append('secretaria_id', parseInt(dropdown.value));

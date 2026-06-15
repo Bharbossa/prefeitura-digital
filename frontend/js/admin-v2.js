@@ -1078,10 +1078,14 @@ async function loadAdmins() {
 
             let html = `<table class="data-table"><thead><tr><th>Nome</th><th>Secretaria</th><th>E-mail</th><th>Telefone</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(a => {
-                let actionButtons = `
-                    <button class="btn btn-primary" style="font-size: 0.7rem; padding: 4px 10px;" onclick="openPasswordModal('${a.id}', 'subadmin', '${a.nome}')"><i class="fa-solid fa-key"></i> Trocar Senha</button>
-                `;
+                const currentUser = getUserInfo();
+                let actionButtons = '';
                 
+                if (currentRole === 'admin' || (currentRole === 'subadmin' && currentUser && a.id == currentUser.id)) {
+                    actionButtons += `
+                        <button class="btn btn-primary" style="font-size: 0.7rem; padding: 4px 10px;" onclick="openPasswordModal('${a.id}', 'subadmin', '${a.nome}')"><i class="fa-solid fa-key"></i> Trocar Senha</button>
+                    `;
+                }
                 if (currentRole === 'admin') {
                     actionButtons += `
                         <button class="btn" style="background-color: #f59e0b; color: white; border: none; font-size: 0.7rem; padding: 4px 10px; border-radius: 6px; display: flex; align-items: center; gap: 4px;" title="Notificar Pendências" onclick="notificarSubAdmin('${a.id}', '${a.nome}')"><i class="fa-solid fa-bell"></i> Notificar</button>

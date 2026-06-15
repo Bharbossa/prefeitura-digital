@@ -57,62 +57,30 @@ function resetSession() {
     window.location.href = '/login.html';
 }
 
-// Global Fetch Wrapper with Retry Logic for Cold Starts (Render free tier)
 const originalFetch = window.fetch;
-let _coldStartToast = null;
-
-function showColdStartToast() {
-    if (_coldStartToast) return;
-    _coldStartToast = document.createElement('div');
-    _coldStartToast.id = 'coldStartToast';
-    _coldStartToast.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Conectando ao servidor... Aguarde alguns segundos.';
-    _coldStartToast.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:12px 24px;border-radius:12px;font-size:0.9rem;z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,0.3);display:flex;align-items:center;gap:10px;animation:fadeIn 0.3s ease;';
-    document.body.appendChild(_coldStartToast);
-}
-
-function hideColdStartToast() {
-    if (_coldStartToast) {
-        _coldStartToast.remove();
-        _coldStartToast = null;
-    }
-}
 
 window.fetch = async (...args) => {
-    let attempts = 0;
-    const maxAttempts = 5;
-    const baseDelay = 3000; // 3 seconds base delay for Render cold starts
-
-    while (attempts < maxAttempts) {
-        try {
-            const response = await originalFetch(...args);
-            hideColdStartToast();
-            if (response.status === 401) {
-                console.warn("Unauthorized! Logging out...");
-                localStorage.removeItem('access_token');
-                localStorage.removeItem('user_info');
-                const path = window.location.pathname;
-                const isAdminLoginPage = path.includes('admin/index.html') || path === '/admin' || path === '/admin/';
-                // Redirecionar para a página de login correta conforme o contexto
-                if (!path.includes('login.html') && !isAdminLoginPage) {
-                    if (path.includes('admin.html') || path.includes('/admin/')) {
-                        window.location.href = '/admin/index.html';
-                    } else {
-                        window.location.href = '/login.html?error=session_expired';
-                    }
+    try {
+        const response = await originalFetch(...args);
+        if (response.status === 401) {
+            console.warn("Unauthorized! Logging out...");
+            localStorage.removeItem('access_token');
+            localStorage.removeItem('user_info');
+            const path = window.location.pathname;
+            const isAdminLoginPage = path.includes('admin/index.html') || path === '/admin' || path === '/admin/';
+            // Redirecionar para a página de login correta conforme o contexto
+            if (!path.includes('login.html') && !isAdminLoginPage) {
+                if (path.includes('admin.html') || path.includes('/admin/')) {
+                    window.location.href = '/admin/index.html';
+                } else {
+                    window.location.href = '/login.html?error=session_expired';
                 }
             }
-            return response;
-        } catch (err) {
-            attempts++;
-            console.warn(`Tentativa de conexão ${attempts}/${maxAttempts} falhou:`, err.message);
-            if (attempts >= maxAttempts) {
-                hideColdStartToast();
-                throw err;
-            }
-            // Show loading toast after first failure (cold start likely)
-            if (attempts === 1) showColdStartToast();
-            await new Promise(resolve => setTimeout(resolve, baseDelay * attempts));
         }
+        return response;
+    } catch (err) {
+        console.error("Erro na conexão com a API:", err.message);
+        throw err;
     }
 };
 

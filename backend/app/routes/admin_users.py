@@ -247,8 +247,8 @@ def reset_user_password(
     elif data.source == "subadmin":
         sadmin = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == data.user_id).first()
         if not sadmin: raise HTTPException(status_code=404, detail="Sub-admin não encontrado")
-        if current_admin.tipo_usuario_verificado == "subadmin" and sadmin.secretaria_id != current_admin.secretaria_id:
-            raise HTTPException(status_code=403, detail="Você só pode alterar senhas de membros da sua própria secretaria.")
+        if current_admin.tipo_usuario_verificado == "subadmin" and sadmin.id != current_admin.id:
+            raise HTTPException(status_code=403, detail="Você só pode alterar sua própria senha. Apenas o administrador geral pode alterar outras senhas.")
         sadmin.senha_hash = hashed_password
     else:
         raise HTTPException(status_code=400, detail="Fonte inválida")
