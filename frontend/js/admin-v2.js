@@ -1204,6 +1204,10 @@ async function deleteCombinedUser(id, source) {
 }
 
 function openPasswordModal(id, source, nome) {
+    if (!id || id === 'undefined' || id === 'null') {
+        alert("Erro crítico: ID do usuário está vazio ou indefinido ao abrir o modal!");
+        return;
+    }
     document.getElementById('senha_user_id').value = id;
     document.getElementById('senha_user_source').value = source;
     document.getElementById('modalSenhaTitle').innerText = `Alterar Senha: ${nome}`;
@@ -1224,7 +1228,7 @@ document.getElementById('formAlterarSenha').addEventListener('submit', async fun
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${getToken()}` },
             body: JSON.stringify({
-                user_id: parseInt(id),
+                user_id: id,
                 source: source,
                 new_password: new_password
             })
@@ -1235,7 +1239,8 @@ document.getElementById('formAlterarSenha').addEventListener('submit', async fun
             document.getElementById('modalAlterarSenha').style.display = 'none';
         } else {
             const err = await res.json();
-            alert(err.detail || "Erro ao alterar senha.");
+            const errorMsg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail || "Erro desconhecido.");
+            alert("Erro ao alterar senha: " + errorMsg);
         }
     } catch(e) {
         Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'});
@@ -1279,7 +1284,8 @@ async function updatePassword(e) {
             document.getElementById('pwConfirm').value = '';
         } else {
             const err = await res.json().catch(() => ({}));
-            alert("Erro: " + (err.detail || "Não foi possível alterar a senha."));
+            const errorMsg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail || "Erro desconhecido.");
+            alert("Erro: " + errorMsg);
         }
     } catch(e) {
         alert("Erro de conexão: " + e.message);

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
 from .schema import TipoUsuario, StatusOcorrencia, StatusUsuario
 
@@ -134,7 +134,7 @@ class AgendamentoResponse(AgendamentoBase):
     criado_em: datetime
     model_config = ConfigDict(from_attributes=True)
 class AdminPasswordUpdate(BaseModel):
-    user_id: int
+    user_id: Any
     source: str # 'usuario' or 'subadmin'
     new_password: str
 
