@@ -238,20 +238,21 @@ def reset_user_password(
 ):
     hashed_password = get_password_hash(data.new_password)
     
-    if data.source == "usuario":
+    source_normalized = data.source.strip().lower() if data.source else ""
+    if source_normalized == "usuario":
         if current_admin.tipo_usuario_verificado == "subadmin":
             raise HTTPException(status_code=403, detail="Sub-admin não pode resetar senhas de cidadãos.")
         user = db_sql.query(Usuario).filter(Usuario.id == data.user_id).first()
         if not user: raise HTTPException(status_code=404, detail="Usuário não encontrado")
         user.senha_hash = hashed_password
-    elif data.source == "subadmin":
+    elif source_normalized == "subadmin":
         sadmin = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == data.user_id).first()
         if not sadmin: raise HTTPException(status_code=404, detail="Sub-admin não encontrado")
         if current_admin.tipo_usuario_verificado == "subadmin" and sadmin.id != current_admin.id:
             raise HTTPException(status_code=403, detail="Você só pode alterar sua própria senha. Apenas o administrador geral pode alterar outras senhas.")
         sadmin.senha_hash = hashed_password
     else:
-        raise HTTPException(status_code=400, detail="Fonte inválida")
+        raise HTTPException(status_code=400, detail=f"Fonte inválida recebida: '{data.source}'")
     
     # Audit log
     log = LogAuditoria(
