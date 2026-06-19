@@ -12,7 +12,7 @@ router = APIRouter()
 @router.get("/summary")
 def get_admin_summary(current_user = Depends(get_current_admin), db_sql: Session = Depends(get_db)):
     role = current_user.tipo_usuario_verificado
-    sec_id = current_user.secretaria_id
+    sec_id = getattr(current_user, 'secretaria_id', None)
     
     # Base queries
     q_ocorrencias = db_sql.query(Ocorrencia)
@@ -83,7 +83,7 @@ def get_chart_data(current_user = Depends(get_current_admin), db_sql: Session = 
     today = get_brasilia_time().replace(tzinfo=None)
     last_week = today - timedelta(days=7)
     
-    sec_id = current_user.secretaria_id
+    sec_id = getattr(current_user, 'secretaria_id', None)
     
     q = db_sql.query(
         func.date(Ocorrencia.data).label('day'),
