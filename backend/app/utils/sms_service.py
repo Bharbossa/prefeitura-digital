@@ -1,7 +1,7 @@
 # sms_service.py
 import logging
 import os
-
+import time
 # Configure logging to see SMS simulation in terminal
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SMS_SERVICE")
@@ -76,3 +76,38 @@ def get_confirmed_message(assunto: str, data_hora: str):
 def send_password_sms(phone: str, password: str):
     message = f"COLÔNIA DIGITAL: Sua nova senha e: {password}. Recomendamos altera-la apos o login."
     return send_status_sms(phone, message)
+
+def notify_subadmins_background(secretaria_id: int, message: str):
+    from app.database import SessionLocal
+    from app.models.schema import AdminSecretaria
+    db = SessionLocal()
+    try:
+        subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
+        for sub in subadmins:
+            phone = getattr(sub, 'telefone', None)
+            if phone:
+                send_status_sms(phone, message)
+    except Exception as e:
+        logger.error(f"Erro em notify_subadmins_background: {e}")
+    finally:
+        db.close()
+
+def notify_all_users_background(alert_message: str):
+    from app.database import SessionLocal
+    from app.models.schema import Usuario
+    db = SessionLocal()
+    try:
+        users = db.query(Usuario).all()
+        unique_phones = set()
+        for u in users:
+            phone = getattr(u, 'telefone', None)
+            if phone and len(''.join(filter(str.isdigit, phone))) >= 10:
+                clean_phone = "".join(filter(str.isdigit, phone))
+                if clean_phone not in unique_phones:
+                    unique_phones.add(clean_phone)
+                    send_status_sms(clean_phone, alert_message)
+                    time.sleep(1) # Sleep to avoid rate limits
+    except Exception as e:
+        logger.error(f"Erro em notify_all_users_background: {e}")
+    finally:
+        db.close()

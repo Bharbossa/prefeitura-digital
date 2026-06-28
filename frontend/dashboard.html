@@ -9,6 +9,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel do Cidadão - Colônia Digital</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json?v=3">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -70,8 +71,12 @@
                 <p style="color: var(--text-muted); margin: 5px 0 0 0; font-size: 1.05rem;">Acompanhe e solicite serviços, agendamentos e ocorrências municipais.</p>
             </div>
             
-            <!-- Seletor do Modo Noturno -->
+            <!-- Acessibilidade e Seletor do Modo Noturno -->
             <div style="display: flex; align-items: center; gap: 12px; background: var(--bg-card); padding: 0.6rem 1.2rem; border-radius: 12px; border: 1px solid var(--border); box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: var(--transition);">
+                <div style="display: flex; gap: 0.5rem; align-items: center; margin-right: 10px; border-right: 1px solid var(--border); padding-right: 15px;">
+                    <button onclick="changeFontSize(1)" title="Aumentar Fonte" style="background: transparent; border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; padding: 4px 10px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: background 0.3s;">A+</button>
+                    <button onclick="changeFontSize(-1)" title="Diminuir Fonte" style="background: transparent; border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; padding: 4px 10px; font-weight: bold; cursor: pointer; font-size: 0.9rem; transition: background 0.3s;">A-</button>
+                </div>
                 <span style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 8px;">
                     <i class="fa-solid fa-moon" style="color: var(--primary-color);"></i> Modo Noturno
                 </span>
@@ -1231,6 +1236,16 @@
                         ${o.documento ? `<a href="${MEDIA_URL}/${o.documento}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: #8b5cf6; color: #8b5cf6;"><i class="fa-solid fa-file-pdf"></i> Ver PDF</a>` : ''}
                         ${o.latitude ? `<a href="https://www.google.com/maps/search/?api=1&query=${o.latitude},${o.longitude}" target="_blank" class="btn btn-outline" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; border-color: #10b981; color: #10b981;"><i class="fa-solid fa-map-marked-alt"></i> Mapa</a>` : ''}
                         ${o.foto_resolucao ? `<a href="${MEDIA_URL}/${o.foto_resolucao}" target="_blank" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; background: #10b981;"><i class="fa-solid fa-check-circle"></i> Solução</a>` : ''}
+                        ${o.status.toLowerCase() === 'resolvido' && o.avaliacao_nota == null ? `
+                            <button onclick="abrirModalAvaliacao(${o.id}, 'ocorrencia')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; background: #fbbf24; border-color: #f59e0b; color: #fff;">
+                                <i class="fa-solid fa-star"></i> Avaliar Serviço
+                            </button>
+                        ` : ''}
+                        ${o.avaliacao_nota != null ? `
+                            <span style="font-size: 0.85rem; color: #f59e0b; display: inline-flex; align-items: center; gap: 5px; background: #fffbeb; padding: 0.3rem 0.6rem; border-radius: 5px; border: 1px solid #fde68a;">
+                                <i class="fa-solid fa-star"></i> Avaliado (${o.avaliacao_nota}/5)
+                            </span>
+                        ` : ''}
                     </div>
                 </div>
             `;
@@ -1318,6 +1333,18 @@
                     </div>
                     <span class="status-badge ${statusClass}">${a.status}</span>
                     ${anexoHtml}
+                    <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        ${['resolvido', 'concluido', 'concluído', 'confirmado'].includes(a.status.toLowerCase()) && a.avaliacao_nota == null ? `
+                            <button onclick="abrirModalAvaliacao(${a.id}, 'agendamento')" class="btn btn-primary" style="font-size: 0.75rem; padding: 0.4rem 0.8rem; background: #fbbf24; border-color: #f59e0b; color: #fff;">
+                                <i class="fa-solid fa-star"></i> Avaliar Serviço
+                            </button>
+                        ` : ''}
+                        ${a.avaliacao_nota != null ? `
+                            <span style="font-size: 0.85rem; color: #f59e0b; display: inline-flex; align-items: center; gap: 5px; background: #fffbeb; padding: 0.3rem 0.6rem; border-radius: 5px; border: 1px solid #fde68a;">
+                                <i class="fa-solid fa-star"></i> Avaliado (${a.avaliacao_nota}/5)
+                            </span>
+                        ` : ''}
+                    </div>
                 </div>
             `;
             return html;
@@ -2214,6 +2241,111 @@
         });
     </script>
 
+    <!-- MODAL DE AVALIAÇÃO (Estrelinhas) -->
+    <div id="modalAvaliacao" class="modal" style="display: none;">
+        <div class="modal-content" style="max-width: 400px; text-align: center; border-radius: 20px;">
+            <span class="close" onclick="fecharModalAvaliacao()">&times;</span>
+            <h2 style="color: var(--primary-color); margin-bottom: 1rem;"><i class="fa-solid fa-star"></i> Avalie o Serviço</h2>
+            <p style="margin-bottom: 1.5rem; color: #555;">Como você avalia o atendimento desta solicitação?</p>
+            
+            <form id="formAvaliacao">
+                <input type="hidden" id="aval_id">
+                <input type="hidden" id="aval_type">
+                
+                <div class="star-rating" style="font-size: 2.5rem; color: #ccc; cursor: pointer; margin-bottom: 1rem; display: flex; justify-content: center; gap: 10px; flex-direction: row-reverse;">
+                    <input type="radio" name="nota" id="star5" value="5" style="display:none;"><label for="star5" class="fa-solid fa-star"></label>
+                    <input type="radio" name="nota" id="star4" value="4" style="display:none;"><label for="star4" class="fa-solid fa-star"></label>
+                    <input type="radio" name="nota" id="star3" value="3" style="display:none;"><label for="star3" class="fa-solid fa-star"></label>
+                    <input type="radio" name="nota" id="star2" value="2" style="display:none;"><label for="star2" class="fa-solid fa-star"></label>
+                    <input type="radio" name="nota" id="star1" value="1" style="display:none;"><label for="star1" class="fa-solid fa-star"></label>
+                </div>
+                
+                <style>
+                    .star-rating label { transition: color 0.2s; }
+                    .star-rating label:hover,
+                    .star-rating label:hover ~ label,
+                    .star-rating input:checked ~ label {
+                        color: #fbbf24; /* Golden yellow */
+                    }
+                </style>
+
+                <div class="form-group" style="text-align: left;">
+                    <label>Deixe um comentário (Opcional)</label>
+                    <textarea id="aval_comentario" rows="3" placeholder="Gostou do atendimento? O que pode melhorar?"></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; border-radius: 50px;">Enviar Avaliação</button>
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        function fecharModalAvaliacao() {
+            document.getElementById('modalAvaliacao').style.display = 'none';
+        }
+        
+        function abrirModalAvaliacao(id, type) {
+            document.getElementById('aval_id').value = id;
+            document.getElementById('aval_type').value = type;
+            document.getElementById('modalAvaliacao').style.display = 'block';
+            
+            // Reset stars
+            const radios = document.querySelectorAll('input[name="nota"]');
+            radios.forEach(r => r.checked = false);
+            document.getElementById('aval_comentario').value = '';
+        }
+
+        document.getElementById('formAvaliacao').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const btnSubmit = e.target.querySelector('button[type="submit"]');
+            
+            const nota = document.querySelector('input[name="nota"]:checked');
+            if(!nota) {
+                Swal.fire({icon: 'warning', title: 'Atenção', text: 'Por favor, selecione de 1 a 5 estrelas.'});
+                return;
+            }
+            
+            const avalData = {
+                nota: parseInt(nota.value),
+                comentario: document.getElementById('aval_comentario').value
+            };
+            
+            const id = document.getElementById('aval_id').value;
+            const type = document.getElementById('aval_type').value;
+            const endpoint = type === 'ocorrencia' ? `/ocorrencias/${id}/avaliar` : `/agendamentos/${id}/avaliar`;
+            
+            btnSubmit.disabled = true;
+            btnSubmit.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+
+            try {
+                const res = await fetch(`${API_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${getToken()}` 
+                    },
+                    body: JSON.stringify(avalData)
+                });
+                
+                if(res.ok) {
+                    Swal.fire({icon: 'success', title: 'Obrigado!', text: 'Sua avaliação ajuda a melhorar nossa cidade.', timer: 2500});
+                    fecharModalAvaliacao();
+                    // Atualiza as listas
+                    if(type === 'ocorrencia') loadOcorrencias();
+                    else loadAgendamentos();
+                } else {
+                    const err = await res.json();
+                    Swal.fire({icon: 'error', title: 'Erro', text: err.detail || 'Não foi possível enviar a avaliação.'});
+                }
+            } catch (err) {
+                Swal.fire({icon: 'error', title: 'Erro de Conexão', text: 'Não foi possível conectar ao servidor.'});
+            } finally {
+                btnSubmit.disabled = false;
+                btnSubmit.innerHTML = 'Enviar Avaliação';
+            }
+        });
+    </script>
+
     <footer class="footer">
         <p>Desenvolvido por Barbosa Nunes</p>
         <p style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8;">
@@ -2226,6 +2358,23 @@
     <!-- Leaflet (Free Map Alternative to Google Maps) -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="js/main.js?v=1.0.9"></script>
+    <script>
+        if (!checkAuth()) {
+            window.location.href = 'register.html';
+        }
+    </script>
+    <!-- VLibras Widget -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper>
+            <div class="vw-plugin-top-wrapper"></div>
+        </div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
+    </script>
 </body>
 
 </html>

@@ -126,6 +126,9 @@ function setupSidebar() {
             <div class="nav-item" onclick="showSection('contabilidade', this)">
                 <i class="fa-solid fa-chart-bar"></i><span>Contabilidade</span>
             </div>
+            <div class="nav-item" onclick="showSection('mapas', this)">
+                <i class="fa-solid fa-map-location-dot"></i><span>Inteligência Geográfica</span>
+            </div>
             <div class="nav-item" onclick="showSection('avisos', this)">
                 <i class="fa-solid fa-bullhorn"></i><span>Mural de Avisos</span>
             </div>
@@ -150,7 +153,7 @@ function setupSidebar() {
 
 function showSection(sectionId, element) {
     // Role check for specific sections
-    const restricted = ['usuarios', 'auditoria', 'usuarios-todos', 'contabilidade', 'avisos'];
+    const restricted = ['usuarios', 'auditoria', 'usuarios-todos', 'contabilidade', 'mapas', 'avisos'];
     if (restricted.includes(sectionId) && currentRole !== 'admin') {
 
         alert("Acesso restrito ao Administrador Geral.");
@@ -175,6 +178,7 @@ function showSection(sectionId, element) {
         'auditoria': 'Logs de Auditoria',
         'usuarios-todos': 'Todas as Pessoas Cadastradas',
         'contabilidade': 'Contabilidade por Secretaria',
+        'mapas': 'Inteligência Geográfica',
         'config': 'Minha Conta',
         'avisos': 'Mural de Avisos'
     };
@@ -191,6 +195,14 @@ function showSection(sectionId, element) {
     if (sectionId === 'auditoria') loadAuditLogs();
     if (sectionId === 'usuarios-todos') loadAllCombinedUsers();
     if (sectionId === 'contabilidade') loadPerformance();
+    if (sectionId === 'mapas') {
+        loadHeatmap();
+        loadBairrosChart();
+        // Give time for DOM to render the block to invalidate Leaflet size
+        setTimeout(() => {
+            if (adminHeatmap) adminHeatmap.invalidateSize();
+        }, 100);
+    }
     if (sectionId === 'avisos') loadAvisosAdmin();
     if (sectionId === 'config') { refreshConfigUI(); toggleResetCard(); }
 
@@ -267,6 +279,76 @@ async function renderSecretariaChart() {
     } catch(e) {}
 }
 
+let adminHeatmap = null;
+async function loadHeatmap() {
+    try {
+        const res = await fetch(`${ADMIN_API}/metrics/heatmap`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        if (!adminHeatmap) {
+            adminHeatmap = L.map('heatmapAdminDiv').setView([-8.9048, -35.7297], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(adminHeatmap);
+        }
+        
+        // Remove camadas antigas de calor
+        adminHeatmap.eachLayer((layer) => {
+            if (layer._heat) adminHeatmap.removeLayer(layer);
+        });
+
+        // Adiciona dados
+        const heatData = data.map(p => [p.lat, p.lng, p.weight * 2]);
+        L.heatLayer(heatData, {radius: 25, blur: 15, maxZoom: 17}).addTo(adminHeatmap);
+        
+        if (data.length > 0) {
+            const group = new L.featureGroup(data.map(p => L.marker([p.lat, p.lng])));
+            adminHeatmap.fitBounds(group.getBounds(), {padding: [30, 30]});
+        }
+    } catch (e) { console.error("Erro heatmap:", e); }
+}
+
+let bairrosChart = null;
+async function loadBairrosChart() {
+    try {
+        const res = await fetch(`${ADMIN_API}/metrics/users-bairro`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        const ctx = document.getElementById('bairrosChart').getContext('2d');
+        if (bairrosChart) bairrosChart.destroy();
+
+        const topData = data.slice(0, 10); // Mostra Top 10 para não quebrar gráfico
+
+        bairrosChart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: topData.map(d => d.endereco.substring(0, 15) + (d.endereco.length > 15 ? '...' : '')),
+                datasets: [{
+                    label: 'Cidadãos',
+                    data: topData.map(d => d.total),
+                    backgroundColor: '#3b82f6',
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, ticks: { precision: 0 } },
+                    x: { ticks: { maxRotation: 45, minRotation: 45 } }
+                }
+            }
+        });
+    } catch(e) { console.error("Erro grafico bairros:", e); }
+}
+
 
 function renderStats(data) {
     const grid = document.getElementById('statsGrid');
@@ -306,6 +388,26 @@ function renderStats(data) {
         `;
     }
 
+    if (data.satisfacao) {
+        let starColor = '#f59e0b';
+        let feedback = "Ótimo";
+        if (data.satisfacao.media_geral < 3) {
+            starColor = '#ef4444';
+            feedback = "Atenção";
+        }
+        
+        html += `
+            <div class="stat-card" style="border: 1px solid #fde68a; background: #fffdf5;">
+                <div class="stat-icon" style="background: #fffbeb; color: ${starColor};"><i class="fa-solid fa-star"></i></div>
+                <h4 style="color: var(--text-muted); font-size: 0.9rem;">Satisfação do Cidadão</h4>
+                <h2 style="margin: 0.5rem 0; color: ${starColor}; display: flex; align-items: center; gap: 8px;">
+                    ${data.satisfacao.media_geral} <span style="font-size: 1rem; color: #ccc;">/ 5.0</span>
+                </h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted); font-weight: 600;">Status: ${feedback}</div>
+            </div>
+        `;
+    }
+
     grid.innerHTML = html;
 }
 
@@ -313,20 +415,32 @@ function renderDashboardChart(oc) {
     const ctx = document.getElementById('statusChartAdmin').getContext('2d');
     if (statusChart) statusChart.destroy();
     
+    const isEmpty = oc.pendentes === 0 && oc.resolvidas === 0;
+
     statusChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
-            labels: ['Pendentes', 'Resolvidas'],
+            labels: isEmpty ? ['Sem Dados'] : ['Pendentes', 'Resolvidas'],
             datasets: [{
-                data: [oc.pendentes, oc.resolvidas],
-                backgroundColor: ['#f59e0b', '#10b981'],
+                data: isEmpty ? [1] : [oc.pendentes, oc.resolvidas],
+                backgroundColor: isEmpty ? ['#e2e8f0'] : ['#f59e0b', '#10b981'],
                 borderWidth: 0,
-                hoverOffset: 10
+                hoverOffset: isEmpty ? 0 : 10
             }]
         },
         options: {
             cutout: '70%',
-            plugins: { legend: { position: 'bottom' } }
+            plugins: { 
+                legend: { position: 'bottom' },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            if (isEmpty) return ' Sem ocorrências';
+                            return ' ' + context.label + ': ' + context.raw;
+                        }
+                    }
+                }
+            }
         }
     });
 }
@@ -343,6 +457,11 @@ async function loadRecentActivity() {
             
             const container = document.getElementById('recentActivity');
             container.innerHTML = '';
+            
+            if (list.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color: var(--text-muted); padding: 3rem 0; font-size: 1.1rem;"><i class="fa-solid fa-inbox fa-2x" style="display:block; margin-bottom: 1rem; color: #cbd5e1;"></i>Nenhuma solicitação recente.</p>';
+                return;
+            }
             
             list.slice(0, 5).forEach(o => {
                 const s = o.status.toLowerCase();
@@ -624,6 +743,7 @@ async function loadAgendamentos() {
                                     ${s === 'pendente' ? `<button class="btn btn-primary" onclick="updateAgendamento('${a.id}', 'Confirmado')">Confirmar</button>` : ''}
                                     <button class="btn btn-outline" title="Imprimir Recibo" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>
                                     ${anexosButtons}
+                                    ${!currentSecId ? `<button class="btn btn-outline" title="Excluir Agendamento" style="border-color: #ef4444; color: #ef4444;" onclick="deletarAgendamento('${a.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
                                 </div>
                             </div>
                         </td>
@@ -1168,6 +1288,8 @@ async function loadAllCombinedUsers() {
         if (res.ok) {
             const list = await res.json();
             const container = document.getElementById('allUsersTableContainer');
+            const counter = document.getElementById('totalUsersCounter');
+            if (counter) counter.innerText = list.length;
             
             let html = `<table class="data-table"><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(u => {
@@ -1203,11 +1325,16 @@ async function deleteCombinedUser(id, source) {
     } catch(e) { Swal.fire({icon: 'error', title: 'Erro', text: 'Erro ao excluir.'}); }
 }
 
+let currentPasswordUserId = '';
+let currentPasswordUserSource = '';
+
 function openPasswordModal(id, source, nome) {
     if (!id || id === 'undefined' || id === 'null') {
-        alert("Erro crítico: ID do usuário está vazio ou indefinido ao abrir o modal!");
+        Swal.fire({icon: 'error', title: 'Erro Crítico', text: "ID do usuário está vazio ao abrir o modal! ID: " + id});
         return;
     }
+    currentPasswordUserId = id;
+    currentPasswordUserSource = source;
     document.getElementById('senha_user_id').value = id;
     document.getElementById('senha_user_source').value = source;
     document.getElementById('modalSenhaTitle').innerText = `Alterar Senha: ${nome}`;
@@ -1215,13 +1342,31 @@ function openPasswordModal(id, source, nome) {
     document.getElementById('modalAlterarSenha').style.display = 'block';
 }
 
-document.getElementById('formAlterarSenha').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    const id = document.getElementById('senha_user_id').value;
-    const source = document.getElementById('senha_user_source').value;
+window.submitAlterarSenha = async function() {
+    const id = currentPasswordUserId || document.getElementById('senha_user_id').value;
+    const source = currentPasswordUserSource || document.getElementById('senha_user_source').value;
     const new_password = document.getElementById('nova_senha_input').value;
 
-    if (!new_password) return alert("Digite a nova senha.");
+    if (!id || !source) {
+        console.warn("Auto-submit evitado: id ou source ausentes.");
+        if (document.getElementById('modalAlterarSenha').style.display === 'block') {
+             Swal.fire({icon: 'warning', title: 'Atenção', text: "ID ou Source sumiram do formulário. Feche o modal e abra novamente."});
+        }
+        return;
+    }
+
+    if (!new_password) {
+        Swal.fire({icon: 'warning', title: 'Atenção', text: "Digite a nova senha."});
+        return;
+    }
+
+    const btn = document.getElementById('btnConfirmarAlteracaoModal');
+    let originalText = 'Confirmar Alteração';
+    if (btn) {
+        originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Aguarde...';
+        btn.disabled = true;
+    }
 
     try {
         const res = await fetch(`${ADMIN_API}/users/password-reset`, {
@@ -1235,17 +1380,22 @@ document.getElementById('formAlterarSenha').addEventListener('submit', async fun
         });
 
         if (res.ok) {
-            alert("Senha alterada com sucesso!");
+            Swal.fire({icon: 'success', title: 'Sucesso', text: 'Senha alterada com sucesso.'});
             document.getElementById('modalAlterarSenha').style.display = 'none';
         } else {
-            const err = await res.json();
+            const err = await res.json().catch(() => ({}));
             const errorMsg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail || "Erro desconhecido.");
-            alert("Erro ao alterar senha: " + errorMsg);
+            Swal.fire({icon: 'error', title: 'Falha', text: "Erro ao alterar senha: " + errorMsg});
         }
-    } catch(e) {
-        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'});
+    } catch(err) {
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão: ' + err.message});
+    } finally {
+        if (btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
-});
+};
 
 // Admin self-password update (from config section)
 async function updatePassword(e) {
@@ -1255,16 +1405,23 @@ async function updatePassword(e) {
     const confirm = document.getElementById('pwConfirm').value;
 
     if (!current || !newPw || !confirm) {
-        alert("Por favor, preencha todos os campos de senha.");
+        Swal.fire({icon: 'warning', title: 'Atenção', text: 'Por favor, preencha todos os campos de senha.'});
         return;
     }
     if (newPw !== confirm) {
-        alert("A nova senha e a confirmação não coincidem.");
+        Swal.fire({icon: 'warning', title: 'Atenção', text: 'A nova senha e a confirmação não coincidem.'});
         return;
     }
     if (newPw.length < 6) {
-        alert("A nova senha deve ter pelo menos 6 caracteres.");
+        Swal.fire({icon: 'warning', title: 'Atenção', text: 'A nova senha deve ter pelo menos 6 caracteres.'});
         return;
+    }
+
+    const btn = document.querySelector('button[onclick="updatePassword()"]');
+    const originalText = btn ? btn.innerHTML : 'Atualizar Senha';
+    if (btn) {
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Aguarde...';
+        btn.disabled = true;
     }
 
     try {
@@ -1278,17 +1435,23 @@ async function updatePassword(e) {
         });
 
         if (res.ok) {
-            alert("Senha alterada com sucesso!");
+            Swal.fire({icon: 'success', title: 'Sucesso', text: 'Senha alterada com sucesso.'});
             document.getElementById('pwCurrent').value = '';
             document.getElementById('pwNew').value = '';
             document.getElementById('pwConfirm').value = '';
         } else {
             const err = await res.json().catch(() => ({}));
             const errorMsg = typeof err.detail === 'string' ? err.detail : JSON.stringify(err.detail || "Erro desconhecido.");
-            alert("Erro: " + errorMsg);
+            Swal.fire({icon: 'error', title: 'Falha', text: "Erro: " + errorMsg});
         }
-    } catch(e) {
-        alert("Erro de conexão: " + e.message);
+    } catch(err) {
+        Swal.fire({icon: 'error', title: 'Erro', text: "Erro de conexão: " + err.message});
+    } finally {
+        const btn = document.querySelector('button[onclick="updatePassword()"]');
+        if (btn) {
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
     }
 }
 

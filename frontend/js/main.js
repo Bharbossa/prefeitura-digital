@@ -35,6 +35,19 @@ document.addEventListener('change', (e) => {
     }
 });
 
+// Accessibility: Font Size
+let currentFontSizeOffset = 0;
+function changeFontSize(step) {
+    currentFontSizeOffset += step;
+    if (currentFontSizeOffset > 3) currentFontSizeOffset = 3;
+    if (currentFontSizeOffset < -1) currentFontSizeOffset = -1;
+    
+    const root = document.documentElement;
+    // Base font size is 16px, we adjust by 2px steps
+    const newSize = 16 + (currentFontSizeOffset * 2);
+    root.style.fontSize = `${newSize}px`;
+}
+
 // Global Auth Management
 function getToken() {
     return localStorage.getItem('access_token');
@@ -174,7 +187,7 @@ async function sendChatMessage() {
         const headers = { 'Content-Type': 'application/json' };
         if (token) headers['Authorization'] = `Bearer ${token}`;
 
-        const response = await fetch(`${API_URL}/chat-ia`, {
+        const response = await fetch(`${API_URL}/chat-ia/`, {
             method: 'POST',
             headers: headers,
             body: JSON.stringify({ mensagem: msg })
@@ -300,3 +313,16 @@ async function fetchAvisos() {
 document.addEventListener('DOMContentLoaded', () => {
     fetchAvisos();
 });
+
+// PWA Service Worker Registration
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(registration => {
+                console.log('ServiceWorker registration successful with scope: ', registration.scope);
+            })
+            .catch(err => {
+                console.log('ServiceWorker registration failed: ', err);
+            });
+    });
+}

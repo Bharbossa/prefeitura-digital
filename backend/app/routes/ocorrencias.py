@@ -204,3 +204,40 @@ async def cobrar_secretaria(
     except Exception as e:
         db_sql.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+from pydantic import BaseModel
+
+class AvaliacaoSchema(BaseModel):
+    nota: int
+    comentario: Optional[str] = None
+
+@router.post("/{id}/avaliar")
+async def avaliar_ocorrencia(
+    id: int, 
+    data: AvaliacaoSchema,
+    current_user = Depends(get_current_user),
+    db_sql: Session = Depends(get_db)
+):
+    try:
+        ocorrencia = db_sql.query(Ocorrencia).filter(Ocorrencia.id == id, Ocorrencia.usuario_id == current_user.id).first()
+        if not ocorrencia:
+            raise HTTPException(status_code=404, detail="Ocorrência não encontrada.")
+            
+        if ocorrencia.status.lower() not in ["resolvido", "concluído", "concluido"]:
+            raise HTTPException(status_code=400, detail="Apenas serviços resolvidos podem ser avaliados.")
+            
+        if ocorrencia.avaliacao_nota is not None:
+            raise HTTPException(status_code=400, detail="Esta solicitação já foi avaliada.")
+            
+        if not (1 <= data.nota <= 5):
+            raise HTTPException(status_code=400, detail="Nota deve ser de 1 a 5.")
+            
+        setattr(ocorrencia, 'avaliacao_nota', data.nota)
+        setattr(ocorrencia, 'avaliacao_comentario', data.comentario)
+        db_sql.commit()
+        return {"message": "Avaliação enviada com sucesso"}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        db_sql.rollback()
+        raise HTTPException(status_code=500, detail=str(e))

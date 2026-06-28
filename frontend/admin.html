@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR" data-theme="light">
+
 <head>
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
@@ -12,43 +13,67 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <link rel="stylesheet" href="css/admin-v2.css">
     <style>
-    @keyframes pulse {
-        0% { transform: scale(1); }
-        50% { transform: scale(1.03); }
-        100% { transform: scale(1); }
-    }
-    .emergency-row {
-        background-color: #fef2f2 !important;
-        border-left: 5px solid #ef4444 !important;
-        animation: rowPulse 3s infinite;
-    }
-    @keyframes rowPulse {
-        0% { background-color: #fef2f2; }
-        50% { background-color: #fee2e2; }
-        100% { background-color: #fef2f2; }
-    }
-    .emergency-protocol {
-        color: #ef4444 !important;
-        font-weight: bold;
-        padding: 2px 6px;
-        background: #fef2f2;
-        border: 1px solid #fee2e2;
-        border-radius: 4px;
-        display: inline-block;
-    }
-    [data-theme="dark"] .emergency-protocol {
-        color: #ff6b6b !important;
-        background: #271c1c !important;
-        border-color: #4c1d1d !important;
-        text-shadow: 0 0 8px rgba(255, 107, 107, 0.6);
-    }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+            }
+
+            50% {
+                transform: scale(1.03);
+            }
+
+            100% {
+                transform: scale(1);
+            }
+        }
+
+        .emergency-row {
+            background-color: #fef2f2 !important;
+            border-left: 5px solid #ef4444 !important;
+            animation: rowPulse 3s infinite;
+        }
+
+        @keyframes rowPulse {
+            0% {
+                background-color: #fef2f2;
+            }
+
+            50% {
+                background-color: #fee2e2;
+            }
+
+            100% {
+                background-color: #fef2f2;
+            }
+        }
+
+        .emergency-protocol {
+            color: #ef4444 !important;
+            font-weight: bold;
+            padding: 2px 6px;
+            background: #fef2f2;
+            border: 1px solid #fee2e2;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        [data-theme="dark"] .emergency-protocol {
+            color: #ff6b6b !important;
+            background: #271c1c !important;
+            border-color: #4c1d1d !important;
+            text-shadow: 0 0 8px rgba(255, 107, 107, 0.6);
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <!-- SweetAlert2 -->
     <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e3a8a">
 </head>
+
 <body>
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -59,7 +84,7 @@
         <nav id="sideNav">
             <!-- Dynamic Items Based on Role -->
         </nav>
-        
+
         <div style="margin-top: auto;">
             <div class="nav-item" onclick="logout()">
                 <i class="fa-solid fa-right-from-bracket"></i>
@@ -72,13 +97,19 @@
     <main class="main-content">
         <header class="header-bar">
             <div style="display: flex; align-items: center; gap: 1rem;">
-                <i class="fa-solid fa-bars" id="mobileMenuBtn" style="display: none; font-size: 1.5rem; cursor: pointer; color: var(--primary);"></i>
+                <i class="fa-solid fa-bars" id="mobileMenuBtn"
+                    style="display: none; font-size: 1.5rem; cursor: pointer; color: var(--primary);"></i>
                 <div>
                     <h2 id="pageTitle">Dashboard</h2>
-                    <span style="color: var(--text-muted); font-size: 0.85rem;" id="breadcrumb">Início / Dashboard</span>
+                    <span style="color: var(--text-muted); font-size: 0.85rem;" id="breadcrumb">Início /
+                        Dashboard</span>
                 </div>
             </div>
             <div style="display: flex; align-items: center; gap: 1rem;">
+                <div style="display: flex; gap: 0.5rem; align-items: center; border-right: 1px solid var(--border); padding-right: 15px;">
+                    <button onclick="changeFontSize(1)" title="Aumentar Fonte" style="background: transparent; border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; padding: 2px 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; transition: background 0.3s;">A+</button>
+                    <button onclick="changeFontSize(-1)" title="Diminuir Fonte" style="background: transparent; border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; padding: 2px 8px; font-weight: bold; cursor: pointer; font-size: 0.8rem; transition: background 0.3s;">A-</button>
+                </div>
                 <div class="theme-switch-wrapper">
                     <label class="theme-switch" for="checkbox">
                         <input type="checkbox" id="checkbox" />
@@ -87,10 +118,13 @@
                 </div>
                 <div style="text-align: right;">
                     <strong id="userName">Carregando...</strong>
-                    <div style="font-size: 0.75rem;"><span id="userRole" style="color: var(--primary);">Administrador</span> <span id="roleDebug" style="color: #64748b; font-size: 0.65rem;"></span></div>
+                    <div style="font-size: 0.75rem;"><span id="userRole"
+                            style="color: var(--primary);">Administrador</span> <span id="roleDebug"
+                            style="color: #64748b; font-size: 0.65rem;"></span></div>
                 </div>
 
-                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;" id="userAvatar">
+                <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-weight: bold;"
+                    id="userAvatar">
                     A
                 </div>
             </div>
@@ -101,10 +135,11 @@
             <div class="stats-grid" id="statsGrid">
                 <!-- Stat Cards -->
             </div>
-            
+
             <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem;">
                 <div class="stat-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h3>Solicitações Recentes</h3>
                         <div id="adminQuickActions"></div>
                     </div>
@@ -121,16 +156,48 @@
                 <h3>Fluxo por Secretaria (Ocorrências e Agendamentos)</h3>
                 <canvas id="secretariaChart" height="150"></canvas>
             </div>
+
+        </section>
+
+        <!-- MAPAS SECTION -->
+        <section id="mapas" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div>
+                    <h3><i class="fa-solid fa-map-location-dot" style="color: #ef4444;"></i> Inteligência Geográfica</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Visualização espacial de ocorrências e distribuição populacional.</p>
+                </div>
+            </div>
+
+            <!-- Inteligência Geográfica -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" id="geoDataContainer">
+                <div class="stat-card">
+                    <h3 style="margin-bottom: 0.5rem;"><i class="fa-solid fa-fire" style="color: #ef4444;"></i> Mapa de Calor de Ocorrências</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Áreas com maior volume de solicitações (manchas quentes).</p>
+                    <div id="heatmapAdminDiv" style="height: 450px; width: 100%; border-radius: 12px; border: 1px solid var(--border); z-index: 1;"></div>
+                </div>
+                <div class="stat-card">
+                    <h3 style="margin-bottom: 0.5rem;"><i class="fa-solid fa-users-viewfinder" style="color: #3b82f6;"></i> Usuários por Bairro / Endereço</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Ranking das regiões com mais cidadãos ativos.</p>
+                    <div style="position: relative; height: 450px;">
+                        <canvas id="bairrosChart"></canvas>
+                    </div>
+                </div>
+            </div>
         </section>
 
         <!-- OCORRENCIAS SECTION -->
         <section id="ocorrencias" class="section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                 <h3>Gestão de Ocorrências</h3>
                 <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: 0;">
-                        <input type="text" id="searchOcorrencias" class="btn btn-outline" placeholder="Buscar por nome ou protocolo..." onkeydown="if(event.key==='Enter') searchOcorrenciasBtn()" style="min-width: 250px; border-radius: 8px 0 0 8px; border-right: none;">
-                        <button class="btn btn-primary" onclick="searchOcorrenciasBtn()" style="border-radius: 0 8px 8px 0; padding: 0.6rem 1rem;">
+                        <input type="text" id="searchOcorrencias" class="btn btn-outline"
+                            placeholder="Buscar por nome ou protocolo..."
+                            onkeydown="if(event.key==='Enter') searchOcorrenciasBtn()"
+                            style="min-width: 250px; border-radius: 8px 0 0 8px; border-right: none;">
+                        <button class="btn btn-primary" onclick="searchOcorrenciasBtn()"
+                            style="border-radius: 0 8px 8px 0; padding: 0.6rem 1rem;">
                             <i class="fa-solid fa-magnifying-glass"></i> Buscar
                         </button>
                     </div>
@@ -152,7 +219,9 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h3>Agendamentos e Viagens</h3>
                 <div style="display: flex; gap: 0.5rem;">
-                    <input type="text" id="searchAgendamentos" class="btn btn-outline" placeholder="Buscar agendamento..." onkeyup="filterTable('agendamentosTableContainer', this.value)" style="min-width: 200px;">
+                    <input type="text" id="searchAgendamentos" class="btn btn-outline"
+                        placeholder="Buscar agendamento..."
+                        onkeyup="filterTable('agendamentosTableContainer', this.value)" style="min-width: 200px;">
                 </div>
             </div>
             <div id="agendamentosTableContainer"></div>
@@ -160,46 +229,62 @@
 
         <!-- CONCURSOS / INSCRIÇÕES SECTION -->
         <section id="concursos" class="section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+            <div
+                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                 <div>
                     <h3><i class="fa-solid fa-trophy" style="color: #a855f7;"></i> Inscrições de Concursos</h3>
-                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Gerencie e confirme inscrições em concursos culturais e esportivos.</p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Gerencie e confirme
+                        inscrições em concursos culturais e esportivos.</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; align-items: center;">
-                    <button id="btnImprimirCamisas" class="btn btn-outline" style="border-color: #a855f7; color: #a855f7; display: none; align-items: center; gap: 6px;" onclick="imprimirResumoCamisas()">
+                    <button id="btnImprimirCamisas" class="btn btn-outline"
+                        style="border-color: #a855f7; color: #a855f7; display: none; align-items: center; gap: 6px;"
+                        onclick="imprimirResumoCamisas()">
                         <i class="fa-solid fa-shirt"></i> Imprimir Camisas
                     </button>
-                    <input type="text" id="searchConcursos" class="btn btn-outline" placeholder="Buscar inscrição..." onkeyup="filterTable('concursosTableContainer', this.value)" style="min-width: 200px;">
+                    <input type="text" id="searchConcursos" class="btn btn-outline" placeholder="Buscar inscrição..."
+                        onkeyup="filterTable('concursosTableContainer', this.value)" style="min-width: 200px;">
                 </div>
             </div>
-            <div id="concursosUploadContainer" style="display: none; margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow);">
-                <h4 style="margin-top: 0; margin-bottom: 1rem; color: #a855f7; display: flex; align-items: center; gap: 8px;">
+            <div id="concursosUploadContainer"
+                style="display: none; margin-bottom: 2rem; padding: 1.5rem; background: var(--bg-card); border-radius: 12px; border: 1px solid var(--border); box-shadow: var(--shadow);">
+                <h4
+                    style="margin-top: 0; margin-bottom: 1rem; color: #a855f7; display: flex; align-items: center; gap: 8px;">
                     <i class="fa-solid fa-cloud-arrow-up"></i> Atualizar Documentos dos Concursos
                 </h4>
                 <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 1.5rem;">
-                    Selecione o concurso, carregue o novo regulamento ou termo de responsabilidade e clique em enviar para atualizar imediatamente na plataforma dos cidadãos.
+                    Selecione o concurso, carregue o novo regulamento ou termo de responsabilidade e clique em enviar
+                    para atualizar imediatamente na plataforma dos cidadãos.
                 </p>
-                <form id="formUploadConcursos" onsubmit="handleConcursosUpload(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: flex-end;">
+                <form id="formUploadConcursos" onsubmit="handleConcursosUpload(event)"
+                    style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; align-items: flex-end;">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="uploadConcursoSelect" style="font-size: 0.8rem; font-weight: 600;">Selecione o Concurso</label>
-                        <select id="uploadConcursoSelect" required style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-primary);">
+                        <label for="uploadConcursoSelect" style="font-size: 0.8rem; font-weight: 600;">Selecione o
+                            Concurso</label>
+                        <select id="uploadConcursoSelect" required
+                            style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-primary);">
                             <option value="Papa-Cuscuz">Papa-Cuscuz</option>
                             <option value="Pé de Aço">Pé de Aço</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="uploadTipoDoc" style="font-size: 0.8rem; font-weight: 600;">Tipo de Documento</label>
-                        <select id="uploadTipoDoc" required style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-primary);">
+                        <label for="uploadTipoDoc" style="font-size: 0.8rem; font-weight: 600;">Tipo de
+                            Documento</label>
+                        <select id="uploadTipoDoc" required
+                            style="width: 100%; padding: 8px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-primary);">
                             <option value="regulamento">Regulamento</option>
                             <option value="termo">Termo de Responsabilidade</option>
                         </select>
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="uploadFileDoc" style="font-size: 0.8rem; font-weight: 600;">Selecione o Arquivo (PDF ou TXT)</label>
-                        <input type="file" id="uploadFileDoc" accept=".pdf,.txt" required style="width: 100%; font-size: 0.85rem; padding: 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-primary);">
+                        <label for="uploadFileDoc" style="font-size: 0.8rem; font-weight: 600;">Selecione o Arquivo (PDF
+                            ou TXT)</label>
+                        <input type="file" id="uploadFileDoc" accept=".pdf,.txt" required
+                            style="width: 100%; font-size: 0.85rem; padding: 6px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg-body); color: var(--text-primary);">
                     </div>
                     <div>
-                        <button type="submit" class="btn btn-primary" style="background: #a855f7; border-color: #a855f7; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; padding: 10px;">
+                        <button type="submit" class="btn btn-primary"
+                            style="background: #a855f7; border-color: #a855f7; width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 8px; font-weight: 600; padding: 10px;">
                             <i class="fa-solid fa-upload"></i> Enviar Documento
                         </button>
                     </div>
@@ -213,19 +298,21 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h3>Gestão de Cidadãos</h3>
             </div>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Aprovação de novos cidadãos e controle de acesso.</p>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Aprovação de novos cidadãos e controle de
+                acesso.</p>
             <div id="usuariosTableContainer"></div>
         </section>
 
         <!-- TODAS AS PESSOAS SECTION (Unificada) -->
         <section id="usuarios-todos" class="section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3>Todas as Pessoas Cadastradas</h3>
+                <h3 style="display: flex; align-items: center; gap: 10px;">Todas as Pessoas Cadastradas <span id="totalUsersCounter" class="badge badge-primary" style="font-size: 1rem; padding: 4px 10px; background: #3b82f6; color: white; border-radius: 8px;">0</span></h3>
                 <div style="display: flex; gap: 0.5rem;" id="allUsersActions">
                     <!-- Actions for Admin -->
                 </div>
             </div>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Visão geral de todos os cidadãos, sub-administradores e administradores gerais.</p>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Visão geral de todos os cidadãos,
+                sub-administradores e administradores gerais.</p>
             <div id="allUsersTableContainer"></div>
         </section>
 
@@ -252,7 +339,8 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <h3><i class="fa-solid fa-chart-bar"></i> Contabilidade por Secretaria</h3>
                 <div style="display: flex; gap: 0.5rem;">
-                    <button class="btn btn-primary" onclick="imprimirContabilidadeGeral()" id="btnImprimirGeral" style="font-size: 0.85rem;">
+                    <button class="btn btn-primary" onclick="imprimirContabilidadeGeral()" id="btnImprimirGeral"
+                        style="font-size: 0.85rem;">
                         <i class="fa-solid fa-print"></i> Imprimir Relatório Geral
                     </button>
                     <button class="btn btn-outline" onclick="loadPerformance()" style="font-size: 0.85rem;">
@@ -260,7 +348,8 @@
                     </button>
                 </div>
             </div>
-            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Acompanhamento em tempo real de todos os serviços realizados por cada secretaria.</p>
+            <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Acompanhamento em tempo real de todos os
+                serviços realizados por cada secretaria.</p>
             <div id="performanceContainer"></div>
         </section>
 
@@ -269,9 +358,11 @@
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
                 <div>
                     <h3><i class="fa-solid fa-bullhorn" style="color: #ef4444;"></i> Mural de Avisos e Alertas</h3>
-                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Alertas da Defesa Civil, Campanhas de Saúde e Informativos.</p>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Alertas da Defesa
+                        Civil, Campanhas de Saúde e Informativos.</p>
                 </div>
-                <button class="btn btn-primary" onclick="document.getElementById('modalNovoAviso').style.display = 'flex'">
+                <button class="btn btn-primary"
+                    onclick="document.getElementById('modalNovoAviso').style.display = 'flex'">
                     <i class="fa-solid fa-plus"></i> Novo Aviso
                 </button>
             </div>
@@ -283,16 +374,21 @@
             <h3>Minha Conta</h3>
             <div style="max-width: 500px; margin-top: 2rem;">
                 <!-- Card Foto de Perfil -->
-                <div class="stat-card" style="margin-bottom: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
+                <div class="stat-card"
+                    style="margin-bottom: 1.5rem; display: flex; flex-direction: column; align-items: center; text-align: center;">
                     <h4>Foto de Perfil</h4>
-                    <div id="configAvatar" style="width: 100px; height: 100px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; margin: 1.5rem 0; overflow: hidden;">
+                    <div id="configAvatar"
+                        style="width: 100px; height: 100px; border-radius: 50%; background: var(--primary); color: white; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: bold; margin: 1.5rem 0; overflow: hidden;">
                         A
                     </div>
-                    <input type="file" id="inputPhoto" accept="image/*" style="display: none;" onchange="uploadProfilePhoto(this)">
-                    <button class="btn btn-outline" onclick="document.getElementById('inputPhoto').click()" id="btnChangePhoto">
+                    <input type="file" id="inputPhoto" accept="image/*" style="display: none;"
+                        onchange="uploadProfilePhoto(this)">
+                    <button class="btn btn-outline" onclick="document.getElementById('inputPhoto').click()"
+                        id="btnChangePhoto">
                         <i class="fa-solid fa-camera"></i> Alterar Foto
                     </button>
-                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem;">Formatos aceitos: JPG, PNG, WEBP.</p>
+                    <p style="font-size: 0.75rem; color: var(--text-muted); margin-top: 1rem;">Formatos aceitos: JPG,
+                        PNG, WEBP.</p>
                 </div>
 
                 <!-- Card Meus Dados -->
@@ -300,28 +396,56 @@
                     <h4>Meus Dados</h4>
                     <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
                         <div>
-                            <label style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; display: block;">Nome de Exibição</label>
-                            <input type="text" id="configNome" class="btn btn-outline" style="width: 100%; text-align: left;" placeholder="Carregando...">
+                            <label
+                                style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.5rem; display: block;">Nome
+                                de Exibição</label>
+                            <input type="text" id="configNome" class="btn btn-outline"
+                                style="width: 100%; text-align: left;" placeholder="Carregando...">
                         </div>
                         <button class="btn btn-primary" onclick="updateName()">Salvar Nome</button>
                     </div>
                 </div>
 
-                <div class="stat-card">
-                    <h4>Alterar Senha</h4>
-                    <div style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
-                        <input type="password" id="pwCurrent" class="btn btn-outline" style="width: 100%;" placeholder="Senha Atual">
-                        <input type="password" id="pwNew" class="btn btn-outline" style="width: 100%;" placeholder="Nova Senha">
-                        <input type="password" id="pwConfirm" class="btn btn-outline" style="width: 100%;" placeholder="Confirmar Nova Senha">
-                        <button class="btn btn-primary" onclick="updatePassword()">Atualizar Senha</button>
+                <div class="stat-card" style="border: 2px solid var(--border); padding: 2rem;">
+                    <h4 style="font-size: 1.2rem; margin-bottom: 0.5rem;"><i class="fa-solid fa-lock"></i> Alterar Senha
+                    </h4>
+                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Mantenha sua conta
+                        segura atualizando sua senha regularmente.</p>
+                    <div style="display: flex; flex-direction: column; gap: 1.2rem;">
+                        <div>
+                            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Senha Atual</label>
+                            <input type="password" id="pwCurrent" class="btn btn-outline"
+                                style="width: 100%; padding: 12px; font-size: 1.1rem; text-align: left;"
+                                placeholder="Digite sua senha atual">
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Nova Senha</label>
+                            <input type="password" id="pwNew" class="btn btn-outline"
+                                style="width: 100%; padding: 12px; font-size: 1.1rem; text-align: left;"
+                                placeholder="Crie uma nova senha">
+                        </div>
+                        <div>
+                            <label style="font-weight: 600; margin-bottom: 0.5rem; display: block;">Confirmar Nova
+                                Senha</label>
+                            <input type="password" id="pwConfirm" class="btn btn-outline"
+                                style="width: 100%; padding: 12px; font-size: 1.1rem; text-align: left;"
+                                placeholder="Repita a nova senha">
+                        </div>
+                        <button class="btn btn-primary"
+                            style="padding: 12px; font-size: 1.1rem; font-weight: bold; margin-top: 0.5rem;"
+                            onclick="updatePassword()">Atualizar Senha</button>
                     </div>
                 </div>
 
                 <!-- Reset System (Admin Geral only) -->
                 <div class="stat-card" style="margin-top: 1.5rem; border: 2px solid #ef4444;" id="resetSystemCard">
                     <h4 style="color: #ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> Zona de Perigo</h4>
-                    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 1rem 0;">Zerar todos os dados operacionais (ocorrências, agendamentos, respostas, chats e logs). <strong>Usuários, admins e secretarias serão mantidos.</strong></p>
-                    <button class="btn" style="background: #ef4444; color: white; border: none; width: 100%; font-weight: bold;" onclick="resetSystem()">
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin: 1rem 0;">Zerar todos os dados
+                        operacionais (ocorrências, agendamentos, respostas, chats e logs). <strong>Usuários, admins e
+                            secretarias serão mantidos.</strong></p>
+                    <button class="btn"
+                        style="background: #ef4444; color: white; border: none; width: 100%; font-weight: bold;"
+                        onclick="resetSystem()">
                         <i class="fa-solid fa-trash-can"></i> Zerar Sistema
                     </button>
                 </div>
@@ -330,48 +454,62 @@
     </main>
 
     <!-- MODAL NEW ADMIN -->
-    <div id="modalNewAdmin" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; overflow-y:auto;">
+    <div id="modalNewAdmin"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; overflow-y:auto;">
         <div class="stat-card" style="width: 100%; max-width: 500px; padding: 2rem;">
             <h3 style="margin-bottom: 1.5rem;">Cadastrar Sub-Administrador</h3>
             <form id="formAdmin">
-                <input type="text" id="newAdminName" placeholder="Nome Completo" class="btn btn-outline" style="width:100%; margin-bottom:1rem;" required>
-                <input type="text" id="newAdminCPF" placeholder="CPF" class="btn btn-outline" style="width:100%; margin-bottom:1rem;" required>
-                <input type="email" id="newAdminEmail" placeholder="E-mail" class="btn btn-outline" style="width:100%; margin-bottom:1rem;" required>
-                <input type="text" id="newAdminTel" placeholder="Telefone do WhatsApp (Obrigatório)" class="btn btn-outline" style="width:100%; margin-bottom:1rem;" required>
-                <input type="password" id="newAdminPass" placeholder="Senha" class="btn btn-outline" style="width:100%; margin-bottom:1rem;" required minlength="6">
+                <input type="text" id="newAdminName" placeholder="Nome Completo" class="btn btn-outline"
+                    style="width:100%; margin-bottom:1rem;" required>
+                <input type="text" id="newAdminCPF" placeholder="CPF" class="btn btn-outline"
+                    style="width:100%; margin-bottom:1rem;" required>
+                <input type="email" id="newAdminEmail" placeholder="E-mail" class="btn btn-outline"
+                    style="width:100%; margin-bottom:1rem;" required>
+                <input type="text" id="newAdminTel" placeholder="Telefone do WhatsApp (Obrigatório)"
+                    class="btn btn-outline" style="width:100%; margin-bottom:1rem;" required>
+                <input type="password" id="newAdminPass" placeholder="Senha" class="btn btn-outline"
+                    style="width:100%; margin-bottom:1rem;" required minlength="6">
                 <select id="newAdminSec" class="btn btn-outline" style="width:100%; margin-bottom:1.5rem;" required>
                     <!-- Populated via JS -->
                 </select>
                 <div style="display:flex; gap:1rem;">
                     <button type="submit" class="btn btn-primary" style="flex:1;">Cadastrar</button>
-                    <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeModal('modalNewAdmin')">Cancelar</button>
+                    <button type="button" class="btn btn-outline" style="flex:1;"
+                        onclick="closeModal('modalNewAdmin')">Cancelar</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- MODAL RESPONSE/STATUS -->
-    <div id="modalResponse" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; overflow-y:auto;">
+    <div id="modalResponse"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; overflow-y:auto;">
         <div class="stat-card" style="width: 100%; max-width: 500px; padding: 2rem;">
             <h3 id="modalResponseTitle">Responder Ocorrência</h3>
-            <p id="modalResponseSubtitle" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;"></p>
-             <textarea id="respText" class="btn btn-outline" style="width:100%; height:150px; margin-bottom:1rem; padding:10px; font-family:inherit;" placeholder="Escreva a resposta administrativa..."></textarea>
-             
-             <div style="margin-bottom: 1.5rem;">
-                 <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-muted);">Foto da Solução (Opcional):</label>
-                 <input type="file" id="respFoto" accept="image/*" class="btn btn-outline" style="width: 100%; padding: 8px;">
-             </div>
+            <p id="modalResponseSubtitle" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            </p>
+            <textarea id="respText" class="btn btn-outline"
+                style="width:100%; height:150px; margin-bottom:1rem; padding:10px; font-family:inherit;"
+                placeholder="Escreva a resposta administrativa..."></textarea>
 
-             <div style="margin-bottom: 1.5rem;">
-                 <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">Status da Solicitação:</label>
-                 <select id="respStatus" class="btn btn-outline" style="width: 100%; padding: 8px; text-align: left;">
-                     <option value="resolvido">Resolvido</option>
-                     <option value="em_atendimento">Em Andamento</option>
-                     <option value="cancelado">Cancelado</option>
-                 </select>
-             </div>
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; color: var(--text-muted);">Foto
+                    da Solução (Opcional):</label>
+                <input type="file" id="respFoto" accept="image/*" class="btn btn-outline"
+                    style="width: 100%; padding: 8px;">
+            </div>
 
-             <div style="display:flex; gap:1rem;">
+            <div style="margin-bottom: 1.5rem;">
+                <label style="display: block; font-size: 0.85rem; margin-bottom: 0.5rem; font-weight: 600;">Status da
+                    Solicitação:</label>
+                <select id="respStatus" class="btn btn-outline" style="width: 100%; padding: 8px; text-align: left;">
+                    <option value="resolvido">Resolvido</option>
+                    <option value="em_atendimento">Em Andamento</option>
+                    <option value="cancelado">Cancelado</option>
+                </select>
+            </div>
+
+            <div style="display:flex; gap:1rem;">
                 <button class="btn btn-primary" id="btnConfirmResp" style="flex:1;">Enviar Resposta</button>
                 <button class="btn btn-outline" style="flex:1;" onclick="closeModal('modalResponse')">Cancelar</button>
             </div>
@@ -379,15 +517,17 @@
     </div>
 
     <!-- MODAL NEW AVISO -->
-    <div id="modalNovoAviso" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; overflow-y:auto;">
+    <div id="modalNovoAviso"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; overflow-y:auto;">
         <div class="stat-card" style="width: 100%; max-width: 500px; padding: 2rem;">
             <h3 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-bullhorn"></i> Publicar Novo Aviso</h3>
             <form id="formAviso" onsubmit="createAviso(event)">
                 <div class="form-group" style="margin-bottom: 1rem;">
                     <label style="font-size: 0.85rem; font-weight: 600;">Título</label>
-                    <input type="text" id="avisoTitulo" placeholder="Ex: Campanha de Vacinação, Alerta de Chuvas..." class="btn btn-outline" style="width:100%; text-align: left;" required>
+                    <input type="text" id="avisoTitulo" placeholder="Ex: Campanha de Vacinação, Alerta de Chuvas..."
+                        class="btn btn-outline" style="width:100%; text-align: left;" required>
                 </div>
-                
+
                 <div class="form-group" style="margin-bottom: 1rem;">
                     <label style="font-size: 0.85rem; font-weight: 600;">Tipo de Aviso</label>
                     <select id="avisoTipo" class="btn btn-outline" style="width:100%;" required>
@@ -399,12 +539,15 @@
 
                 <div class="form-group" style="margin-bottom: 1.5rem;">
                     <label style="font-size: 0.85rem; font-weight: 600;">Mensagem</label>
-                    <textarea id="avisoMensagem" class="btn btn-outline" style="width:100%; height:120px; font-family:inherit; text-align: left;" placeholder="Detalhes do aviso..." required></textarea>
+                    <textarea id="avisoMensagem" class="btn btn-outline"
+                        style="width:100%; height:120px; font-family:inherit; text-align: left;"
+                        placeholder="Detalhes do aviso..." required></textarea>
                 </div>
-                
+
                 <div style="display:flex; gap:1rem;">
                     <button type="submit" class="btn btn-primary" style="flex:1;">Publicar Aviso</button>
-                    <button type="button" class="btn btn-outline" style="flex:1;" onclick="closeModal('modalNovoAviso')">Cancelar</button>
+                    <button type="button" class="btn btn-outline" style="flex:1;"
+                        onclick="closeModal('modalNovoAviso')">Cancelar</button>
                 </div>
             </form>
         </div>
@@ -413,32 +556,45 @@
     <!-- JS Files -->
     <!-- Modal Alterar Senha -->
     <div id="modalAlterarSenha" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="document.getElementById('modalAlterarSenha').style.display='none'">&times;</span>
-            <h2 id="modalSenhaTitle" style="color: var(--primary-color); margin-bottom: 1.5rem;">Alterar Senha</h2>
+        <div class="modal-content" style="max-width: 500px; padding: 2.5rem; border-radius: 12px;">
+            <span class="close" onclick="document.getElementById('modalAlterarSenha').style.display='none'"
+                style="font-size: 2rem;">&times;</span>
+            <h2 id="modalSenhaTitle" style="color: var(--primary-color); margin-bottom: 0.5rem; font-size: 1.8rem;"><i
+                    class="fa-solid fa-key"></i> Alterar Senha</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem;">Defina a nova senha para este
+                usuário.</p>
             <form id="formAlterarSenha">
                 <input type="hidden" id="senha_user_id">
                 <input type="hidden" id="senha_user_source">
-                
+
                 <div class="form-group">
-                    <label>Nova Senha</label>
-                    <input type="password" id="nova_senha_input" required placeholder="Digite a nova senha">
+                    <label style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.8rem; display: block;">Nova
+                        Senha</label>
+                    <input type="password" id="nova_senha_input" required placeholder="Digite a nova senha"
+                        style="width: 100%; padding: 15px; font-size: 1.2rem; border-radius: 8px; border: 2px solid var(--border);">
                 </div>
-                
-                <div style="display: flex; gap: 1rem; margin-top: 2rem;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">Confirmar Alteração</button>
-                    <button type="button" class="btn btn-outline" style="flex: 1;" onclick="document.getElementById('modalAlterarSenha').style.display='none'">Cancelar</button>
+
+                <div style="display: flex; gap: 1rem; margin-top: 2.5rem;">
+                    <button type="button" id="btnConfirmarAlteracaoModal" class="btn btn-primary"
+                        style="flex: 1; padding: 12px; font-size: 1.1rem; font-weight: bold;"
+                        onclick="submitAlterarSenha()">Confirmar Alteração</button>
+                    <button type="button" class="btn btn-outline" style="flex: 1; padding: 12px; font-size: 1.1rem;"
+                        onclick="document.getElementById('modalAlterarSenha').style.display='none'">Cancelar</button>
                 </div>
             </form>
         </div>
     </div>
 
     <!-- Modal Visualizar Mapa -->
-    <div id="modalViewMap" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
+    <div id="modalViewMap"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center;">
         <div class="stat-card" style="width: 90%; max-width: 800px; padding: 2rem; position: relative;">
-            <i class="fa-solid fa-times" style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem;" onclick="closeModal('modalViewMap')"></i>
+            <i class="fa-solid fa-times"
+                style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem;"
+                onclick="closeModal('modalViewMap')"></i>
             <h3 id="mapModalTitle" style="margin-bottom: 1.5rem;">Localização da Ocorrência</h3>
-            <div id="adminMapView" style="height: 450px; width: 100%; border-radius: 12px; border: 1px solid var(--border);"></div>
+            <div id="adminMapView"
+                style="height: 450px; width: 100%; border-radius: 12px; border: 1px solid var(--border);"></div>
             <div style="margin-top: 1.5rem; text-align: right;">
                 <button class="btn btn-primary" onclick="closeModal('modalViewMap')">Fechar</button>
             </div>
@@ -446,7 +602,20 @@
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="js/main.js?v=1.0.7"></script>
-    <script src="js/admin-v2.js?v=7"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
+    <script src="js/main.js?v=1.0.9"></script>
+    <script src="js/admin-v2.js?v=14"></script>
+    <!-- VLibras Widget -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper>
+            <div class="vw-plugin-top-wrapper"></div>
+        </div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
+    </script>
 </body>
+
 </html>

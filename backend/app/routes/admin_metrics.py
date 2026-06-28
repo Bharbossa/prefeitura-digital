@@ -40,6 +40,20 @@ def get_admin_summary(current_user = Depends(get_current_admin), db_sql: Session
             "total_usuarios": db_sql.query(Usuario).count(),
             "usuarios_pendentes": db_sql.query(Usuario).filter(Usuario.status == StatusUsuario.pendente).count()
         }
+        
+    # Ratings calculations
+    # Avg from ocorrencias
+    o_avg = q_ocorrencias.filter(Ocorrencia.avaliacao_nota != None).with_entities(func.avg(Ocorrencia.avaliacao_nota)).scalar()
+    # Avg from agendamentos
+    a_avg = q_agendamentos.filter(Agendamento.avaliacao_nota != None).with_entities(func.avg(Agendamento.avaliacao_nota)).scalar()
+    
+    o_avg = float(o_avg) if o_avg else 0.0
+    a_avg = float(a_avg) if a_avg else 0.0
+    
+    if o_avg and a_avg:
+        total_avg = (o_avg + a_avg) / 2.0
+    else:
+        total_avg = o_avg or a_avg or 0.0
     
     return {
         "ocorrencias": {
@@ -52,7 +66,10 @@ def get_admin_summary(current_user = Depends(get_current_admin), db_sql: Session
             "pendentes": pendentes_agendamentos,
             "confirmados": confirmados_agendamentos
         },
-        "usuarios": users_stats
+        "usuarios": users_stats,
+        "satisfacao": {
+            "media_geral": round(total_avg, 1)
+        }
     }
 
 @router.get("/logs")
@@ -177,3 +194,29 @@ def get_secretaria_performance(current_admin = Depends(get_current_admin), db_sq
     results.sort(key=lambda x: x["total_servicos"], reverse=True)
     
     return results
+
+@router.get("/heatmap")
+def get_heatmap_data(current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+    """Retorna coordenadas das ocorrências para o mapa de calor."""
+    from ..models.schema import Ocorrencia
+    
+    # Busca apenas ocorrências que tenham latitude e longitude
+    ocorrencias = db_sql.query(Ocorrencia.latitude, Ocorrencia.longitude).filter(
+        Ocorrencia.latitude.isnot(None), 
+        Ocorrencia.longitude.isnot(None)
+    ).all()
+    
+    return [{"lat": o.latitude, "lng": o.longitude, "weight": 1} for o in ocorrencias]
+
+@router.get("/users-bairro")
+def get_users_bairro(current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+    """Agrupa os usuários pelo campo endereço."""
+    from ..models.schema import Usuario
+    
+    # Agrupa por endereco e conta, retornando os 50 maiores para não pesar
+    resultados = db_sql.query(
+        Usuario.endereco, 
+        func.count(Usuario.id).label('total')
+    ).group_by(Usuario.endereco).order_by(func.count(Usuario.id).desc()).limit(50).all()
+    
+    return [{"endereco": r.endereco if r.endereco else "Não Informado", "total": r.total} for r in resultados]

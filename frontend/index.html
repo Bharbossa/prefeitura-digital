@@ -12,6 +12,8 @@
     <link rel="stylesheet" href="css/style.css">
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- AOS CSS for Animations -->
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <style>
         .hero {
             min-height: 80vh;
@@ -82,6 +84,9 @@
             /* Slide animation done via slide-in-left class */
         }
     </style>
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json?v=3">
+    <meta name="theme-color" content="#1e3a8a">
 </head>
 
 <body>
@@ -96,7 +101,11 @@
             <span></span>
             <span></span>
         </div>
-        <div class="nav-links" id="nav-links">
+        <div class="nav-links" id="navLinks">
+            <div style="display: flex; gap: 0.5rem; align-items: center; margin-right: 15px;">
+                <button onclick="changeFontSize(1)" title="Aumentar Fonte" style="background: transparent; border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; padding: 4px 10px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: background 0.3s;">A+</button>
+                <button onclick="changeFontSize(-1)" title="Diminuir Fonte" style="background: transparent; border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; padding: 4px 10px; font-weight: bold; cursor: pointer; font-size: 0.9rem; transition: background 0.3s;">A-</button>
+            </div>
             <a href="index.html" class="btn btn-outline" style="margin-right: 1rem;">Início</a>
             <a href="login.html" class="btn btn-outline" style="margin-right: 1rem;">Entrar</a>
             <a href="register.html" class="btn btn-primary">Cadastrar</a>
@@ -143,43 +152,95 @@
                     <a href="dashboard.html?action=concursos" class="btn btn-outline"
                         style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(168, 85, 247, 0.2); border-color: #a855f7;">Concursos
                         <i class="fa-solid fa-trophy"></i></a>
+                    <a href="dashboard.html?action=maquinas" class="btn btn-outline"
+                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(139, 92, 246, 0.2); border-color: #8b5cf6;">Máquinas Agrícolas
+                        <i class="fa-solid fa-tractor"></i></a>
                 </div>
             </div>
         </div>
     </header>
 
-    <section style="padding: 5rem 5%; text-align: center;">
-        <h2
-            style="font-size: 3.5rem; font-weight: 900; color: var(--primary-color); -webkit-text-stroke: 1.5px white; text-transform: uppercase; letter-spacing: 2px; margin-bottom: 3.5rem; text-shadow: 2px 2px 10px rgba(0,0,0,0.2);">
-            Como Funciona</h2>
-        <div style="display: flex; justify-content: space-around; flex-wrap: wrap; gap: 2rem;">
-            <div class="how-it-works-card">
-                <i class="fa-solid fa-camera fa-3x" style="color: var(--accent); margin-bottom: 1.5rem;"></i>
-                <h3>1. Registre o Problema</h3>
-                <p style="color: var(--text-secondary); margin-top: 1rem;">Tire uma foto ou vídeo do buraco, lâmpada
-                    queimada ou problema na rua.</p>
+    <style>
+        .service-card {
+            background: rgba(30, 30, 30, 0.4) !important;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.15) !important;
+            color: #ffffff;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1) !important;
+        }
+        .service-card:hover {
+            transform: translateY(-5px) !important;
+            background: rgba(40, 40, 40, 0.6) !important;
+            border-color: rgba(255, 255, 255, 0.3) !important;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2) !important;
+        }
+        .service-card h3 {
+            color: #ffffff !important;
+        }
+        .service-card p {
+            color: rgba(255, 255, 255, 0.8) !important;
+        }
+    </style>
+
+    <section style="padding: 5rem 5%; background-color: transparent; text-align: center;">
+        <h2 style="font-size: 3rem; font-weight: 800; color: var(--primary-color); margin-bottom: 3.5rem; text-shadow: 1px 1px 5px rgba(0,0,0,0.1);">
+            Nossos Serviços</h2>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; max-width: 1200px; margin: 0 auto;">
+            
+            <div class="service-card" style="padding: 2.5rem 2rem; border-radius: 15px; transition: all 0.3s;">
+                <i class="fa-solid fa-triangle-exclamation fa-3x" style="color: #ef4444; margin-bottom: 1.5rem;"></i>
+                <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Registro de Ocorrências</h3>
+                <p style="font-size: 0.95rem; line-height: 1.6;">Registre problemas na cidade (lâmpadas queimadas, buracos, lixo) enviando fotos e a localização exata.</p>
             </div>
-            <div class="how-it-works-card">
-                <i class="fa-solid fa-paper-plane fa-3x" style="color: var(--accent); margin-bottom: 1.5rem;"></i>
-                <h3>2. Envie a Ocorrência</h3>
-                <p style="color: var(--text-secondary); margin-top: 1rem;">Selecione a secretaria responsável pelo
-                    problema e envie os detalhes.</p>
+
+            <div class="service-card" data-aos="fade-up" data-aos-delay="100" style="padding: 2.5rem 2rem; border-radius: 15px; transition: all 0.3s;">
+                <i class="fa-solid fa-user-doctor fa-3x" style="color: #10b981; margin-bottom: 1.5rem;"></i>
+                <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Consultas Médicas</h3>
+                <p style="font-size: 0.95rem; line-height: 1.6;">Agende consultas presenciais nos postos de saúde ou reporte emergências diretamente para o hospital local.</p>
             </div>
-            <div class="how-it-works-card">
-                <i class="fa-solid fa-check-circle fa-3x" style="color: var(--accent); margin-bottom: 1.5rem;"></i>
-                <h3>3. Acompanhe a Solução</h3>
-                <p style="color: var(--text-secondary); margin-top: 1rem;">Receba atualizações diretamente do painel
-                    administrativo até a resolução.</p>
+
+            <div class="service-card" data-aos="fade-up" data-aos-delay="200" style="padding: 2.5rem 2rem; border-radius: 15px; transition: all 0.3s;">
+                <i class="fa-solid fa-users fa-3x" style="color: #38bdf8; margin-bottom: 1.5rem;"></i>
+                <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Atendimentos Gerais</h3>
+                <p style="font-size: 0.95rem; line-height: 1.6;">Marque horários de atendimento presencial em diversas secretarias municipais com rapidez e praticidade.</p>
             </div>
+
+            <div class="service-card" data-aos="fade-up" data-aos-delay="300" style="padding: 2.5rem 2rem; border-radius: 15px; transition: all 0.3s;">
+                <i class="fa-solid fa-bus fa-3x" style="color: #3b82f6; margin-bottom: 1.5rem;"></i>
+                <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Marcação de Viagens</h3>
+                <p style="font-size: 0.95rem; line-height: 1.6;">Solicite transporte pela garagem municipal para viagens de saúde, como exames e cirurgias em outras cidades.</p>
+            </div>
+
+            <div class="service-card" data-aos="fade-up" data-aos-delay="100" style="padding: 2.5rem 2rem; border-radius: 15px; transition: all 0.3s;">
+                <i class="fa-solid fa-hands-holding-child fa-3x" style="color: #f59e0b; margin-bottom: 1.5rem;"></i>
+                <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Bolsa Família</h3>
+                <p style="font-size: 0.95rem; line-height: 1.6;">Agende atendimentos para atualização cadastral e tire dúvidas importantes sobre seus benefícios sociais.</p>
+            </div>
+
+            <div class="service-card" data-aos="fade-up" data-aos-delay="200" style="padding: 2.5rem 2rem; border-radius: 15px; transition: all 0.3s;">
+                <i class="fa-solid fa-tractor fa-3x" style="color: #8b5cf6; margin-bottom: 1.5rem;"></i>
+                <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Agendamento de Máquinas</h3>
+                <p style="font-size: 0.95rem; line-height: 1.6;">Solicite maquinário agrícola (tratores, caçambas, retroescavadeiras e patrol) na Secretaria de Agricultura.</p>
+            </div>
+
+            <div class="service-card" data-aos="fade-up" data-aos-delay="300" style="padding: 2.5rem 2rem; border-radius: 15px; transition: all 0.3s;">
+                <i class="fa-solid fa-trophy fa-3x" style="color: #a855f7; margin-bottom: 1.5rem;"></i>
+                <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Concursos Culturais/Esportivos</h3>
+                <p style="font-size: 0.95rem; line-height: 1.6;">Faça inscrições online para eventos, corridas e concursos promovidos pela Prefeitura.</p>
+            </div>
+
         </div>
     </section>
 
 
-
-    <script src="js/main.js?v=1.0.7"></script>
+    <script src="js/main.js?v=1.0.9"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script>
         // Hero Image Sequence Animation
         initBackgroundAnimation('hero-slider');
+        // Init AOS
+        AOS.init({ duration: 800, once: true });
     </script>
 
     <footer class="footer">
@@ -191,6 +252,20 @@
                 Privacidade</a>.
         </p>
     </footer>
+
+
+
+    <!-- VLibras Widget -->
+    <div vw class="enabled">
+        <div vw-access-button class="active"></div>
+        <div vw-plugin-wrapper>
+            <div class="vw-plugin-top-wrapper"></div>
+        </div>
+    </div>
+    <script src="https://vlibras.gov.br/app/vlibras-plugin.js"></script>
+    <script>
+        new window.VLibras.Widget('https://vlibras.gov.br/app');
+    </script>
 </body>
 
 </html>

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -18,6 +18,7 @@ def get_avisos(db_sql: Session = Depends(get_db)):
 @router.post("", response_model=AvisoResponse)
 def create_aviso(
     aviso_in: AvisoCreate, 
+    background_tasks: BackgroundTasks,
     current_user = Depends(get_current_admin), 
     db_sql: Session = Depends(get_db)
 ):
@@ -45,6 +46,10 @@ def create_aviso(
     )
     db_sql.add(log)
     db_sql.commit()
+    
+    from ..utils.sms_service import notify_all_users_background
+    alerta_msg = f"ALERTA DA PREFEITURA: {novo_aviso.titulo} - {novo_aviso.mensagem}"
+    background_tasks.add_task(notify_all_users_background, alerta_msg)
     
     return novo_aviso
 

@@ -1,0 +1,22 @@
+{
+  "name": "Colônia Digital",
+  "short_name": "Colônia Digital",
+  "description": "Plataforma digital para registro de problemas urbanos e comunicação com a prefeitura.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "./images/logo.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./images/logo.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -542,3 +542,40 @@ def deletar_agendamento(agendamento_id: int, current_admin = Depends(get_general
     db_sql.commit()
     
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+from pydantic import BaseModel
+
+class AvaliacaoAgendamentoSchema(BaseModel):
+    nota: int
+    comentario: Optional[str] = None
+
+@router.post("/{id}/avaliar")
+async def avaliar_agendamento(
+    id: int, 
+    data: AvaliacaoAgendamentoSchema,
+    current_user = Depends(get_current_user),
+    db_sql: Session = Depends(get_db)
+):
+    try:
+        agendamento = db_sql.query(Agendamento).filter(Agendamento.id == id, Agendamento.usuario_id == current_user.id).first()
+        if not agendamento:
+            raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
+            
+        if agendamento.status.lower() not in ["resolvido", "concluído", "concluido", "confirmado"]:
+            raise HTTPException(status_code=400, detail="Apenas agendamentos concluídos podem ser avaliados.")
+            
+        if agendamento.avaliacao_nota is not None:
+            raise HTTPException(status_code=400, detail="Esta solicitação já foi avaliada.")
+            
+        if not (1 <= data.nota <= 5):
+            raise HTTPException(status_code=400, detail="Nota deve ser de 1 a 5.")
+            
+        setattr(agendamento, 'avaliacao_nota', data.nota)
+        setattr(agendamento, 'avaliacao_comentario', data.comentario)
+        db_sql.commit()
+        return {"message": "Avaliação enviada com sucesso"}
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        db_sql.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
