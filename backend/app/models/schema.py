@@ -84,6 +84,8 @@ class Ocorrencia(Base):
     longitude = Column(Float, nullable=True)
     status = Column(Enum(StatusOcorrencia), default=StatusOcorrencia.pendente)
     data = Column(DateTime, default=get_brasilia_time)
+    avaliacao_nota = Column(Integer, nullable=True)
+    avaliacao_comentario = Column(Text, nullable=True)
     
     usuario_id = Column(Integer, ForeignKey("usuarios.id"))
     secretaria_id = Column(Integer, ForeignKey("secretarias.id"))
@@ -134,6 +136,8 @@ class Agendamento(Base):
     status = Column(String(50), default="Pendente") # Pendente, Confirmado, Cancelado
     anexo = Column(Text, nullable=True) # Path/URL for the uploaded proof
     criado_em = Column(DateTime, default=get_brasilia_time)
+    avaliacao_nota = Column(Integer, nullable=True)
+    avaliacao_comentario = Column(Text, nullable=True)
 
     usuario = relationship("Usuario", back_populates="agendamentos")
     secretaria = relationship("Secretaria", back_populates="agendamentos")
