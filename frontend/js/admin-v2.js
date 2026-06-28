@@ -281,6 +281,13 @@ async function renderSecretariaChart() {
 
 let adminHeatmap = null;
 async function loadHeatmap() {
+    if (!adminHeatmap) {
+        adminHeatmap = L.map('heatmapAdminDiv').setView([-8.9048, -35.7297], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(adminHeatmap);
+    }
+
     try {
         const res = await fetch(`${ADMIN_API}/metrics/heatmap`, {
             headers: { 'Authorization': `Bearer ${getToken()}` }
@@ -288,16 +295,9 @@ async function loadHeatmap() {
         if (!res.ok) return;
         const data = await res.json();
         
-        if (!adminHeatmap) {
-            adminHeatmap = L.map('heatmapAdminDiv').setView([-8.9048, -35.7297], 13);
-            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                attribution: '© OpenStreetMap'
-            }).addTo(adminHeatmap);
-        }
-        
         // Remove camadas antigas de calor
         adminHeatmap.eachLayer((layer) => {
-            if (layer._heat) adminHeatmap.removeLayer(layer);
+            if (layer._heat || layer instanceof L.Marker) adminHeatmap.removeLayer(layer);
         });
 
         // Adiciona dados
@@ -308,6 +308,8 @@ async function loadHeatmap() {
             const group = new L.featureGroup(data.map(p => L.marker([p.lat, p.lng])));
             adminHeatmap.fitBounds(group.getBounds(), {padding: [30, 30]});
         }
+        
+        setTimeout(() => adminHeatmap.invalidateSize(), 200);
     } catch (e) { console.error("Erro heatmap:", e); }
 }
 
