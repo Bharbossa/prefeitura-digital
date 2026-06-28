@@ -49,7 +49,7 @@ def create_aviso(
     
     from ..utils.sms_service import notify_all_users_background
     alerta_msg = f"ALERTA DA PREFEITURA: {novo_aviso.titulo} - {novo_aviso.mensagem}"
-    background_tasks.add_task(notify_all_users_background, alerta_msg)
+    background_tasks.add_task(notify_all_users_background, alerta_msg, novo_aviso.id)
     
     return novo_aviso
 

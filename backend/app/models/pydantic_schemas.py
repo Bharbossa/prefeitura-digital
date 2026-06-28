@@ -168,4 +168,5 @@ class AvisoResponse(AvisoBase):
     ativo: int
     data_criacao: datetime
     autor_id: Optional[int] = None
+    destinatarios_alcancados: Optional[int] = 0
     model_config = ConfigDict(from_attributes=True)

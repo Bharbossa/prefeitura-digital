@@ -92,21 +92,29 @@ def notify_subadmins_background(secretaria_id: int, message: str):
     finally:
         db.close()
 
-def notify_all_users_background(alert_message: str):
+def notify_all_users_background(alert_message: str, aviso_id: int = None):
     from app.database import SessionLocal
-    from app.models.schema import Usuario
+    from app.models.schema import Usuario, Aviso
     db = SessionLocal()
     try:
         users = db.query(Usuario).all()
         unique_phones = set()
+        sucessos = 0
         for u in users:
             phone = getattr(u, 'telefone', None)
             if phone and len(''.join(filter(str.isdigit, phone))) >= 10:
                 clean_phone = "".join(filter(str.isdigit, phone))
                 if clean_phone not in unique_phones:
                     unique_phones.add(clean_phone)
-                    send_status_sms(clean_phone, alert_message)
+                    if send_status_sms(clean_phone, alert_message):
+                        sucessos += 1
                     time.sleep(1) # Sleep to avoid rate limits
+        
+        if aviso_id:
+            aviso = db.query(Aviso).filter(Aviso.id == aviso_id).first()
+            if aviso:
+                aviso.destinatarios_alcancados = sucessos
+                db.commit()
     except Exception as e:
         logger.error(f"Erro em notify_all_users_background: {e}")
     finally:

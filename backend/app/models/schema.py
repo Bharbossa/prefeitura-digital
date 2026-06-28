@@ -162,6 +162,7 @@ class Aviso(Base):
     ativo = Column(Integer, default=1) # 1 for active, 0 for inactive. Using Integer for sqlite compatibility if needed, or Boolean
     data_criacao = Column(DateTime, default=get_brasilia_time)
     autor_id = Column(Integer, nullable=True) # ID of the admin who created it
+    destinatarios_alcancados = Column(Integer, default=0) # Contagem de envios de SMS bem sucedidos
 
 class FileStorage(Base):
     __tablename__ = "file_storage"
