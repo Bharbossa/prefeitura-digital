@@ -546,6 +546,7 @@ async function loadOcorrencias() {
                                 ${o.foto ? `<button class="btn btn-outline" title="Ver Foto" onclick="window.open('${MEDIA_URL}/${o.foto.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-image"></i></button>` : ''}
                                 ${o.video ? `<button class="btn btn-outline" title="Ver Vídeo" onclick="window.open('${MEDIA_URL}/${o.video.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-video"></i></button>` : ''}
                                 ${o.documento ? `<button class="btn btn-outline" title="Ver PDF" style="border-color: #8b5cf6; color: #8b5cf6;" onclick="window.open('${MEDIA_URL}/${o.documento.replace(/\\/g, '/')}', '_blank')"><i class="fa-solid fa-file-pdf"></i></button>` : ''}
+                                ${currentRole==='admin' ? `<button class="btn btn-outline" title="Excluir Ocorrência" style="border-color: #ef4444; color: #ef4444;" onclick="deletarOcorrencia('${o.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
                                 ${currentRole==='admin' && s !== 'resolvido' ? `<button class="btn" style="background-color: #ef4444; color: white; border: none; font-weight: bold; margin-left: 8px; padding: 6px 12px; border-radius: 6px; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4); display: flex; align-items: center; gap: 5px;" title="Cobrar Secretaria URGENTE" onclick="cobrarSecretaria('${o.id}')"><i class="fa-solid fa-bell fa-shake"></i> Cobrar</button>` : ''}
                             </div>
                         </td>
@@ -598,7 +599,27 @@ async function confirmResolution(id) {
             const err = await res.json().catch(() => ({}));
             alert("Erro ao resolver: " + (err.detail || res.statusText));
         }
-    } catch(e) { alert("Erro de conexão: " + e.message); }
+} catch(e) { alert("Erro de conexão: " + e.message); }
+}
+
+async function deletarOcorrencia(id) {
+    if(!confirm("Tem certeza que deseja excluir esta ocorrência permanentemente? Esta ação não pode ser desfeita.")) return;
+    try {
+        const res = await fetch(`${API_URL}/ocorrencias/${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            Swal.fire({icon: 'success', title: 'Excluído', text: 'Ocorrência excluída com sucesso.', timer: 1500});
+            loadOcorrencias();
+            loadDashboard();
+        } else {
+            const err = await res.json().catch(()=>({}));
+            Swal.fire({icon: 'error', title: 'Erro', text: err.detail || 'Erro ao excluir.'});
+        }
+    } catch(e) {
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'});
+    }
 }
 
 async function cobrarSecretaria(id) {

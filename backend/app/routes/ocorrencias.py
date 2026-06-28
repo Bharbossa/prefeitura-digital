@@ -9,7 +9,7 @@ import traceback
 from ..database import get_db
 from ..models.schema import Ocorrencia, Resposta, AdminSecretaria, LogAuditoria, Secretaria
 from ..models.pydantic_schemas import OcorrenciaResponse, RespostaResponse
-from ..core.auth_deps import get_current_user, get_current_admin
+from ..core.auth_deps import get_current_user, get_current_admin, get_general_admin
 from ..utils.sms_service import send_status_sms, get_resolved_message, get_progress_message, get_cancelled_message
 from ..utils.notification_helper import notify_admins_of_new_record
 from ..core.utils import generate_protocol
@@ -241,3 +241,31 @@ async def avaliar_ocorrencia(
     except Exception as e:
         db_sql.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+@router.delete("/{ocorrencia_id}", status_code=status.HTTP_204_NO_CONTENT)
+def deletar_ocorrencia(ocorrencia_id: int, current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+    """Deleta uma ocorrência. Apenas o administrador geral."""
+    from app.models.schema import LogAuditoria, Resposta
+    
+    oc = db_sql.query(Ocorrencia).filter(Ocorrencia.id == ocorrencia_id).first()
+    if not oc:
+        raise HTTPException(status_code=404, detail="Ocorrência não encontrada.")
+    
+    protocolo = oc.protocolo
+    
+    # Delete related responses
+    db_sql.query(Resposta).filter(Resposta.ocorrencia_id == ocorrencia_id).delete()
+    
+    db_sql.delete(oc)
+    
+    log = LogAuditoria(
+        usuario_id=current_admin.id,
+        usuario_tipo="admin",
+        acao="delete_ocorrencia",
+        detalhes=f"Deletada ocorrência protocolo {protocolo}"
+    )
+    db_sql.add(log)
+    db_sql.commit()
+    
+    from fastapi import Response
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
