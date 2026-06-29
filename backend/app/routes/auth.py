@@ -237,7 +237,7 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
     
     # 5. Mask destination for feedback
     masked_dest = ""
-    if data.method == "sms":
+    if data.method in ["whatsapp", "sms"]:
         phone = getattr(user, 'telefone', '')
         if not phone:
             raise HTTPException(status_code=400, detail="Número de telefone não cadastrado.")
@@ -245,7 +245,9 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
         # Format for SMS and masking
         clean_phone = re.sub(r'\D', '', phone)
         masked_dest = f"({clean_phone[:2]}) *****-{clean_phone[-4:]}"
-        send_password_sms(phone, new_pw)
+        
+        force_sms = (data.method == "sms")
+        send_password_sms(phone, new_pw, force_sms=force_sms)
     else:
         email = user.email
         parts = email.split('@')

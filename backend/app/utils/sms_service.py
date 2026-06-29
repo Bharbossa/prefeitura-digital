@@ -8,7 +8,7 @@ logger = logging.getLogger("SMS_SERVICE")
 
 # Z-API Configuration Variables are retrieved dynamically in the function
 
-def send_status_sms(phone: str, message: str):
+def send_status_sms(phone: str, message: str, force_sms: bool = False):
     """
     Sends an SMS using Twilio if configured, else simulates sending. 
     """
@@ -27,7 +27,7 @@ def send_status_sms(phone: str, message: str):
     ZAPI_TOKEN = os.environ.get("ZAPI_TOKEN", "")
     ZAPI_CLIENT_TOKEN = os.environ.get("ZAPI_CLIENT_TOKEN", "")
 
-    if ZAPI_INSTANCE_ID and ZAPI_TOKEN:
+    if not force_sms and ZAPI_INSTANCE_ID and ZAPI_TOKEN:
         import requests
         try:
             # Endpoint padrão do Z-API para envio de texto
@@ -49,10 +49,30 @@ def send_status_sms(phone: str, message: str):
                 return True
             else:
                 logger.error(f"Erro no Z-API ({response.status_code}): {response.text}")
+                return False
         except Exception as e:
             logger.error(f"Exceção ao enviar via Z-API para {clean_phone}: {str(e)}")
-            # Fallback para simulação em caso de erro
-            pass
+            # Continuar para o Twilio caso Z-API falhe
+
+    # Fallback para Twilio
+    TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
+    TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")
+
+    if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER:
+        try:
+            from twilio.rest import Client
+            client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+            message_twilio = client.messages.create(
+                body=message,
+                from_=TWILIO_PHONE_NUMBER,
+                to=formatted_phone
+            )
+            logger.info(f"SMS enviado para {formatted_phone} via Twilio (SID: {message_twilio.sid})")
+            return True
+        except Exception as e:
+            logger.error(f"Erro ao enviar via Twilio para {formatted_phone}: {str(e)}")
+            return False
 
     logger.info(f"--- SMS SIMULADO ---")
     logger.info(f"PARA: {formatted_phone}")
@@ -73,9 +93,9 @@ def get_cancelled_message(titulo: str):
 def get_confirmed_message(assunto: str, data_hora: str):
     return f"COLÔNIA DIGITAL: Seu agendamento ({assunto}) para {data_hora} foi CONFIRMADO."
 
-def send_password_sms(phone: str, password: str):
+def send_password_sms(phone: str, password: str, force_sms: bool = False):
     message = f"COLÔNIA DIGITAL: Sua nova senha e: {password}. Recomendamos altera-la apos o login."
-    return send_status_sms(phone, message)
+    return send_status_sms(phone, message, force_sms)
 
 def notify_subadmins_background(secretaria_id: int, message: str):
     from app.database import SessionLocal
@@ -117,5 +137,28 @@ def notify_all_users_background(alert_message: str, aviso_id: int = None):
                 db.commit()
     except Exception as e:
         logger.error(f"Erro em notify_all_users_background: {e}")
+    finally:
+        db.close()
+
+def notify_custom_message_background(message: str):
+    from app.database import SessionLocal
+    from app.models.schema import Usuario
+    db = SessionLocal()
+    try:
+        users = db.query(Usuario).all()
+        unique_phones = set()
+        sucessos = 0
+        for u in users:
+            phone = getattr(u, 'telefone', None)
+            if phone and len(''.join(filter(str.isdigit, phone))) >= 10:
+                clean_phone = "".join(filter(str.isdigit, phone))
+                if clean_phone not in unique_phones:
+                    unique_phones.add(clean_phone)
+                    if send_status_sms(clean_phone, message):
+                        sucessos += 1
+                    time.sleep(1) # Sleep to avoid rate limits
+        logger.info(f"Mensagem customizada enviada com sucesso para {sucessos} destinatarios.")
+    except Exception as e:
+        logger.error(f"Erro em notify_custom_message_background: {e}")
     finally:
         db.close()

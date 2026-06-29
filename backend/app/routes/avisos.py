@@ -80,3 +80,34 @@ def delete_aviso(
     db_sql.add(log)
     db_sql.commit()
     return
+
+from pydantic import BaseModel
+
+class CustomMessageIn(BaseModel):
+    mensagem: str
+
+@router.post("/custom-message", status_code=status.HTTP_202_ACCEPTED)
+def send_custom_message(
+    msg_in: CustomMessageIn,
+    background_tasks: BackgroundTasks,
+    current_user = Depends(get_current_admin),
+    db_sql: Session = Depends(get_db)
+):
+    if current_user.tipo_usuario_verificado != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas administradores gerais podem enviar mensagens avulsas.")
+    
+    # Audit log
+    from ..models.schema import LogAuditoria
+    log = LogAuditoria(
+        usuario_id=current_user.id,
+        usuario_tipo="admin",
+        acao="Enviou Mensagem Avulsa",
+        detalhes=f"Mensagem customizada: {msg_in.mensagem[:50]}..."
+    )
+    db_sql.add(log)
+    db_sql.commit()
+    
+    from ..utils.sms_service import notify_custom_message_background
+    background_tasks.add_task(notify_custom_message_background, msg_in.mensagem)
+    
+    return {"message": "Envio iniciado em background."}
