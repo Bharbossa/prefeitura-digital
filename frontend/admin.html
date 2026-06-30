@@ -361,10 +361,16 @@
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Alertas da Defesa
                         Civil, Campanhas de Saúde e Informativos.</p>
                 </div>
-                <button class="btn btn-primary"
-                    onclick="document.getElementById('modalNovoAviso').style.display = 'flex'">
-                    <i class="fa-solid fa-plus"></i> Novo Aviso
-                </button>
+                <div>
+                    <button class="btn btn-outline" style="margin-right: 10px;"
+                        onclick="document.getElementById('modalMensagemAvulsa').style.display = 'flex'">
+                        <i class="fa-solid fa-paper-plane"></i> Mensagem Avulsa
+                    </button>
+                    <button class="btn btn-primary"
+                        onclick="document.getElementById('modalNovoAviso').style.display = 'flex'">
+                        <i class="fa-solid fa-plus"></i> Novo Aviso
+                    </button>
+                </div>
             </div>
             <div id="avisosTableContainer"></div>
         </section>
@@ -548,6 +554,29 @@
                     <button type="submit" class="btn btn-primary" style="flex:1;">Publicar Aviso</button>
                     <button type="button" class="btn btn-outline" style="flex:1;"
                         onclick="closeModal('modalNovoAviso')">Cancelar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL MENSAGEM AVULSA -->
+    <div id="modalMensagemAvulsa"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; overflow-y:auto;">
+        <div class="stat-card" style="width: 100%; max-width: 500px; padding: 2rem;">
+            <h3 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-paper-plane"></i> Enviar Mensagem Avulsa</h3>
+            <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1.5rem;">Esta mensagem será enviada imediatamente via WhatsApp/SMS para todos os cidadãos cadastrados.</p>
+            <form id="formMensagemAvulsa" onsubmit="enviarMensagemAvulsa(event)">
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="font-size: 0.85rem; font-weight: 600;">Texto da Mensagem</label>
+                    <textarea id="textoMensagemAvulsa" class="btn btn-outline"
+                        style="width:100%; height:120px; font-family:inherit; text-align: left;"
+                        placeholder="Digite o texto que deseja enviar..." required></textarea>
+                </div>
+
+                <div style="display:flex; gap:1rem;">
+                    <button type="submit" class="btn btn-primary" style="flex:1;">Enviar Agora</button>
+                    <button type="button" class="btn btn-outline" style="flex:1;"
+                        onclick="closeModal('modalMensagemAvulsa')">Cancelar</button>
                 </div>
             </form>
         </div>

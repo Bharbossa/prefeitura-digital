@@ -2598,6 +2598,7 @@ async function loadAvisosAdmin() {
                         <th style="padding: 10px;">Tipo</th>
                         <th style="padding: 10px;">Título</th>
                         <th style="padding: 10px;">Mensagem</th>
+                        <th style="padding: 10px;">Alcance (SMS)</th>
                         <th style="padding: 10px;">Ações</th>
                     </tr>
                 </thead>
@@ -2615,6 +2616,7 @@ async function loadAvisosAdmin() {
                     <td style="padding: 10px;"><span style="padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase;" class="${badgeClass.split(' ')[0]} ${badgeClass.split(' ')[1]}">${a.tipo}</span></td>
                     <td style="padding: 10px; font-weight: 600;">${a.titulo}</td>
                     <td style="padding: 10px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${a.mensagem}</td>
+                    <td style="padding: 10px; font-weight: bold; color: var(--success);"><i class="fa-solid fa-paper-plane"></i> ${a.destinatarios_alcancados || 0} envios</td>
                     <td style="padding: 10px;">
                         <button class="btn btn-outline" style="color: #ef4444; border-color: #ef4444; padding: 4px 10px; font-size: 0.8rem;" onclick="deleteAviso(${a.id})"><i class="fa-solid fa-trash"></i> Excluir</button>
                     </td>
@@ -2659,6 +2661,42 @@ async function createAviso(e) {
         } else {
             const err = await res.json();
             alert("Erro ao publicar: " + (err.detail || ""));
+        }
+    } catch (err) {
+        console.error(err);
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'});
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function enviarMensagemAvulsa(e) {
+    e.preventDefault();
+    const mensagem = document.getElementById('textoMensagemAvulsa').value;
+    
+    const btn = e.target.querySelector('button[type="submit"]');
+    const originalText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+
+    try {
+        const res = await fetch(`${API_URL}/avisos/custom-message`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ mensagem })
+        });
+
+        if (res.ok) {
+            closeModal('modalMensagemAvulsa');
+            document.getElementById('formMensagemAvulsa').reset();
+            Swal.fire({icon: 'success', title: 'Sucesso', text: 'O disparo da mensagem foi iniciado em background!'});
+        } else {
+            const err = await res.json();
+            alert("Erro ao enviar: " + (err.detail || ""));
         }
     } catch (err) {
         console.error(err);

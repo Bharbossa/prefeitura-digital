@@ -246,8 +246,8 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
         clean_phone = re.sub(r'\D', '', phone)
         masked_dest = f"({clean_phone[:2]}) *****-{clean_phone[-4:]}"
         
-        force_sms = (data.method == "sms")
-        send_password_sms(phone, new_pw, force_sms=force_sms)
+        force_whatsapp = (data.method == "whatsapp")
+        send_password_sms(phone, new_pw, force_whatsapp=force_whatsapp)
     else:
         email = user.email
         parts = email.split('@')
