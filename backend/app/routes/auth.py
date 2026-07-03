@@ -238,26 +238,22 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
     # 5. Mask destination for feedback
     masked_dest = ""
     sucesso_envio = False
-    metodo_envio = data.method.lower()
+    metodo_envio = "sms" # Forçar sempre SMS
 
-    if data.method in ["whatsapp", "sms"]:
-        phone = getattr(user, 'telefone', '')
-        if not phone:
-            raise HTTPException(status_code=400, detail="Número de telefone não cadastrado.")
+    phone = getattr(user, 'telefone', '')
+    if not phone:
+        raise HTTPException(status_code=400, detail="Número de telefone não cadastrado no seu perfil.")
+    
+    # Format for SMS and masking
+    clean_phone = re.sub(r'\D', '', phone)
+    if len(clean_phone) < 10:
+        raise HTTPException(status_code=400, detail="Número de telefone inválido no seu perfil.")
         
-        # Format for SMS and masking
-        clean_phone = re.sub(r'\D', '', phone)
-        masked_dest = f"({clean_phone[:2]}) *****-{clean_phone[-4:]}"
-        
-        # Password resets only use Z-API now
-        sucesso_envio = send_password_sms(phone, new_pw)
-    else:
-        email = user.email
-        parts = email.split('@')
-        masked_dest = f"{parts[0][0]}***@{parts[1]}"
-        
-        from ..utils.email_service import send_password_email
-        sucesso_envio = send_password_email(email, new_pw)
+    masked_dest = f"({clean_phone[:2]}) *****-{clean_phone[-4:]}"
+    
+    # Enviar SMS sempre
+    sucesso_envio = send_password_sms(phone, new_pw)
+
     
     # 6. Log the attempt
     from ..models.schema import LogRecuperacaoSenha

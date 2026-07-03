@@ -213,7 +213,7 @@
                 return;
             }
 
-            if (!confirm(`Deseja gerar uma nova senha e enviá-la para o e-mail ${email}?`)) return;
+            if (!confirm(`Deseja gerar uma nova senha e enviá-la por SMS para o telefone cadastrado no seu perfil?`)) return;
 
             const submitBtn = document.getElementById('submitBtn');
             const errorMsg = document.getElementById('errorMsg');
@@ -227,7 +227,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         identifier: email,
-                        method: 'email'
+                        method: 'sms'
                     })
                 });
 
