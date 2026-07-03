@@ -82,6 +82,16 @@ class LogAuditoriaResponse(LogAuditoriaBase):
     data: datetime
     model_config = ConfigDict(from_attributes=True)
 
+class LogAvisoEnvioResponse(BaseModel):
+    id: int
+    aviso_id: int
+    nome_destinatario: str
+    telefone: str
+    tipo_usuario: str
+    sucesso: int
+    data_envio: datetime
+    model_config = ConfigDict(from_attributes=True)
+
 class ChatIARequest(BaseModel):
     mensagem: str
 

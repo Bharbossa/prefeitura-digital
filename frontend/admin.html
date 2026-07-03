@@ -537,6 +537,36 @@
         </div>
     </div>
 
+    <!-- MODAL AVISO HISTORY -->
+    <div id="modalAvisoHistory"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; overflow-y:auto;">
+        <div class="stat-card" style="width: 100%; max-width: 800px; padding: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h3 style="margin: 0;"><i class="fa-solid fa-clock-rotate-left"></i> Histórico de Envios SMS</h3>
+                <button class="btn btn-outline" style="border: none;" onclick="closeModal('modalAvisoHistory')"><i class="fa-solid fa-xmark fa-xl"></i></button>
+            </div>
+            <div style="max-height: 400px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem;">
+                    <thead style="position: sticky; top: 0; background: var(--bg-color);">
+                        <tr style="border-bottom: 2px solid var(--border-color); color: var(--text-muted);">
+                            <th style="padding: 10px;">Data do Envio</th>
+                            <th style="padding: 10px;">Destinatário</th>
+                            <th style="padding: 10px;">Telefone</th>
+                            <th style="padding: 10px;">Tipo Conta</th>
+                            <th style="padding: 10px;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="avisoHistoryTableBody">
+                        <tr><td colspan="5" style="text-align: center; padding: 15px;">Carregando...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div style="display:flex; justify-content: flex-end; gap:1rem; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-outline" onclick="closeModal('modalAvisoHistory')">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL NEW AVISO -->
     <div id="modalNovoAviso"
         style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; overflow-y:auto;">
@@ -648,7 +678,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
     <script src="js/main.js?v=1.0.9"></script>
-    <script src="js/admin-v2.js?v=14"></script>
+    <script src="js/admin-v2.js?v=17"></script>
     <!-- VLibras Widget -->
     <div vw class="enabled">
         <div vw-access-button class="active"></div>

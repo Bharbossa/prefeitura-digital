@@ -162,9 +162,16 @@ class LogRecuperacaoSenha(Base):
     sucesso = Column(Integer, default=0) # 1=sucesso, 0=falha
     data_solicitacao = Column(DateTime, default=get_brasilia_time)
 
-    acao = Column(String(100)) # "create_user", "update_status", etc.
-    detalhes = Column(Text)
-    data = Column(DateTime, default=get_brasilia_time)
+class LogAvisoEnvio(Base):
+    __tablename__ = "logs_aviso_envio"
+
+    id = Column(Integer, primary_key=True, index=True)
+    aviso_id = Column(Integer, nullable=False, index=True)
+    nome_destinatario = Column(String(150), nullable=False)
+    telefone = Column(String(20), nullable=False)
+    tipo_usuario = Column(String(50), nullable=False)
+    sucesso = Column(Integer, default=0)
+    data_envio = Column(DateTime, default=get_brasilia_time)
 
 class Aviso(Base):
     __tablename__ = "avisos"

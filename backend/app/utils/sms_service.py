@@ -130,21 +130,34 @@ def notify_all_users_background(alert_message: str, aviso_id: int = None):
         sucessos = 0
         
         # Helper to process a phone
-        def process_phone(phone):
+        def process_phone(user_name, phone, tipo):
             nonlocal sucessos
             if phone and len(''.join(filter(str.isdigit, phone))) >= 10:
                 clean_phone = "".join(filter(str.isdigit, phone))
                 if clean_phone not in unique_phones:
                     unique_phones.add(clean_phone)
-                    if send_status_sms(clean_phone, alert_message):
+                    success = send_status_sms(clean_phone, alert_message)
+                    if success:
                         sucessos += 1
+                        
+                    if aviso_id:
+                        from app.models.schema import LogAvisoEnvio
+                        log = LogAvisoEnvio(
+                            aviso_id=aviso_id,
+                            nome_destinatario=user_name,
+                            telefone=clean_phone,
+                            tipo_usuario=tipo,
+                            sucesso=1 if success else 0
+                        )
+                        db.add(log)
+                    
                     time.sleep(1) # Sleep to avoid rate limits
 
         for u in users:
-            process_phone(getattr(u, 'telefone', None))
+            process_phone(u.nome, getattr(u, 'telefone', None), "cidadao")
             
         for sa in subadmins:
-            process_phone(getattr(sa, 'telefone', None))
+            process_phone(sa.nome, getattr(sa, 'telefone', None), "subadmin")
 
         if aviso_id:
             aviso = db.query(Aviso).filter(Aviso.id == aviso_id).first()

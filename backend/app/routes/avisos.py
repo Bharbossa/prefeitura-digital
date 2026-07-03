@@ -4,7 +4,7 @@ from typing import List
 
 from ..database import get_db
 from ..models.schema import Aviso
-from ..models.pydantic_schemas import AvisoCreate, AvisoResponse
+from ..models.pydantic_schemas import AvisoCreate, AvisoResponse, LogAvisoEnvioResponse
 from ..core.auth_deps import get_current_user, get_current_admin
 
 router = APIRouter()
@@ -123,3 +123,16 @@ def send_custom_message(
     background_tasks.add_task(notify_all_users_background, msg_in.mensagem, novo_aviso.id)
     
     return {"message": "Envio iniciado em background."}
+
+@router.get("/{aviso_id}/historico", response_model=List[LogAvisoEnvioResponse])
+def get_aviso_historico(
+    aviso_id: int,
+    current_user = Depends(get_current_admin),
+    db_sql: Session = Depends(get_db)
+):
+    if current_user.tipo_usuario_verificado != "admin":
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas administradores gerais podem visualizar o histórico.")
+    
+    from ..models.schema import LogAvisoEnvio
+    historico = db_sql.query(LogAvisoEnvio).filter(LogAvisoEnvio.aviso_id == aviso_id).order_by(LogAvisoEnvio.data_envio.desc()).all()
+    return historico

@@ -2657,6 +2657,7 @@ async function loadAvisosAdmin() {
                     <td style="padding: 10px; max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${a.mensagem}</td>
                     <td style="padding: 10px; font-weight: bold; color: var(--success);"><i class="fa-solid fa-paper-plane"></i> ${a.destinatarios_alcancados || 0} envios</td>
                     <td style="padding: 10px;">
+                        <button class="btn btn-outline" style="color: #3b82f6; border-color: #3b82f6; padding: 4px 10px; font-size: 0.8rem; margin-right: 5px;" onclick="verHistoricoAviso(${a.id})"><i class="fa-solid fa-clock-rotate-left"></i> Histórico</button>
                         <button class="btn btn-outline" style="color: #ef4444; border-color: #ef4444; padding: 4px 10px; font-size: 0.8rem;" onclick="deleteAviso(${a.id})"><i class="fa-solid fa-trash"></i> Excluir</button>
                     </td>
                 </tr>
@@ -2860,3 +2861,114 @@ window.imprimirDocumentacao = function(id) {
     printWindow.document.close();
 };
 
+async function loadPasswordResets() {
+    const container = document.getElementById('passwordResetsTableContainer');
+    const counter = document.getElementById('totalResetsCounter');
+    
+    if (!container || !counter) return;
+    
+    container.innerHTML = '<div style="text-align:center; padding:2rem;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--primary)"></i></div>';
+
+    try {
+        const res = await fetch(`${API_URL}/auth/password-resets`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+
+        if (!res.ok) throw new Error("Erro ao carregar recuperações de senha");
+
+        const data = await res.json();
+        
+        counter.textContent = data.length;
+
+        if (data.length === 0) {
+            container.innerHTML = '<div style="background:var(--surface); border:1px solid var(--border); padding:2rem; text-align:center; border-radius:12px; color:var(--text-muted);">Nenhum histórico de solicitação encontrado.</div>';
+            return;
+        }
+
+        let html = `
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left;">
+                    <thead>
+                        <tr style="background: var(--background); border-bottom: 2px solid var(--border);">
+                            <th style="padding: 1rem; font-weight: 600; color: var(--text-muted);">Data</th>
+                            <th style="padding: 1rem; font-weight: 600; color: var(--text-muted);">Usuário</th>
+                            <th style="padding: 1rem; font-weight: 600; color: var(--text-muted);">Tipo</th>
+                            <th style="padding: 1rem; font-weight: 600; color: var(--text-muted);">Método</th>
+                            <th style="padding: 1rem; font-weight: 600; color: var(--text-muted);">Status Entrega</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        `;
+
+        data.forEach(log => {
+            const dateStr = new Date(log.data_solicitacao).toLocaleString('pt-BR');
+            const statusBadge = log.sucesso === 1 
+                ? '<span class="badge" style="background:#d1fae5; color:#065f46;"><i class="fa-solid fa-check"></i> Entregue</span>' 
+                : '<span class="badge" style="background:#fee2e2; color:#991b1b;"><i class="fa-solid fa-xmark"></i> Falha</span>';
+            const metodoBadge = log.metodo === 'sms' 
+                ? '<span class="badge bg-blue-100 text-blue-800"><i class="fa-solid fa-mobile-screen"></i> SMS</span>' 
+                : '<span class="badge" style="background:#f3f4f6; color:#374151;"><i class="fa-solid fa-envelope"></i> Email</span>';
+                
+            html += `
+                <tr style="border-bottom: 1px solid var(--border); transition: background 0.2s;">
+                    <td style="padding: 1rem; color: var(--text-secondary);">${dateStr}</td>
+                    <td style="padding: 1rem; font-weight: 500; color: var(--text-primary);">${log.usuario_nome || '-'}</td>
+                    <td style="padding: 1rem; color: var(--text-secondary); text-transform: capitalize;">${log.usuario_tipo}</td>
+                    <td style="padding: 1rem;">${metodoBadge}</td>
+                    <td style="padding: 1rem;">${statusBadge}</td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table></div></div>`;
+        container.innerHTML = html;
+
+    } catch (err) {
+        console.error(err);
+        container.innerHTML = '<div style="background:var(--surface); border:1px solid var(--border); padding:2rem; text-align:center; border-radius:12px; color:#ef4444;">Erro ao carregar dados.</div>';
+    }
+}
+
+async function verHistoricoAviso(aviso_id) {
+    document.getElementById('modalAvisoHistory').style.display = 'flex';
+    const tbody = document.getElementById('avisoHistoryTableBody');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--primary)"></i></td></tr>';
+
+    try {
+        const res = await fetch(`${API_URL}/avisos/${aviso_id}/historico`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        
+        if (!res.ok) throw new Error("Erro ao carregar histórico");
+        
+        const data = await res.json();
+        if (data.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px;">Nenhum SMS enviado para este aviso.</td></tr>';
+            return;
+        }
+
+        let html = '';
+        data.forEach(log => {
+            const statusBadge = log.sucesso === 1 
+                ? '<span style="background: #e6fffa; color: #047481; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;"><i class="fa-solid fa-check"></i> Enviado</span>'
+                : '<span style="background: #fff5f5; color: #e53e3e; padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.75rem;"><i class="fa-solid fa-xmark"></i> Falha</span>';
+
+            const tipoFormatado = log.tipo_usuario === 'admin' ? 'Administrador' : (log.tipo_usuario === 'subadmin' ? 'Servidor' : 'Cidadão');
+
+            html += `
+                <tr style="border-bottom: 1px solid var(--border-color);">
+                    <td style="padding: 10px;">${new Date(log.data_envio).toLocaleString()}</td>
+                    <td style="padding: 10px; font-weight: 500;">${log.nome_destinatario}</td>
+                    <td style="padding: 10px;">${log.telefone}</td>
+                    <td style="padding: 10px; color: var(--text-muted); font-size: 0.8rem;">${tipoFormatado}</td>
+                    <td style="padding: 10px;">${statusBadge}</td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+    } catch (e) {
+        console.error(e);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px; color: red;">Erro de conexão ao carregar histórico.</td></tr>';
+    }
+}
