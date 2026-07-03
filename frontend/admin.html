@@ -376,6 +376,20 @@
             <div id="avisosTableContainer"></div>
         </section>
 
+        <!-- PASSWORD RESETS SECTION -->
+        <section id="password-resets" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <div>
+                    <h3><i class="fa-solid fa-key" style="color: #10b981;"></i> Histórico de Senhas Solicitadas <span id="totalResetsCounter" class="badge badge-primary" style="font-size: 1rem; padding: 4px 10px; background: #3b82f6; color: white; border-radius: 8px;">0</span></h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Acompanhe em tempo real quem solicitou nova senha e se o SMS foi entregue com sucesso.</p>
+                </div>
+                <button class="btn btn-outline" onclick="loadPasswordResets()" style="font-size: 0.85rem;">
+                    <i class="fa-solid fa-rotate"></i> Atualizar
+                </button>
+            </div>
+            <div id="passwordResetsTableContainer"></div>
+        </section>
+
         <!-- CONFIG SECTION -->
         <section id="config" class="section">
             <h3>Minha Conta</h3>

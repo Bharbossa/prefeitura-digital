@@ -24,7 +24,7 @@ def send_password_email(to_email: str, new_password: str) -> bool:
         logger.info(f"--- EMAIL SIMULADO PARA {to_email} ---")
         logger.info(f"Sua nova senha é: {new_password}")
         logger.info(f"----------------------------------------")
-        return True
+        return False
 
     try:
         msg = MIMEMultipart()

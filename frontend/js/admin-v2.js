@@ -129,6 +129,9 @@ function setupSidebar() {
             <div class="nav-item" onclick="showSection('avisos', this)">
                 <i class="fa-solid fa-bullhorn"></i><span>Mural de Avisos</span>
             </div>
+            <div class="nav-item" onclick="showSection('password-resets', this)">
+                <i class="fa-solid fa-key"></i><span>Senhas Solicitadas</span>
+            </div>
         `;
     }
 
@@ -193,7 +196,8 @@ function showSection(sectionId, element) {
         'contabilidade': 'Contabilidade por Secretaria',
         'mapas': 'Inteligência Geográfica',
         'config': 'Minha Conta',
-        'avisos': 'Mural de Avisos'
+        'avisos': 'Mural de Avisos',
+        'password-resets': 'Senhas Solicitadas'
     };
     document.getElementById('pageTitle').innerText = titles[sectionId];
     document.getElementById('breadcrumb').innerText = `Início / ${titles[sectionId]}`;
@@ -217,6 +221,7 @@ function showSection(sectionId, element) {
         }, 100);
     }
     if (sectionId === 'avisos') loadAvisosAdmin();
+    if (sectionId === 'password-resets') loadPasswordResets();
     if (sectionId === 'config') { refreshConfigUI(); toggleResetCard(); }
 
     // Close sidebar on mobile after selection
