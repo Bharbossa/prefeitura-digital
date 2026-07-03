@@ -148,6 +148,9 @@ class LogAuditoria(Base):
     id = Column(Integer, primary_key=True, index=True)
     usuario_id = Column(Integer, nullable=False) # ID of admin/subadmin
     usuario_tipo = Column(String(50)) # "admin" or "subadmin"
+    acao = Column(String(100), nullable=False)
+    detalhes = Column(Text, nullable=True)
+    data = Column(DateTime, default=get_brasilia_time)
 
 class LogRecuperacaoSenha(Base):
     __tablename__ = "logs_recuperacao_senha"
