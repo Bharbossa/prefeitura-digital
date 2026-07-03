@@ -237,6 +237,9 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
     
     # 5. Mask destination for feedback
     masked_dest = ""
+    sucesso_envio = False
+    metodo_envio = data.method.lower()
+
     if data.method in ["whatsapp", "sms"]:
         phone = getattr(user, 'telefone', '')
         if not phone:
@@ -247,16 +250,38 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
         masked_dest = f"({clean_phone[:2]}) *****-{clean_phone[-4:]}"
         
         # Password resets only use Z-API now
-        send_password_sms(phone, new_pw)
+        sucesso_envio = send_password_sms(phone, new_pw)
     else:
         email = user.email
         parts = email.split('@')
         masked_dest = f"{parts[0][0]}***@{parts[1]}"
         
         from ..utils.email_service import send_password_email
-        send_password_email(email, new_pw)
+        sucesso_envio = send_password_email(email, new_pw)
+    
+    # 6. Log the attempt
+    from ..models.schema import LogRecuperacaoSenha
+    tipo_usu = "cidadao" if user_cidadao else "subadmin"
+    novo_log = LogRecuperacaoSenha(
+        usuario_nome=user.nome,
+        usuario_tipo=tipo_usu,
+        metodo=metodo_envio,
+        sucesso=1 if sucesso_envio else 0
+    )
+    db_sql.add(novo_log)
+    db_sql.commit()
     
     return {"message": f"Uma nova senha foi gerada e enviada para {masked_dest} via {data.method.upper()}."}
+
+@router.get("/password-resets")
+def get_password_resets(current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+    from ..models.schema import LogRecuperacaoSenha
+    if current_user.tipo_usuario_verificado != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado.")
+    
+    logs = db_sql.query(LogRecuperacaoSenha).order_by(LogRecuperacaoSenha.data_solicitacao.desc()).all()
+    return [{"id": l.id, "usuario_nome": l.usuario_nome, "usuario_tipo": l.usuario_tipo, "metodo": l.metodo, "sucesso": l.sucesso, "data_solicitacao": l.data_solicitacao} for l in logs]
+
 
 @router.patch("/change-password")
 def change_password(data: ChangePasswordRequest, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
