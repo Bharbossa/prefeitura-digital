@@ -109,7 +109,7 @@
             <button class="btn tab-btn" onclick="selecionarAba('atendimentos')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-users"></i> Atendimentos</button>
             <button class="btn tab-btn" onclick="selecionarAba('viagens')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-bus"></i> Viagens</button>
             <button class="btn tab-btn" onclick="selecionarAba('bolsafamilia')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-hands-holding-child"></i> Bolsa Família</button>
-            <button class="btn tab-btn" onclick="selecionarAba('concursos')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-trophy"></i> Concursos</button>
+            <!-- <button class="btn tab-btn" onclick="selecionarAba('concursos')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-trophy"></i> Concursos</button> -->
         </div>
 
         <!-- Botões de Ação (Aparecem baseados na Aba) -->
@@ -129,9 +129,9 @@
             <button id="btn-novo-bolsafamilia" class="btn btn-primary action-btn" style="background: #f59e0b; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalBolsaFamilia()">
                 <i class="fa-solid fa-hands-holding-child"></i> Bolsa Família
             </button>
-            <button id="btn-novo-concurso" class="btn btn-primary action-btn" style="background: #a855f7; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalConcursos()">
+            <!-- <button id="btn-novo-concurso" class="btn btn-primary action-btn" style="background: #a855f7; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalConcursos()">
                 <i class="fa-solid fa-trophy"></i> Concursos
-            </button>
+            </button> -->
         </div>
 
         <!-- Conteúdo das Abas -->
@@ -1453,7 +1453,12 @@
             const dataObjeto = (dataDate && dataTime) ? new Date(`${dataDate}T${dataTime}`) : null;
 
             let motivoFinal = null;
-            let assuntoFinal = document.getElementById('ag_assunto').value;
+            const assuntoOriginal = document.getElementById('ag_assunto').value.trim();
+            if (!assuntoOriginal) {
+                Swal.fire({icon: 'warning', title: 'Atenção', text: 'O campo Assunto é obrigatório.'});
+                return;
+            }
+            let assuntoFinal = assuntoOriginal;
             if (document.getElementById('group_profissional').style.display !== 'none') {
                 const prof = document.getElementById('ag_profissional').value;
                 if (!prof) {
@@ -1731,8 +1736,9 @@
                         </head>
                         <body>
                             <div class="header">
+                                <img src="images/logo-prefeitura.png" alt="Logo Prefeitura" style="max-height: 220px; max-width: 100%; object-fit: contain; margin-bottom: 1.5rem;"><br>
                                 <h1>📌 CERTIFICADO DE CONCLUSÃO</h1>
-                                <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA -AL</p>
+                                <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA - AL</p>
                             </div>
                             <div class="content">
                                 <div class="row"><span class="label">PROTOCOLO:</span> <strong>${o.protocolo || o.id}</strong></div>
@@ -1779,6 +1785,16 @@
                         const match = a.assunto.match(/(?:^|\|)\s*parceiro(?:\(a\))?:\s*([^|]+)/i);
                         if (match) parceiroNome = match[1].trim();
                     }
+                    
+                    let secretariaNomeStr = 'N/A';
+                    try {
+                        const secRes = await fetch(`${API_URL}/secretarias`);
+                        if (secRes.ok) {
+                            const secs = await secRes.json();
+                            const secObj = secs.find(s => s.id == a.secretaria_id);
+                            if (secObj) secretariaNomeStr = secObj.nome;
+                        }
+                    } catch(err) { console.error(err); }
 
                     const titleText = a.tipo === 'Concurso' ? 'COMPROVANTE DE INSCRIÇÃO' : 'COMPROVANTE DE AGENDAMENTO';
                     const iconHeader = a.tipo === 'Concurso' ? '🏆' : '📅';
@@ -1841,7 +1857,8 @@
                         </head>
                         <body>
                             <div class="header">
-                                ${isCulturaEsporte ? `<img src="imagens/logo-cultura-esporte.png" alt="Logo" style="max-height: 120px; margin-bottom: 1rem;"><br>` : ''}
+                                <img src="images/logo-prefeitura.png" alt="Logo Prefeitura" style="max-height: 220px; max-width: 100%; object-fit: contain; margin-bottom: 1.5rem;"><br>
+                                ${isCulturaEsporte ? `<img src="imagens/logo-cultura-esporte.png" alt="Logo Cultura" style="max-height: 150px; margin-bottom: 1rem;"><br>` : ''}
                                 <h1>${iconHeader} ${titleText}</h1>
                                 <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA - AL</p>
                             </div>
@@ -1855,6 +1872,7 @@
                                 <div class="row"><span class="label">DATA DA SOLICITAÇÃO:</span> ${dataCriacao}</div>
 
                                 <div class="section-title">📋 ${sectionTitle}</div>
+                                <div class="row"><span class="label">SECRETARIA:</span> <strong>${secretariaNomeStr}</strong></div>
                                 <div class="row"><span class="label">TIPO:</span> ${a.tipo}</div>
                                 <div class="row"><span class="label">ASSUNTO / DETALHES:</span> ${a.assunto}</div>
                                 ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
@@ -2223,6 +2241,24 @@
                     await loadAgendamentos();
                 }, 60000);
             }
+            
+            // Check params after loading is complete
+            const params = new URLSearchParams(window.location.search);
+            if (params.get('action') === 'guardamunicipal') {
+                abrirModalOcorrencia();
+                setTimeout(() => {
+                    const secSelect = document.getElementById('oc_secretaria');
+                    if (secSelect) {
+                        for(let i = 0; i < secSelect.options.length; i++) {
+                            if (secSelect.options[i].text.toUpperCase().includes('GUARDA MUNICIPAL')) {
+                                secSelect.selectedIndex = i;
+                                atualizarTiposProblema();
+                                break;
+                            }
+                        }
+                    }
+                }, 400); // short wait for map and modal to render
+            }
         }
         init();
 
@@ -2231,11 +2267,6 @@
             if (params.get('action') === 'bolsafamilia') {
                 setTimeout(() => {
                     abrirModalBolsaFamilia();
-                }, 500);
-            }
-            if (params.get('action') === 'concursos') {
-                setTimeout(() => {
-                    abrirModalConcursos();
                 }, 500);
             }
         });

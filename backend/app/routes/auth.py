@@ -246,8 +246,8 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
         clean_phone = re.sub(r'\D', '', phone)
         masked_dest = f"({clean_phone[:2]}) *****-{clean_phone[-4:]}"
         
-        force_whatsapp = (data.method == "whatsapp")
-        send_password_sms(phone, new_pw, force_whatsapp=force_whatsapp)
+        # Password resets only use Z-API now
+        send_password_sms(phone, new_pw)
     else:
         email = user.email
         parts = email.split('@')

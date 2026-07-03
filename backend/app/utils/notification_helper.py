@@ -11,7 +11,7 @@ def _notify_admins_thread(secretaria_id: int):
     from ..database import SessionLocal
     db = SessionLocal()
     try:
-        message = "UMA NOVA SOLICITAÇÃO NO SISTEMA."
+        message = "NOVA SOLICITAÇÃO DE SERVIÇO. Entre no Sistema e veja a solicitação do cidadão!"
         # 1. Notify Sub-Administrators of the department
         subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
         for sa in subadmins:

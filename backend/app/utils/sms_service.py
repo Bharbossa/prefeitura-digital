@@ -8,9 +8,9 @@ logger = logging.getLogger("SMS_SERVICE")
 
 # Z-API Configuration Variables are retrieved dynamically in the function
 
-def send_status_sms(phone: str, message: str, force_whatsapp: bool = False):
+def send_status_sms(phone: str, message: str):
     """
-    Sends an SMS using Twilio if configured, else tries Z-API (WhatsApp).
+    Sends an SMS using Twilio.
     """
     if not phone:
         logger.warning("Tentativa de envio de SMS sem número de telefone.")
@@ -27,8 +27,7 @@ def send_status_sms(phone: str, message: str, force_whatsapp: bool = False):
     TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
     TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")
 
-    twilio_success = False
-    if not force_whatsapp and TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER:
+    if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER:
         try:
             from twilio.rest import Client
             client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
@@ -38,40 +37,12 @@ def send_status_sms(phone: str, message: str, force_whatsapp: bool = False):
                 to=formatted_phone
             )
             logger.info(f"SMS enviado para {formatted_phone} via Twilio (SID: {message_twilio.sid})")
-            twilio_success = True
             return True
         except Exception as e:
             logger.error(f"Erro ao enviar via Twilio para {formatted_phone}: {str(e)}")
-            twilio_success = False
-
-    ZAPI_INSTANCE_ID = os.environ.get("ZAPI_INSTANCE_ID", "")
-    ZAPI_TOKEN = os.environ.get("ZAPI_TOKEN", "")
-    ZAPI_CLIENT_TOKEN = os.environ.get("ZAPI_CLIENT_TOKEN", "")
-
-    if (force_whatsapp or not twilio_success) and ZAPI_INSTANCE_ID and ZAPI_TOKEN:
-        import requests
-        try:
-            url = f"https://api.z-api.io/instances/{ZAPI_INSTANCE_ID}/token/{ZAPI_TOKEN}/send-text"
-            payload = {
-                "phone": clean_phone,
-                "message": message
-            }
-            headers = {}
-            if ZAPI_CLIENT_TOKEN:
-                headers["Client-Token"] = ZAPI_CLIENT_TOKEN
-            
-            response = requests.post(url, json=payload, headers=headers, timeout=10)
-            if response.status_code in [200, 201]:
-                logger.info(f"WhatsApp enviado para {clean_phone} via Z-API.")
-                return True
-            else:
-                logger.error(f"Erro no Z-API ({response.status_code}): {response.text}")
-                return False
-        except Exception as e:
-            logger.error(f"Exceção ao enviar via Z-API para {clean_phone}: {str(e)}")
             return False
-
-    logger.info(f"--- SMS SIMULADO ---")
+            
+    logger.info(f"--- SMS SIMULADO (TWILIO NÃO CONFIGURADO) ---")
     logger.info(f"PARA: {formatted_phone}")
     logger.info(f"MENSAGEM: {message}")
     logger.info(f"--------------------")
@@ -79,7 +50,7 @@ def send_status_sms(phone: str, message: str, force_whatsapp: bool = False):
     return True
 
 def get_resolved_message(titulo: str):
-    return "OBRIGADO POR USAR O COLÔNIA DIGITAL. SUA SOLICITAÇÃO JÁ FOI RESOLVIDA!"
+    return "OBRIGADO POR USAR O COLÔNIA DIGITAL. SUA SOLICITAÇÃO FOI FINALIZADA!"
 
 def get_progress_message(titulo: str):
     return f"COLÔNIA DIGITAL: Sua solicitação ({titulo}) está EM ANDAMENTO e sendo analisada pela nossa equipe."
@@ -90,9 +61,47 @@ def get_cancelled_message(titulo: str):
 def get_confirmed_message(assunto: str, data_hora: str):
     return f"COLÔNIA DIGITAL: Seu agendamento ({assunto}) para {data_hora} foi CONFIRMADO."
 
-def send_password_sms(phone: str, password: str, force_whatsapp: bool = False):
+def send_password_sms(phone: str, password: str):
+    """
+    Sends an SMS using Twilio for new password requests.
+    """
     message = f"COLÔNIA DIGITAL: Sua nova senha e: {password}. Recomendamos altera-la apos o login."
-    return send_status_sms(phone, message, force_whatsapp)
+    
+    if not phone:
+        logger.warning("Tentativa de envio de senha sem número de telefone.")
+        return False
+        
+    clean_phone = "".join(filter(str.isdigit, phone))
+    
+    if not clean_phone.startswith("55"):
+        clean_phone = "55" + clean_phone
+    formatted_phone = "+" + clean_phone
+    
+    TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
+    TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")
+
+    if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER:
+        try:
+            from twilio.rest import Client
+            client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+            message_twilio = client.messages.create(
+                body=message,
+                from_=TWILIO_PHONE_NUMBER,
+                to=formatted_phone
+            )
+            logger.info(f"Senha enviada para {formatted_phone} via Twilio (SID: {message_twilio.sid})")
+            return True
+        except Exception as e:
+            logger.error(f"Erro ao enviar senha via Twilio para {formatted_phone}: {str(e)}")
+            return False
+            
+    logger.info(f"--- SMS SIMULADO (TWILIO NÃO CONFIGURADO) ---")
+    logger.info(f"PARA: {formatted_phone}")
+    logger.info(f"MENSAGEM: {message}")
+    logger.info(f"--------------------")
+    
+    return True
 
 def notify_subadmins_background(secretaria_id: int, message: str):
     from app.database import SessionLocal
@@ -111,14 +120,18 @@ def notify_subadmins_background(secretaria_id: int, message: str):
 
 def notify_all_users_background(alert_message: str, aviso_id: int = None):
     from app.database import SessionLocal
-    from app.models.schema import Usuario, Aviso
+    from app.models.schema import Usuario, Aviso, AdminSecretaria
     db = SessionLocal()
     try:
         users = db.query(Usuario).all()
+        subadmins = db.query(AdminSecretaria).all()
+        
         unique_phones = set()
         sucessos = 0
-        for u in users:
-            phone = getattr(u, 'telefone', None)
+        
+        # Helper to process a phone
+        def process_phone(phone):
+            nonlocal sucessos
             if phone and len(''.join(filter(str.isdigit, phone))) >= 10:
                 clean_phone = "".join(filter(str.isdigit, phone))
                 if clean_phone not in unique_phones:
@@ -126,7 +139,13 @@ def notify_all_users_background(alert_message: str, aviso_id: int = None):
                     if send_status_sms(clean_phone, alert_message):
                         sucessos += 1
                     time.sleep(1) # Sleep to avoid rate limits
-        
+
+        for u in users:
+            process_phone(getattr(u, 'telefone', None))
+            
+        for sa in subadmins:
+            process_phone(getattr(sa, 'telefone', None))
+
         if aviso_id:
             aviso = db.query(Aviso).filter(Aviso.id == aviso_id).first()
             if aviso:

@@ -107,9 +107,9 @@ function setupSidebar() {
         <div class="nav-item" onclick="showSection('agendamentos', this)">
             <i class="fa-solid fa-calendar-check"></i><span>Agendamentos</span>
         </div>
-        <div class="nav-item" onclick="showSection('concursos', this)">
-            <i class="fa-solid fa-trophy"></i><span>Concursos</span>
-        </div>
+        // <div class="nav-item" onclick="showSection('concursos', this)">
+        //     <i class="fa-solid fa-trophy"></i><span>Concursos</span>
+        // </div>
     `;
 
     if (currentRole === 'admin') {
@@ -126,11 +126,18 @@ function setupSidebar() {
             <div class="nav-item" onclick="showSection('contabilidade', this)">
                 <i class="fa-solid fa-chart-bar"></i><span>Contabilidade</span>
             </div>
-            <div class="nav-item" onclick="showSection('mapas', this)">
-                <i class="fa-solid fa-map-location-dot"></i><span>Inteligência Geográfica</span>
-            </div>
             <div class="nav-item" onclick="showSection('avisos', this)">
                 <i class="fa-solid fa-bullhorn"></i><span>Mural de Avisos</span>
+            </div>
+        `;
+    }
+
+    const user = getUserInfo();
+    const isInfra = user && user.secretaria_nome && user.secretaria_nome.toLowerCase().includes('infraestrutura');
+    if (currentRole === 'admin' || (currentRole === 'subadmin' && isInfra)) {
+        html += `
+            <div class="nav-item" onclick="showSection('mapas', this)">
+                <i class="fa-solid fa-map-location-dot"></i><span>Inteligência Geográfica</span>
             </div>
         `;
     }
@@ -153,10 +160,16 @@ function setupSidebar() {
 
 function showSection(sectionId, element) {
     // Role check for specific sections
-    const restricted = ['usuarios', 'auditoria', 'usuarios-todos', 'contabilidade', 'mapas', 'avisos'];
-    if (restricted.includes(sectionId) && currentRole !== 'admin') {
+    let restricted = ['usuarios', 'auditoria', 'usuarios-todos', 'contabilidade', 'mapas', 'avisos'];
+    
+    const user = getUserInfo();
+    const isInfra = user && user.secretaria_nome && user.secretaria_nome.toLowerCase().includes('infraestrutura');
+    if (currentRole === 'subadmin' && isInfra) {
+        restricted = restricted.filter(r => r !== 'mapas');
+    }
 
-        alert("Acesso restrito ao Administrador Geral.");
+    if (restricted.includes(sectionId) && currentRole !== 'admin') {
+        alert("Acesso restrito.");
         return;
     }
 
@@ -522,9 +535,9 @@ async function loadOcorrencias() {
 
             list.forEach(o => {
                 const s = o.status.toLowerCase();
-                const statusBtn = s === 'resolvido' ? 
-                    `<button class="btn btn-outline" onclick="imprimirProtocolo('${o.id}')"><i class="fa-solid fa-print"></i></button>` :
-                    `<button class="btn btn-primary" onclick="openResponseModal('${o.id}', '${o.titulo}')">Atualizar</button>`;
+                const printBtn = `<button class="btn btn-outline" title="Imprimir" onclick="imprimirProtocolo('${o.id}')"><i class="fa-solid fa-print"></i></button>`;
+                const updateBtn = s === 'resolvido' ? '' : `<button class="btn btn-primary" onclick="openResponseModal('${o.id}', '${o.titulo}')">Atualizar</button>`;
+                const statusBtn = `<div style="display: flex; gap: 5px;">${printBtn}${updateBtn}</div>`;
 
                 html += `
                     <tr>
@@ -669,8 +682,9 @@ async function imprimirProtocolo(id) {
                 </head>
                 <body>
                     <div class="header">
+                        <img src="images/logo-prefeitura.png" alt="Logo Prefeitura" style="max-height: 220px; max-width: 100%; object-fit: contain; margin-bottom: 1.5rem;"><br>
                         <h1>📌 CERTIFICADO DE CONCLUSÃO</h1>
-                        <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA -AL</p>
+                        <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA - AL</p>
                     </div>
                     <div class="content">
                         <div class="row"><span class="label">PROTOCOLO:</span> <strong>${o.protocolo}</strong></div>
@@ -678,11 +692,19 @@ async function imprimirProtocolo(id) {
                         <div class="row"><span class="label">ASSUNTO:</span> ${o.titulo}</div>
                         <div class="row"><span class="label">LOCAL:</span> ${o.rua || 'N/A'}${o.ponto_referencia ? ` (${o.ponto_referencia})` : ''}</div>
                         <div class="row"><span class="label">DATA:</span> ${new Date(o.data).toLocaleString()}</div>
-                        <div class="row"><span class="label">SITUAÇÃO:</span> RESOLVIDO</div>
+                        <div class="row"><span class="label">SITUAÇÃO:</span> ${o.status.toUpperCase()}</div>
+                        
+                        ${o.foto ? `
+                            <div style="margin-top: 15px; text-align: center;">
+                                <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 5px;">FOTO ENVIADA PELO CIDADÃO:</p>
+                                <img src="${MEDIA_URL}/${o.foto}" style="max-width: 100%; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            </div>
+                        ` : ''}
+
                         <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
                         <div>
                             <span class="label">RESPOSTA ADM:</span>
-                            <p>${(o.respostas && o.respostas.length > 0) ? o.respostas[o.respostas.length-1].mensagem : 'Serviço concluído com sucesso.'}</p>
+                            <p>${(o.respostas && o.respostas.length > 0) ? o.respostas[o.respostas.length-1].mensagem : (o.status.toLowerCase() === 'resolvido' ? 'Serviço concluído com sucesso.' : 'Aguardando atendimento.')}</p>
                             ${o.foto_resolucao ? `
                                 <div style="margin-top: 15px; text-align: center;">
                                     <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 5px;">FOTO DA SOLUÇÃO:</p>
@@ -691,7 +713,7 @@ async function imprimirProtocolo(id) {
                             ` : ''}
                         </div>
                     </div>
-                    <div class="stamp"><div class="badge">SERVIÇO FINALIZADO</div></div>
+                    <div class="stamp"><div class="badge">${o.status.toLowerCase() === 'resolvido' ? 'SERVIÇO FINALIZADO' : 'SERVIÇO PENDENTE'}</div></div>
                     <div style="text-align: center; margin-top: 40px;">
                         <button onclick="window.print()" class="no-print" style="padding: 10px 30px; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer;">Imprimir</button>
                     </div>
@@ -1035,6 +1057,16 @@ async function imprimirAgendamento(id) {
                 if (match) parceiroNome = match[1].trim();
             }
             
+            let secretariaNomeStr = 'N/A';
+            try {
+                const secRes = await fetch(`${API_URL}/secretarias`);
+                if (secRes.ok) {
+                    const secs = await secRes.json();
+                    const secObj = secs.find(s => s.id == a.secretaria_id);
+                    if (secObj) secretariaNomeStr = secObj.nome;
+                }
+            } catch(err) { console.error(err); }
+            
             const isConcurso = a.tipo === 'Concurso';
             const isCulturaEsporte = isConcurso && a.assunto && (
                 a.assunto.toLowerCase().includes('papa-cuscuz') || 
@@ -1080,9 +1112,10 @@ async function imprimirAgendamento(id) {
                 </head>
                 <body>
                     <div class="header">
-                        ${isCulturaEsporte ? `<img src="imagens/logo-cultura-esporte.png" alt="Logo" style="max-height: 120px; margin-bottom: 1rem;"><br>` : ''}
+                        <img src="images/logo-prefeitura.png" alt="Logo Prefeitura" style="max-height: 220px; max-width: 100%; object-fit: contain; margin-bottom: 1.5rem;"><br>
+                        ${isCulturaEsporte ? `<img src="imagens/logo-cultura-esporte.png" alt="Logo Cultura" style="max-height: 150px; margin-bottom: 1rem;"><br>` : ''}
                         <h1>${iconHeader} ${titleText}</h1>
-                        <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA -AL</p>
+                        <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA - AL</p>
                     </div>
                     <div class="content">
                         <div class="row"><span class="label">PROTOCOLO:</span> <strong>${a.protocolo || a.id}</strong></div>
@@ -1090,6 +1123,7 @@ async function imprimirAgendamento(id) {
                         <div class="row"><span class="label">CIDADÃO:</span> <strong>${a.usuario_nome || 'N/A'}${isConcurso && parceiroNome ? ` e ${parceiroNome}` : ''}</strong></div>
                         <div class="row"><span class="label">ENDEREÇO:</span> ${a.usuario_endereco || 'Não informado'}</div>
                         ${parceiroNome ? `<div class="row"><span class="label">PARCEIRO(A):</span> <strong>${parceiroNome}</strong></div>` : ''}
+                        <div class="row"><span class="label">SECRETARIA:</span> <strong>${secretariaNomeStr}</strong></div>
                         <div class="row"><span class="label">ASSUNTO:</span> ${a.assunto}</div>
                         ${a.motivo ? `<div class="row" style="white-space: pre-line;"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
                         ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
@@ -2694,6 +2728,7 @@ async function enviarMensagemAvulsa(e) {
             closeModal('modalMensagemAvulsa');
             document.getElementById('formMensagemAvulsa').reset();
             Swal.fire({icon: 'success', title: 'Sucesso', text: 'O disparo da mensagem foi iniciado em background!'});
+            loadAvisosAdmin();
         } else {
             const err = await res.json();
             alert("Erro ao enviar: " + (err.detail || ""));

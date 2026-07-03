@@ -96,6 +96,18 @@ def send_custom_message(
     if current_user.tipo_usuario_verificado != "admin":
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Apenas administradores gerais podem enviar mensagens avulsas.")
     
+    # Create Aviso to track recipients
+    novo_aviso = Aviso(
+        titulo="Mensagem Avulsa",
+        mensagem=msg_in.mensagem,
+        tipo="avulso",
+        ativo=1,
+        autor_id=current_user.id
+    )
+    db_sql.add(novo_aviso)
+    db_sql.commit()
+    db_sql.refresh(novo_aviso)
+
     # Audit log
     from ..models.schema import LogAuditoria
     log = LogAuditoria(
@@ -107,7 +119,7 @@ def send_custom_message(
     db_sql.add(log)
     db_sql.commit()
     
-    from ..utils.sms_service import notify_custom_message_background
-    background_tasks.add_task(notify_custom_message_background, msg_in.mensagem)
+    from ..utils.sms_service import notify_all_users_background
+    background_tasks.add_task(notify_all_users_background, msg_in.mensagem, novo_aviso.id)
     
     return {"message": "Envio iniciado em background."}
