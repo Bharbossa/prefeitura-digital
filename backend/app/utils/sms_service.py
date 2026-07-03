@@ -42,12 +42,12 @@ def send_status_sms(phone: str, message: str):
             logger.error(f"Erro ao enviar via Twilio para {formatted_phone}: {str(e)}")
             return False
             
-    logger.info(f"--- SMS SIMULADO (TWILIO NÃO CONFIGURADO) ---")
-    logger.info(f"PARA: {formatted_phone}")
-    logger.info(f"MENSAGEM: {message}")
-    logger.info(f"--------------------")
+    logger.error(f"--- ERRO: TWILIO NÃO CONFIGURADO. MENSAGEM SIMULADA NÃO ENVIADA ---")
+    logger.error(f"PARA: {formatted_phone}")
+    logger.error(f"MENSAGEM: {message}")
+    logger.error(f"--------------------")
     
-    return True
+    return False
 
 def get_resolved_message(titulo: str):
     return "OBRIGADO POR USAR O COLÔNIA DIGITAL. SUA SOLICITAÇÃO FOI FINALIZADA!"
@@ -96,12 +96,12 @@ def send_password_sms(phone: str, password: str):
             logger.error(f"Erro ao enviar senha via Twilio para {formatted_phone}: {str(e)}")
             return False
             
-    logger.info(f"--- SMS SIMULADO (TWILIO NÃO CONFIGURADO) ---")
-    logger.info(f"PARA: {formatted_phone}")
-    logger.info(f"MENSAGEM: {message}")
-    logger.info(f"--------------------")
+    logger.error(f"--- ERRO: TWILIO NÃO CONFIGURADO. MENSAGEM DE SENHA NÃO ENVIADA ---")
+    logger.error(f"PARA: {formatted_phone}")
+    logger.error(f"MENSAGEM: {message}")
+    logger.error(f"--------------------")
     
-    return True
+    return False
 
 def notify_subadmins_background(secretaria_id: int, message: str):
     from app.database import SessionLocal
