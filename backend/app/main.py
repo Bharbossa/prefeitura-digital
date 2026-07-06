@@ -66,7 +66,7 @@ def startup_db_init():
             
     except Exception as e: print(f"DB Init Error: {e}")
 
-from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users, agendamentos, admin_metrics, avisos, files
+from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users, agendamentos, admin_metrics, avisos, files, panico
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(files.router, prefix="/api/files", tags=["files"])
 app.include_router(ocorrencias.router, prefix="/api/ocorrencias", tags=["ocorrencias"])
@@ -76,6 +76,7 @@ app.include_router(admin_users.router, prefix="/api/admin/users", tags=["admin_u
 app.include_router(agendamentos.router, prefix="/api/agendamentos", tags=["agendamentos"])
 app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["admin_metrics"])
 app.include_router(avisos.router, prefix="/api/avisos", tags=["avisos"])
+app.include_router(panico.router, prefix="/api/panico", tags=["panico"])
 
 @app.get("/api/health")
 def health():

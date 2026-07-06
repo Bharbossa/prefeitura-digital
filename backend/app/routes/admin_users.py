@@ -100,6 +100,28 @@ def reject_user(user_id: int, current_admin = Depends(get_general_admin), db_sql
     db_sql.commit()
     return {"message": "Usuário rejeitado."}
 
+@router.post("/{user_id}/panico-auth")
+def toggle_panico_auth(user_id: int, current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+    user = db_sql.query(Usuario).filter(Usuario.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado.")
+    
+    # Toggle the authorization
+    user.botao_panico_autorizado = 1 if user.botao_panico_autorizado == 0 else 0
+    
+    status_str = "Autorizado" if user.botao_panico_autorizado == 1 else "Desautorizado"
+    
+    # Audit
+    log = LogAuditoria(
+        usuario_id=current_admin.id,
+        usuario_tipo=current_admin.tipo_usuario_verificado,
+        acao="toggle_panico",
+        detalhes=f"{status_str} botão do pânico para {user_id} ({user.email})"
+    )
+    db_sql.add(log)
+    db_sql.commit()
+    return {"message": f"Botão do pânico {status_str.lower()} com sucesso.", "status": user.botao_panico_autorizado}
+
 class AdminOwnPasswordUpdate(BaseModel):
     senha_atual: str
     nova_senha: str

@@ -36,6 +36,7 @@ class Usuario(Base):
     status = Column(Enum(StatusUsuario), default=StatusUsuario.ativo)
     last_login = Column(DateTime, nullable=True)
     foto_perfil = Column(Text, nullable=True)
+    botao_panico_autorizado = Column(Integer, default=0) # 1=Autorizado, 0=Não Autorizado
 
     ocorrencias = relationship("Ocorrencia", back_populates="usuario")
     agendamentos = relationship("Agendamento", back_populates="usuario")

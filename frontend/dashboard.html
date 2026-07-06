@@ -91,6 +91,15 @@
 
         <!-- AVISOS CONTAINER -->
         <div id="citizenAvisosContainer" style="margin-bottom: 2rem;"></div>
+        
+        <!-- PANICO CONTAINER -->
+        <div id="panicoContainer" style="display: none; margin-bottom: 2rem; text-align: center;">
+            <div style="background: #fef2f2; border: 2px solid #ef4444; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15); animation: borderPulse 2s infinite;">
+                <h3 style="color: #b91c1c; margin-bottom: 1rem;"><i class="fa-solid fa-triangle-exclamation"></i> Botão de Pânico (Guarda Municipal)</h3>
+                <p style="color: #7f1d1d; margin-bottom: 1.5rem; font-size: 0.95rem;">Aperte este botão APENAS em caso de emergência. A Guarda Municipal será acionada imediatamente e receberá seus dados (Nome, Telefone e Endereço).</p>
+                <button onclick="acionarBotaoPanico()" class="btn btn-primary" style="background-color: #ef4444; border-color: #ef4444; font-size: 1.5rem; padding: 1.5rem 3rem; border-radius: 50px; font-weight: bold; box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4); animation: pulse 2s infinite;"><i class="fa-solid fa-bell"></i> PEDIR SOCORRO</button>
+            </div>
+        </div>
 
         <!-- Barra de Busca Rápida -->
         <div style="margin-bottom: 2rem;">
@@ -2375,6 +2384,60 @@
                 btnSubmit.innerHTML = 'Enviar Avaliação';
             }
         });
+
+        // Lógica do Botão do Pânico
+        async function checkPanicoAuth() {
+            try {
+                const res = await fetch(`${API_URL}/auth/me`, {
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data.botao_panico_autorizado === 1) {
+                        document.getElementById('panicoContainer').style.display = 'block';
+                    }
+                }
+            } catch (e) { console.error("Erro ao verificar auth panico:", e); }
+        }
+
+        async function acionarBotaoPanico() {
+            Swal.fire({
+                title: 'EMERGÊNCIA',
+                text: "Tem certeza que deseja acionar a Guarda Municipal agora? Seu nome, telefone e endereço serão enviados imediatamente.",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'SIM, PEDIR SOCORRO!',
+                cancelButtonText: 'Cancelar'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        const res = await fetch(`${API_URL}/panico`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${getToken()}` }
+                        });
+                        if (res.ok) {
+                            Swal.fire({
+                                icon: 'success', 
+                                title: 'ALERTA ENVIADO!', 
+                                text: 'A Guarda Municipal foi acionada com sucesso. Mantenha a calma, o socorro está a caminho.',
+                                confirmButtonColor: '#22c55e'
+                            });
+                        } else {
+                            const err = await res.json();
+                            Swal.fire('Erro', err.detail || 'Falha ao acionar.', 'error');
+                        }
+                    } catch(e) {
+                        Swal.fire('Erro de Conexão', 'Falha ao enviar alerta de pânico.', 'error');
+                    }
+                }
+            });
+        }
+
+        // Executar checagem na inicialização do painel
+        setTimeout(checkPanicoAuth, 500);
+
     </script>
 
     <footer class="footer">

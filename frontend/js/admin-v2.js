@@ -1356,8 +1356,17 @@ async function loadAllCombinedUsers() {
             let html = `<table class="data-table"><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(u => {
                 const color = u.tipo === 'admin' ? '#ef4444' : (u.tipo === 'subadmin' ? '#f59e0b' : '#22c55e');
-                        const s = u.status.toLowerCase();
-                        html += `
+                const s = u.status.toLowerCase();
+                
+                let panicoBtn = '';
+                if (u.source === 'usuario') {
+                    const isPanicoAuth = u.botao_panico_autorizado === 1;
+                    const panicoColor = isPanicoAuth ? '#ef4444' : '#6b7280';
+                    const panicoText = isPanicoAuth ? 'Pânico: ON' : 'Pânico: OFF';
+                    panicoBtn = `<button class="btn btn-outline" style="color: ${panicoColor}; border-color: ${panicoColor}; font-size: 0.7rem; padding: 4px 10px;" onclick="togglePanicoAuth('${u.id}')"><i class="fa-solid fa-triangle-exclamation"></i> ${panicoText}</button>`;
+                }
+
+                html += `
                     <tr>
                         <td><strong>${u.nome}</strong></td>
                         <td>${u.email}</td>
@@ -1365,6 +1374,7 @@ async function loadAllCombinedUsers() {
                         <td><span class="badge badge-${s === 'ativo' ? 'done' : 'pending'}">${u.status}</span></td>
                         <td>
                             <div style="display: flex; gap: 0.5rem;">
+                                ${panicoBtn}
                                 <button class="btn btn-primary" style="font-size: 0.7rem; padding: 4px 10px;" onclick="openPasswordModal('${u.id}', '${u.source}', '${u.nome}')"><i class="fa-solid fa-key"></i> Trocar Senha</button>
                                 <button class="btn btn-outline" style="color: var(--danger); font-size: 0.7rem; padding: 4px 10px;" onclick="deleteCombinedUser('${u.id}', '${u.source}')"><i class="fa-solid fa-trash"></i></button>
                             </div>
@@ -1376,6 +1386,25 @@ async function loadAllCombinedUsers() {
             container.innerHTML = html;
         }
     } catch(e) {}
+}
+
+async function togglePanicoAuth(userId) {
+    try {
+        const res = await fetch(`${ADMIN_API}/users/${userId}/panico-auth`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            loadAllCombinedUsers();
+            Swal.fire({icon: 'success', title: 'Atualizado', text: 'Permissão do botão do pânico alterada.', timer: 1500, showConfirmButton: false});
+        } else {
+            const err = await res.json();
+            Swal.fire({icon: 'error', title: 'Erro', text: err.detail || 'Erro ao alterar permissão.'});
+        }
+    } catch (e) {
+        console.error(e);
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'});
+    }
 }
 
 async function deleteCombinedUser(id, source) {

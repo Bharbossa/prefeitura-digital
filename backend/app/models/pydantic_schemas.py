@@ -25,6 +25,7 @@ class UsuarioResponse(UsuarioBase):
     status: str
     secretaria_id: Optional[int] = None
     secretaria_nome: Optional[str] = None
+    botao_panico_autorizado: int
     model_config = ConfigDict(from_attributes=True)
 
 class Token(BaseModel):
