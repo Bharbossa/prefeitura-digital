@@ -211,7 +211,7 @@ def authorize_panic_request(
 def get_panic_alerts(current_admin = Depends(get_current_admin), db_sql: Session = Depends(get_db)):
     check_admin_permission(current_admin)
     
-    logs = db_sql.query(LogAuditoria).filter(LogAuditoria.acao == "botao_panico").order_by(LogAuditoria.data_hora.desc()).limit(50).all()
+    logs = db_sql.query(LogAuditoria).filter(LogAuditoria.acao == "botao_panico").order_by(LogAuditoria.data.desc()).limit(50).all()
     
     result = []
     for log in logs:
@@ -226,7 +226,7 @@ def get_panic_alerts(current_admin = Depends(get_current_admin), db_sql: Session
                 
             result.append({
                 "id": log.id,
-                "data_hora": log.data_hora.isoformat() if log.data_hora else None,
+                "data_hora": log.data.isoformat() if log.data else None,
                 "nome": user.nome,
                 "telefone": user.telefone,
                 "endereco": detalhes.get("endereco", user.endereco),
