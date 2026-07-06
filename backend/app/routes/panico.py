@@ -51,11 +51,12 @@ def trigger_panic_button(
     background_tasks.add_task(notify_subadmins_background, 17, msg)
     background_tasks.add_task(notify_admins_of_new_record, db_sql, 17, msg)
     
+    import json
     log = LogAuditoria(
         usuario_id=user.id,
         usuario_tipo="cidadao",
         acao="botao_panico",
-        detalhes=f"Acionou o Botão do Pânico"
+        detalhes=json.dumps({"endereco": user.endereco, "ponto_referencia": ponto_ref})
     )
     db_sql.add(log)
     db_sql.commit()
@@ -188,4 +189,32 @@ def authorize_panic_request(
     db_sql.add(log)
     db_sql.commit()
     
-    return {"message": f"Status alterado com sucesso."}
+    return {"message": "Status atualizado com sucesso."}
+
+@router.get("/alerts")
+def get_panic_alerts(current_admin = Depends(get_current_admin), db_sql: Session = Depends(get_db)):
+    check_admin_permission(current_admin)
+    
+    logs = db_sql.query(LogAuditoria).filter(LogAuditoria.acao == "botao_panico").order_by(LogAuditoria.data_hora.desc()).limit(50).all()
+    
+    result = []
+    for log in logs:
+        user = db_sql.query(Usuario).filter(Usuario.id == log.usuario_id).first()
+        if user:
+            import json
+            detalhes = {}
+            try:
+                detalhes = json.loads(log.detalhes)
+            except:
+                detalhes = {"endereco": user.endereco, "ponto_referencia": "Não informado"}
+                
+            result.append({
+                "id": log.id,
+                "data_hora": log.data_hora.isoformat() if log.data_hora else None,
+                "nome": user.nome,
+                "telefone": user.telefone,
+                "endereco": detalhes.get("endereco", user.endereco),
+                "ponto_referencia": detalhes.get("ponto_referencia", "Não informado")
+            })
+            
+    return result

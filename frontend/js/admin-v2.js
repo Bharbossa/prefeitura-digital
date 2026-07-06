@@ -3061,6 +3061,7 @@ async function adminChangePassword(e) {
 
 
 async function loadPanicoRequests() {
+    loadPanicoAlerts(); // Carregar os alertas junto com as solicitacoes
     const tbody = document.getElementById("panicoRequestsBody");
     if (!tbody) return;
     tbody.innerHTML = "<tr><td colspan=\"4\" style=\"text-align: center; padding: 20px;\">Carregando...</td></tr>";
@@ -3103,6 +3104,42 @@ async function loadPanicoRequests() {
     } catch (e) {
         console.error(e);
         tbody.innerHTML = "<tr><td colspan=\"4\" style=\"text-align: center; padding: 20px; color: red;\">Erro de conexo</td></tr>";
+    }
+}
+
+async function loadPanicoAlerts() {
+    const tbody = document.getElementById("panicoAlertsBody");
+    if (!tbody) return;
+    tbody.innerHTML = "<tr><td colspan=\"4\" style=\"text-align: center; padding: 20px;\">Carregando...</td></tr>";
+
+    try {
+        const res = await fetch(`${API_URL}/panico/alerts`, {
+            headers: { "Authorization": `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.length === 0) {
+                tbody.innerHTML = "<tr><td colspan=\"4\" style=\"text-align: center; padding: 20px;\">Nenhum alerta registrado.</td></tr>";
+                return;
+            }
+            
+            let html = "";
+            data.forEach(a => {
+                const dateStr = a.data_hora ? new Date(a.data_hora).toLocaleString('pt-BR') : 'Desconhecido';
+                html += `<tr>
+                    <td><strong>${a.nome}</strong><br><small style="color:gray;">Tel: ${a.telefone || "Não informado"}</small></td>
+                    <td><span style="color: #ef4444; font-weight: bold;">${dateStr}</span></td>
+                    <td>${a.endereco || "Não informado"}</td>
+                    <td>${a.ponto_referencia || "Não informado"}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        } else {
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 15px; color: red;">Erro ao carregar alertas.</td></tr>';
+        }
+    } catch (e) {
+        console.error(e);
+        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 15px; color: red;">Erro de conexão.</td></tr>';
     }
 }
 

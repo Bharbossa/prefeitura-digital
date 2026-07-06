@@ -429,12 +429,32 @@
                             </tr>
                         </thead>
                         <tbody id="panicoRequestsBody">
-                            <tr><td colspan="4" style="text-align: center; padding: 20px;">Carregando...</td></tr>
-                        </tbody>
-                    </table>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
-            </div>
-        </section>
+
+                <div class="stat-card" style="margin-top: 2rem; border: 1px solid var(--border); padding: 0;">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="margin: 0; color: #ef4444;"><i class="fa-solid fa-bell"></i> Histórico de Alertas de Socorro</h4>
+                        <button class="btn btn-outline" onclick="loadPanicoAlerts()"><i class="fa-solid fa-rotate-right"></i> Atualizar Alertas</button>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Cidadão / Contato</th>
+                                    <th>Data e Hora</th>
+                                    <th>Endereço</th>
+                                    <th>Ponto de Referência</th>
+                                </tr>
+                            </thead>
+                            <tbody id="panicoAlertsBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
 
         <!-- PASSWORD RESETS SECTION -->
         <section id="password-resets" class="section">
