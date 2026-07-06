@@ -86,7 +86,8 @@ def get_current_user(token: str = Depends(oauth2_scheme), db_sql: Session = Depe
                     secretaria_id=getattr(user, 'secretaria_id', None),
                     secretaria_nome=sec_nome,
                     foto_perfil=getattr(user, 'foto_perfil', None),
-                    tipo_usuario_verificado=role
+                    tipo_usuario_verificado=role,
+                    botao_panico_autorizado=getattr(user, 'botao_panico_autorizado', 0)
                 )
             else:
                 log_auth(f"ERR: Role mismatch. Token={tipo}, DB={role}")

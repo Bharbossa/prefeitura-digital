@@ -385,6 +385,32 @@
                     Gerencie os cidadãos que solicitaram acesso ao Botão do Pânico da Guarda Municipal.
                 </p>
             </div>
+            <div class="stat-card" style="margin-bottom: 1.5rem; border: 1px solid var(--border);">
+                <h4 style="margin-bottom: 1rem; color: var(--primary);"><i class="fa-solid fa-user-plus"></i> Cadastrar Cidadão Diretamente</h4>
+                <form id="formAddPanicoUser" style="display: flex; flex-direction: column; gap: 1rem;" onsubmit="event.preventDefault(); addPanicoUser();">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block;">Nome Completo</label>
+                            <input type="text" id="addPanicoNome" class="btn btn-outline" style="width: 100%; text-align: left;" placeholder="Nome do Cidadão" required>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block;">CPF</label>
+                            <input type="text" id="addPanicoCPF" class="btn btn-outline" style="width: 100%; text-align: left;" placeholder="Ex: 000.000.000-00" required>
+                        </div>
+                        <div>
+                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block;">Telefone</label>
+                            <input type="text" id="addPanicoTelefone" class="btn btn-outline" style="width: 100%; text-align: left;" placeholder="(82) 99999-9999" required>
+                        </div>
+                        <div style="grid-column: 1 / -1;">
+                            <label style="font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem; display: block;">Endereço Completo</label>
+                            <input type="text" id="addPanicoEndereco" class="btn btn-outline" style="width: 100%; text-align: left;" placeholder="Rua, Número, Bairro" required>
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <button type="submit" class="btn btn-primary" style="background: #10b981; border-color: #10b981;"><i class="fa-solid fa-plus"></i> Cadastrar no Botão de Pânico</button>
+                    </div>
+                </form>
+            </div>
             
             <div class="stat-card" style="padding: 0;">
                 <div style="padding: 1.5rem; border-bottom: 1px solid var(--border);">

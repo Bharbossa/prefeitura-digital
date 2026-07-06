@@ -11,6 +11,7 @@ class UsuarioBase(BaseModel):
     whatsapp: Optional[str] = None
     endereco: Optional[str] = None
     foto_perfil: Optional[str] = None
+    genero: Optional[str] = None
 
 class UsuarioCreate(UsuarioBase):
     senha: str

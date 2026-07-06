@@ -40,6 +40,7 @@ def startup_db_init():
                 "ALTER TABLE ocorrencias ADD COLUMN IF NOT EXISTS avaliacao_comentario TEXT",
                 "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS tipo_usuario VARCHAR(20) DEFAULT 'cidadao'",
                 "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS status VARCHAR(20) DEFAULT 'ativo'",
+                "ALTER TABLE usuarios ADD COLUMN IF NOT EXISTS genero VARCHAR(50)",
                 "ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS senha VARCHAR(10)",
                 "ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS avaliacao_nota INTEGER",
                 "ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS avaliacao_comentario TEXT"

@@ -1382,7 +1382,7 @@ async function loadAllCombinedUsers() {
                 let panicoBtn = '';
                 if (u.source === 'usuario') {
                     const isPanicoAuth = u.botao_panico_autorizado === 1;
-                    const panicoColor = isPanicoAuth ? '#ef4444' : '#6b7280';
+                    const panicoColor = isPanicoAuth ? '#10b981' : '#6b7280';
                     const panicoText = isPanicoAuth ? 'Pânico: ON' : 'Pânico: OFF';
                     panicoBtn = `<button class="btn btn-outline" style="color: ${panicoColor}; border-color: ${panicoColor}; font-size: 0.7rem; padding: 4px 10px;" onclick="togglePanicoAuth('${u.id}')"><i class="fa-solid fa-triangle-exclamation"></i> ${panicoText}</button>`;
                 }
@@ -3066,7 +3066,7 @@ async function loadPanicoRequests() {
     tbody.innerHTML = "<tr><td colspan=\"4\" style=\"text-align: center; padding: 20px;\">Carregando...</td></tr>";
 
     try {
-        const res = await fetch(`${ADMIN_API}/panico/requests`, {
+        const res = await fetch(`${API_URL}/panico/requests`, {
             headers: { "Authorization": `Bearer ${getToken()}` }
         });
         if (res.ok) {
@@ -3110,7 +3110,7 @@ async function authorizePanicoRequest(userId, authorize) {
     if (!confirm(authorize ? "Tem certeza que deseja AUTORIZAR este cidado?" : "Tem certeza que deseja NEGAR/REVOGAR o acesso deste cidado?")) return;
     
     try {
-        const res = await fetch(`${ADMIN_API}/panico/authorize`, {
+        const res = await fetch(`${API_URL}/panico/authorize`, {
             method: "PATCH",
             headers: { "Content-Type": "application/json", "Authorization": `Bearer ${getToken()}` },
             body: JSON.stringify({ user_id: userId, authorize: authorize })
@@ -3129,3 +3129,42 @@ async function authorizePanicoRequest(userId, authorize) {
     }
 }
 
+async function addPanicoUser() {
+    const nome = document.getElementById('addPanicoNome').value.trim();
+    const cpf = document.getElementById('addPanicoCPF').value.trim();
+    const telefone = document.getElementById('addPanicoTelefone').value.trim();
+    const endereco = document.getElementById('addPanicoEndereco').value.trim();
+    
+    if (!nome || !cpf || !telefone || !endereco) {
+        Swal.fire("Erro", "Preencha todos os campos do cidadão.", "error");
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/panico/add_user`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${getToken()}` },
+            body: JSON.stringify({ 
+                nome: nome,
+                cpf: cpf,
+                telefone: telefone,
+                endereco: endereco
+            })
+        });
+        
+        if (res.ok) {
+            Swal.fire("Sucesso", "Cidadão adicionado ao Botão de Pânico com sucesso!", "success");
+            document.getElementById('addPanicoNome').value = '';
+            document.getElementById('addPanicoCPF').value = '';
+            document.getElementById('addPanicoTelefone').value = '';
+            document.getElementById('addPanicoEndereco').value = '';
+            loadPanicoRequests();
+        } else {
+            const err = await res.json().catch(()=>({}));
+            Swal.fire("Erro", err.detail || "Não foi possível cadastrar o usuário.", "error");
+        }
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Erro", "Falha de conexão com o servidor.", "error");
+    }
+}

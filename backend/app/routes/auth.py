@@ -28,7 +28,9 @@ def register(user_in: UsuarioCreate, db_sql: Session = Depends(get_db)) -> Any:
         user_data = {
             "nome": user_in.nome, "cpf": user_in.cpf, "email": user_in.email,
             "senha_hash": hashed_password, "tipo_usuario": "cidadao", 
-            "status": StatusUsuario.ativo, "criado_em": get_brasilia_time()
+            "status": StatusUsuario.ativo, "criado_em": get_brasilia_time(),
+            "genero": user_in.genero,
+            "botao_panico_autorizado": 1 if user_in.genero and user_in.genero.lower() == 'feminino' else 0
         }
         doc_ref = db.collection("usuarios").document()
         doc_ref.set(user_data)
@@ -47,7 +49,9 @@ def register(user_in: UsuarioCreate, db_sql: Session = Depends(get_db)) -> Any:
             nome=user_in.nome, cpf=user_in.cpf.strip(), email=normalized_email,
             telefone=user_in.telefone, whatsapp=user_in.whatsapp, 
             endereco=user_in.endereco,
-            senha_hash=hashed_password, status=StatusUsuario.ativo
+            senha_hash=hashed_password, status=StatusUsuario.ativo,
+            genero=user_in.genero,
+            botao_panico_autorizado=1 if user_in.genero and user_in.genero.lower() == 'feminino' else 0
         )
         db_sql.add(db_user)
         db_sql.commit()

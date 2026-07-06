@@ -13,8 +13,18 @@ class PanicAuthRequest(BaseModel):
     user_id: int
     authorize: bool
 
+class PanicAddUserRequest(BaseModel):
+    nome: str
+    cpf: str
+    telefone: str
+    endereco: str
+
+class PanicTriggerRequest(BaseModel):
+    ponto_referencia: str = ""
+
 @router.post("")
 def trigger_panic_button(
+    data: PanicTriggerRequest,
     background_tasks: BackgroundTasks,
     current_user = Depends(get_current_user),
     db_sql: Session = Depends(get_db)
@@ -29,9 +39,16 @@ def trigger_panic_button(
     if getattr(user, 'botao_panico_autorizado', 0) != 1:
         raise HTTPException(status_code=403, detail="Você não tem autorização para utilizar o Botão do Pânico.")
 
-    msg = f"🚨 ALERTA DE PÂNICO 🚨\nA usuária {user.nome} acionou o Botão do Pânico!\nTel: {user.telefone}\nEndereço: {user.endereco}"
+    ponto_ref = data.ponto_referencia if data and data.ponto_referencia else "(Não informado)"
+    
+    from urllib.parse import quote
+    maps_link = f"https://maps.google.com/?q={quote(user.endereco)}"
+
+    msg = f"🚨 ALERTA DE SOCORRO! 🚨\nO(A) {user.nome} acionou o Botão do Pânico!\nTel: {user.telefone}\nEndereço: {user.endereco}\nRef: {ponto_ref}\nLocalização: {maps_link}"
     
     # 17 is the GUARDA MUNICIPAL
+    from ..utils.sms_service import notify_subadmins_background
+    background_tasks.add_task(notify_subadmins_background, 17, msg)
     background_tasks.add_task(notify_admins_of_new_record, db_sql, 17, msg)
     
     log = LogAuditoria(
@@ -44,6 +61,48 @@ def trigger_panic_button(
     db_sql.commit()
     
     return {"message": "Alerta enviado com sucesso para a Guarda Municipal."}
+
+@router.post("/add_user")
+def add_panic_user(
+    data: PanicAddUserRequest,
+    current_admin = Depends(get_current_admin),
+    db_sql: Session = Depends(get_db)
+):
+    check_admin_permission(current_admin)
+    
+    user = db_sql.query(Usuario).filter(Usuario.cpf == data.cpf).first()
+    
+    if user:
+        user.nome = data.nome
+        user.telefone = data.telefone
+        user.endereco = data.endereco
+        user.botao_panico_autorizado = 1
+    else:
+        # Create new user
+        from ..core.security import get_password_hash
+        user = Usuario(
+            nome=data.nome,
+            cpf=data.cpf,
+            telefone=data.telefone,
+            whatsapp=data.telefone,
+            endereco=data.endereco,
+            email=f"{data.cpf}@panico.local", # placeholder email
+            senha_hash=get_password_hash(data.cpf), # Default password is CPF
+            botao_panico_autorizado=1
+        )
+        db_sql.add(user)
+        db_sql.flush()
+    
+    log = LogAuditoria(
+        usuario_id=current_admin.id,
+        usuario_tipo=current_admin.tipo_usuario_verificado,
+        acao="adicionar_panico",
+        detalhes=f"Adicionou/Atualizou acesso ao Botão do Pânico para o usuário CPF {data.cpf}"
+    )
+    db_sql.add(log)
+    db_sql.commit()
+    
+    return {"message": "Cidadão adicionado e autorizado com sucesso."}
 
 @router.post("/request")
 def request_panic_authorization(

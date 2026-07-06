@@ -237,7 +237,8 @@ def get_all_combined_users(current_admin = Depends(get_general_admin), db_sql: S
             "email": u.email,
             "tipo": "admin" if str(u.tipo_usuario).split('.')[-1] == "admin" else "cidadao",
             "status": u.status,
-            "source": "usuario"
+            "source": "usuario",
+            "botao_panico_autorizado": u.botao_panico_autorizado
         })
         
     for s in subadmins:

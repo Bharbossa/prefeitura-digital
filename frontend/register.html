@@ -76,6 +76,17 @@
             </div>
 
             <div class="form-group">
+                <label for="genero">Gênero</label>
+                <select id="genero" class="btn btn-outline" style="width: 100%; text-align: left;" required>
+                    <option value="" disabled selected>Selecione seu gênero</option>
+                    <option value="Feminino">Feminino</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Outro">Outro</option>
+                    <option value="Prefiro não informar">Prefiro não informar</option>
+                </select>
+            </div>
+
+            <div class="form-group">
                 <label for="endereco">Endereço Completo</label>
                 <input type="text" id="endereco" required>
             </div>
@@ -121,6 +132,7 @@
                 telefone: document.getElementById('telefone').value,
                 whatsapp: document.getElementById('whatsapp').value,
                 endereco: document.getElementById('endereco').value,
+                genero: document.getElementById('genero').value,
                 senha: document.getElementById('senha').value
             };
 
