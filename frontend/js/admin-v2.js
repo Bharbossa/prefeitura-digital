@@ -132,6 +132,9 @@ function setupSidebar() {
             <div class="nav-item" onclick="showSection('password-resets', this)">
                 <i class="fa-solid fa-key"></i><span>Senhas Solicitadas</span>
             </div>
+            <div class="nav-item" onclick="showSection('alterar-senha', this)">
+                <i class="fa-solid fa-lock"></i><span>Alterar Senha</span>
+            </div>
         `;
     }
 
@@ -141,6 +144,15 @@ function setupSidebar() {
         html += `
             <div class="nav-item" onclick="showSection('mapas', this)">
                 <i class="fa-solid fa-map-location-dot"></i><span>Inteligência Geográfica</span>
+            </div>
+        `;
+    }
+    
+    const isGuarda = user && (user.secretaria_id == 17 || (user.secretaria_nome && user.secretaria_nome.toLowerCase().includes('guarda')));
+    if (currentRole === 'admin' || (currentRole === 'subadmin' && isGuarda)) {
+        html += `
+            <div class="nav-item" onclick="showSection('gestao-panico', this)">
+                <i class="fa-solid fa-triangle-exclamation"></i><span>Botão do Pânico</span>
             </div>
         `;
     }
@@ -176,6 +188,14 @@ function showSection(sectionId, element) {
         return;
     }
 
+    if (sectionId === 'gestao-panico') {
+        const isGuarda = user && (user.secretaria_id == 17 || (user.secretaria_nome && user.secretaria_nome.toLowerCase().includes('guarda')));
+        if (currentRole !== 'admin' && !isGuarda) {
+            alert("Acesso restrito à Guarda Municipal.");
+            return;
+        }
+    }
+
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
 
     document.getElementById(sectionId).classList.add('active');
@@ -197,7 +217,8 @@ function showSection(sectionId, element) {
         'mapas': 'Inteligência Geográfica',
         'config': 'Minha Conta',
         'avisos': 'Mural de Avisos',
-        'password-resets': 'Senhas Solicitadas'
+        'password-resets': 'Senhas Solicitadas',
+        'gestao-panico': 'Gestão do Botão de Pânico'
     };
     document.getElementById('pageTitle').innerText = titles[sectionId];
     document.getElementById('breadcrumb').innerText = `Início / ${titles[sectionId]}`;
@@ -3001,3 +3022,110 @@ async function verHistoricoAviso(aviso_id) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 15px; color: red;">Erro de conexão ao carregar histórico.</td></tr>';
     }
 }
+
+async function adminChangePassword(e) {
+    e.preventDefault();
+    const nova = document.getElementById("adminNovaSenha").value;
+    const confirma = document.getElementById("adminConfirmaSenha").value;
+    
+    if (nova !== confirma) {
+        Swal.fire("Erro", "As senhas no coincidem.", "error");
+        return;
+    }
+    if (nova.length < 6) {
+        Swal.fire("Erro", "A senha deve ter pelo menos 6 caracteres.", "error");
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${API_URL}/auth/change-password`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${getToken()}`
+            },
+            body: JSON.stringify({ password: nova })
+        });
+        
+        if (res.ok) {
+            Swal.fire("Sucesso", "Sua senha foi alterada com sucesso!", "success");
+            document.getElementById("formAlterarSenha").reset();
+        } else {
+            const data = await res.json().catch(() => ({}));
+            Swal.fire("Erro", data.detail || "Erro ao alterar a senha", "error");
+        }
+    } catch(err) {
+        Swal.fire("Erro de Conexo", "No foi possvel conectar ao servidor.", "error");
+    }
+}
+
+
+async function loadPanicoRequests() {
+    const tbody = document.getElementById("panicoRequestsBody");
+    if (!tbody) return;
+    tbody.innerHTML = "<tr><td colspan=\"4\" style=\"text-align: center; padding: 20px;\">Carregando...</td></tr>";
+
+    try {
+        const res = await fetch(`${ADMIN_API}/panico/requests`, {
+            headers: { "Authorization": `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.length === 0) {
+                tbody.innerHTML = "<tr><td colspan=\"4\" style=\"text-align: center; padding: 20px;\">Nenhuma solicitao pendente ou aprovada.</td></tr>";
+                return;
+            }
+            
+            let html = "";
+            data.forEach(u => {
+                const isPending = u.status === 2;
+                const statusBadge = isPending 
+                    ? `<span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">Pendente</span>`
+                    : `<span style="background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">Autorizado</span>`;
+                
+                const actionBtn = isPending
+                    ? `<button class="btn btn-primary" style="background: #16a34a; border-color: #16a34a; padding: 5px 10px; font-size: 0.8rem;" onclick="authorizePanicoRequest(${u.id}, true)">Aprovar</button>
+                       <button class="btn btn-outline" style="color: #ef4444; border-color: #ef4444; padding: 5px 10px; font-size: 0.8rem;" onclick="authorizePanicoRequest(${u.id}, false)">Negar</button>`
+                    : `<button class="btn btn-outline" style="color: #ef4444; border-color: #ef4444; padding: 5px 10px; font-size: 0.8rem;" onclick="authorizePanicoRequest(${u.id}, false)">Revogar Acesso</button>`;
+                
+                html += `<tr>
+                    <td>${u.nome}<br><small style="color:gray;">${u.cpf || ""}</small></td>
+                    <td>${u.telefone || "No informado"}</td>
+                    <td>${statusBadge}</td>
+                    <td style="display: flex; gap: 5px;">${actionBtn}</td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        } else {
+            const err = await res.json().catch(()=>({}));
+            tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">${err.detail || "Erro ao carregar"}</td></tr>`;
+        }
+    } catch (e) {
+        console.error(e);
+        tbody.innerHTML = "<tr><td colspan=\"4\" style=\"text-align: center; padding: 20px; color: red;\">Erro de conexo</td></tr>";
+    }
+}
+
+async function authorizePanicoRequest(userId, authorize) {
+    if (!confirm(authorize ? "Tem certeza que deseja AUTORIZAR este cidado?" : "Tem certeza que deseja NEGAR/REVOGAR o acesso deste cidado?")) return;
+    
+    try {
+        const res = await fetch(`${ADMIN_API}/panico/authorize`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", "Authorization": `Bearer ${getToken()}` },
+            body: JSON.stringify({ user_id: userId, authorize: authorize })
+        });
+        
+        if (res.ok) {
+            Swal.fire("Sucesso", "Status atualizado.", "success");
+            loadPanicoRequests();
+        } else {
+            const err = await res.json().catch(()=>({}));
+            Swal.fire("Erro", err.detail || "No foi possvel atualizar o status.", "error");
+        }
+    } catch (e) {
+        console.error(e);
+        Swal.fire("Erro", "Falha de conexo com o servidor.", "error");
+    }
+}
+

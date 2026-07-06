@@ -93,8 +93,20 @@
         <div id="citizenAvisosContainer" style="margin-bottom: 2rem;"></div>
         
         <!-- PANICO CONTAINER -->
-        <div id="panicoContainer" style="display: none; margin-bottom: 2rem; text-align: center;">
-            <div style="background: #fef2f2; border: 2px solid #ef4444; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15); animation: borderPulse 2s infinite;">
+        <div id="panicoContainer" style="margin-bottom: 2rem; text-align: center;">
+            <!-- Not authorized (0) -->
+            <div id="panico_state_0" style="display: none; background: var(--bg-card); border: 2px solid var(--border); border-radius: 12px; padding: 2rem; box-shadow: 0 4px 15px rgba(0,0,0,0.05);">
+                <h3 style="color: var(--text-primary); margin-bottom: 1rem;"><i class="fa-solid fa-shield-halved"></i> Acesso ao Botão do Pânico</h3>
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem; font-size: 0.95rem;">A Guarda Municipal oferece um Botão de Pânico para cidadãos. Você pode solicitar o acesso a essa funcionalidade.</p>
+                <button onclick="requestPanicoAuth()" class="btn btn-primary" style="padding: 1rem 2rem; font-weight: bold;"><i class="fa-solid fa-hand-paper"></i> Solicitar Acesso</button>
+            </div>
+            <!-- Pending (2) -->
+            <div id="panico_state_2" style="display: none; background: #fffbeb; border: 2px solid #f59e0b; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.15);">
+                <h3 style="color: #b45309; margin-bottom: 1rem;"><i class="fa-solid fa-clock-rotate-left"></i> Solicitação em Análise</h3>
+                <p style="color: #92400e; margin-bottom: 0; font-size: 0.95rem;">Seu pedido de acesso ao Botão do Pânico foi enviado e está sendo analisado pela Guarda Municipal.</p>
+            </div>
+            <!-- Authorized (1) -->
+            <div id="panico_state_1" style="display: none; background: #fef2f2; border: 2px solid #ef4444; border-radius: 12px; padding: 2rem; box-shadow: 0 4px 15px rgba(239, 68, 68, 0.15); animation: borderPulse 2s infinite;">
                 <h3 style="color: #b91c1c; margin-bottom: 1rem;"><i class="fa-solid fa-triangle-exclamation"></i> Botão de Pânico (Guarda Municipal)</h3>
                 <p style="color: #7f1d1d; margin-bottom: 1.5rem; font-size: 0.95rem;">Aperte este botão APENAS em caso de emergência. A Guarda Municipal será acionada imediatamente e receberá seus dados (Nome, Telefone e Endereço).</p>
                 <button onclick="acionarBotaoPanico()" class="btn btn-primary" style="background-color: #ef4444; border-color: #ef4444; font-size: 1.5rem; padding: 1.5rem 3rem; border-radius: 50px; font-weight: bold; box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4); animation: pulse 2s infinite;"><i class="fa-solid fa-bell"></i> PEDIR SOCORRO</button>
@@ -2393,11 +2405,38 @@
                 });
                 if (res.ok) {
                     const data = await res.json();
+                    document.getElementById('panico_state_0').style.display = 'none';
+                    document.getElementById('panico_state_1').style.display = 'none';
+                    document.getElementById('panico_state_2').style.display = 'none';
+                    
                     if (data.botao_panico_autorizado === 1) {
-                        document.getElementById('panicoContainer').style.display = 'block';
+                        document.getElementById('panico_state_1').style.display = 'block';
+                    } else if (data.botao_panico_autorizado === 2) {
+                        document.getElementById('panico_state_2').style.display = 'block';
+                    } else {
+                        document.getElementById('panico_state_0').style.display = 'block';
                     }
                 }
             } catch (e) { console.error("Erro ao verificar auth panico:", e); }
+        }
+        
+        async function requestPanicoAuth() {
+            try {
+                const res = await fetch(`${API_URL}/panico/request`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${getToken()}` }
+                });
+                if (res.ok) {
+                    Swal.fire({icon: 'success', title: 'Solicitação Enviada', text: 'Sua solicitação foi enviada para a Guarda Municipal.'});
+                    checkPanicoAuth();
+                } else {
+                    const err = await res.json().catch(()=>({}));
+                    Swal.fire({icon: 'error', title: 'Erro', text: err.detail || 'Não foi possível enviar a solicitação.'});
+                }
+            } catch (e) {
+                console.error(e);
+                Swal.fire({icon: 'error', title: 'Erro', text: 'Falha na comunicação com o servidor.'});
+            }
         }
 
         async function acionarBotaoPanico() {

@@ -376,6 +376,40 @@
             <div id="avisosTableContainer"></div>
         </section>
 
+        <!-- GESTÃO PANICO SECTION -->
+        <section id="gestao-panico" class="section">
+            <h2 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-triangle-exclamation"></i> Gestão do Botão de Pânico</h2>
+            <div class="stat-card" style="margin-bottom: 1.5rem; background: var(--bg-color); border: 1px solid #ef4444; border-left: 5px solid #ef4444;">
+                <p style="margin: 0; color: var(--text-primary);">
+                    <i class="fa-solid fa-info-circle" style="color: #ef4444;"></i>
+                    Gerencie os cidadãos que solicitaram acesso ao Botão do Pânico da Guarda Municipal.
+                </p>
+            </div>
+            
+            <div class="stat-card" style="padding: 0;">
+                <div style="padding: 1.5rem; border-bottom: 1px solid var(--border);">
+                    <div style="display: flex; gap: 1rem; align-items: center;">
+                        <button class="btn btn-primary" onclick="loadPanicoRequests()"><i class="fa-solid fa-rotate-right"></i> Atualizar Lista</button>
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Cidadão</th>
+                                <th>Telefone</th>
+                                <th>Status</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="panicoRequestsBody">
+                            <tr><td colspan="4" style="text-align: center; padding: 20px;">Carregando...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
         <!-- PASSWORD RESETS SECTION -->
         <section id="password-resets" class="section">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
@@ -637,7 +671,7 @@
                     class="fa-solid fa-key"></i> Alterar Senha</h2>
             <p style="color: var(--text-muted); margin-bottom: 2rem; font-size: 0.95rem;">Defina a nova senha para este
                 usuário.</p>
-            <form id="formAlterarSenha">
+            <form id="formModalAlterarSenha" onsubmit="event.preventDefault(); submitAlterarSenha();">
                 <input type="hidden" id="senha_user_id">
                 <input type="hidden" id="senha_user_source">
 
@@ -649,9 +683,8 @@
                 </div>
 
                 <div style="display: flex; gap: 1rem; margin-top: 2.5rem;">
-                    <button type="button" id="btnConfirmarAlteracaoModal" class="btn btn-primary"
-                        style="flex: 1; padding: 12px; font-size: 1.1rem; font-weight: bold;"
-                        onclick="submitAlterarSenha()">Confirmar Alteração</button>
+                    <button type="submit" id="btnConfirmarAlteracaoModal" class="btn btn-primary"
+                        style="flex: 1; padding: 12px; font-size: 1.1rem; font-weight: bold;">Confirmar Alteração</button>
                     <button type="button" class="btn btn-outline" style="flex: 1; padding: 12px; font-size: 1.1rem;"
                         onclick="document.getElementById('modalAlterarSenha').style.display='none'">Cancelar</button>
                 </div>
@@ -677,8 +710,8 @@
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
-    <script src="js/main.js?v=1.0.9"></script>
-    <script src="js/admin-v2.js?v=17"></script>
+    <script src="js/main.js?v=1.0.10"></script>
+    <script src="js/admin-v2.js?v=2.1.9"></script>
     <!-- VLibras Widget -->
     <div vw class="enabled">
         <div vw-access-button class="active"></div>
