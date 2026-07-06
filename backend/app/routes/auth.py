@@ -362,7 +362,8 @@ def read_users_me(current_user = Depends(get_current_user)):
         "status": status_val,
         "secretaria_id": getattr(current_user, "secretaria_id", None),
         "secretaria_nome": getattr(current_user, "secretaria_nome", None),
-        "foto_perfil": getattr(current_user, "foto_perfil", None)
+        "foto_perfil": getattr(current_user, "foto_perfil", None),
+        "botao_panico_autorizado": getattr(current_user, "botao_panico_autorizado", 0)
     }
 @router.post("/update-photo")
 async def update_photo(
