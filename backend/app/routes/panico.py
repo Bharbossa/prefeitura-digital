@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models.schema import Usuario, LogAuditoria
 from ..core.auth_deps import get_current_user
-from ..utils.sms_service import notify_subadmins_background
+from ..utils.notification_helper import notify_admins_of_new_record
 
 router = APIRouter()
 
@@ -28,7 +28,7 @@ def trigger_panic_button(
     msg = f"🚨 ALERTA DE PÂNICO 🚨\nA usuária {user.nome} acionou o Botão do Pânico!\nTel: {user.telefone}\nEndereço: {user.endereco}"
     
     # 17 is the GUARDA MUNICIPAL
-    background_tasks.add_task(notify_subadmins_background, 17, msg)
+    background_tasks.add_task(notify_admins_of_new_record, db_sql, 17, msg)
     
     # Audit log
     log = LogAuditoria(
