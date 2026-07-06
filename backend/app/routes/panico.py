@@ -51,6 +51,22 @@ def trigger_panic_button(
     background_tasks.add_task(notify_subadmins_background, 17, msg)
     background_tasks.add_task(notify_admins_of_new_record, db_sql, 17, msg)
     
+    # Registrar como Ocorrencia para aparecer na Contabilidade da Secretaria 17
+    from ..models.schema import Ocorrencia, StatusOcorrencia
+    from ..core.utils import generate_protocol
+    
+    protocolo = generate_protocol()
+    ocorrencia = Ocorrencia(
+        protocolo=protocolo,
+        titulo="🚨 ALERTA DE BOTÃO DO PÂNICO",
+        descricao=f"Ponto de referência: {ponto_ref}",
+        rua=user.endereco,
+        status=StatusOcorrencia.pendente,
+        usuario_id=user.id,
+        secretaria_id=17
+    )
+    db_sql.add(ocorrencia)
+    
     import json
     log = LogAuditoria(
         usuario_id=user.id,
