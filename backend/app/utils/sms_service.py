@@ -49,6 +49,48 @@ def send_status_sms(phone: str, message: str):
     
     return False
 
+def make_voice_call(phone: str, message_text: str):
+    """
+    Initiates a Twilio Voice Call to play an automated message.
+    """
+    if not phone:
+        logger.warning("Tentativa de chamada de voz sem número de telefone.")
+        return False
+        
+    clean_phone = "".join(filter(str.isdigit, phone))
+    if not clean_phone.startswith("55"):
+        clean_phone = "55" + clean_phone
+    formatted_phone = "+" + clean_phone
+    
+    TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
+    TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
+    TWILIO_PHONE_NUMBER = os.environ.get("TWILIO_PHONE_NUMBER")
+
+    if TWILIO_ACCOUNT_SID and TWILIO_AUTH_TOKEN and TWILIO_PHONE_NUMBER:
+        try:
+            from twilio.rest import Client
+            client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+            
+            # Use TwiML to speak the message in Portuguese
+            twiml = f"<Response><Say language=\"pt-BR\" voice=\"Polly.Vitoria-Neural\">{message_text}</Say></Response>"
+            
+            call = client.calls.create(
+                twiml=twiml,
+                to=formatted_phone,
+                from_=TWILIO_PHONE_NUMBER
+            )
+            logger.info(f"Chamada de voz iniciada para {formatted_phone} via Twilio (SID: {call.sid})")
+            return True
+        except Exception as e:
+            logger.error(f"Erro ao iniciar chamada de voz via Twilio para {formatted_phone}: {str(e)}")
+            return False
+            
+    logger.error(f"--- ERRO: TWILIO NÃO CONFIGURADO. CHAMADA DE VOZ NÃO INICIADA ---")
+    logger.error(f"PARA: {formatted_phone}")
+    logger.error(f"MENSAGEM: {message_text}")
+    logger.error(f"--------------------")
+    return False
+
 def get_resolved_message(titulo: str):
     return "OBRIGADO POR USAR O COLÔNIA DIGITAL. SUA SOLICITAÇÃO FOI FINALIZADA!"
 
@@ -115,6 +157,24 @@ def notify_subadmins_background(secretaria_id: int, message: str):
                 send_status_sms(phone, message)
     except Exception as e:
         logger.error(f"Erro em notify_subadmins_background: {e}")
+    finally:
+        db.close()
+
+def notify_subadmins_voice_background(secretaria_id: int, message: str):
+    """
+    Sends a voice call in the background to all subadmins of a given secretaria.
+    """
+    from app.database import SessionLocal
+    from app.models.schema import AdminSecretaria
+    db = SessionLocal()
+    try:
+        subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
+        for sub in subadmins:
+            phone = getattr(sub, 'telefone', None)
+            if phone:
+                make_voice_call(phone, message)
+    except Exception as e:
+        logger.error(f"Erro em notify_subadmins_voice_background: {e}")
     finally:
         db.close()
 

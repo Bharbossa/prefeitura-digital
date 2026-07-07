@@ -244,10 +244,14 @@ async def cobrar_secretaria(
         subadmins = db_sql.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == ocorrencia.secretaria_id).all()
         
         msg = f"URGENTE - COLÔNIA DIGITAL: A ocorrência '{ocorrencia.titulo}' precisa ser resolvida. Verifique no painel!"
+        msg_voice = "Atenção. Você recebeu uma cobrança urgente do Administrador Geral sobre uma ocorrência pendente na sua secretaria. Por favor, verifique o painel."
         
+        from ..utils.sms_service import make_voice_call
         for sa in subadmins:
             if sa.telefone:
                 send_status_sms(sa.telefone, msg)
+                make_voice_call(sa.telefone, msg_voice)
+                
                 
         # Add to audit log
         log = LogAuditoria(usuario_id=current_user.id, usuario_tipo="admin", acao="Alerta/Cobrança Enviada", detalhes=f"Ocorrência {ocorrencia.id} cobrada para a Secretaria {ocorrencia.secretaria_id}")

@@ -47,8 +47,12 @@ def trigger_panic_button(
     msg = f"🚨 ALERTA DE SOCORRO! 🚨\nO(A) {user.nome} acionou o Botão do Pânico!\nTel: {user.telefone}\nEndereço: {user.endereco}\nRef: {ponto_ref}\nLocalização: {maps_link}"
     
     # 17 is the GUARDA MUNICIPAL
-    from ..utils.sms_service import notify_subadmins_background
+    from ..utils.sms_service import notify_subadmins_background, notify_subadmins_voice_background
     background_tasks.add_task(notify_subadmins_background, 17, msg)
+    
+    msg_voice = "Atenção Guarda Municipal! Existe um novo Alerta de Socorro do Botão do Pânico pendente. Verifique o painel imediatamente."
+    background_tasks.add_task(notify_subadmins_voice_background, 17, msg_voice)
+    
     background_tasks.add_task(notify_admins_of_new_record, db_sql, 17, msg)
     
     # Registrar como Ocorrencia para aparecer na Contabilidade da Secretaria 17
