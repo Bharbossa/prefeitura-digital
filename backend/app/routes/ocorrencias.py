@@ -75,10 +75,38 @@ async def create_ocorrencia(
         if ext not in allowed_extensions:
             raise HTTPException(status_code=400, detail=f"Extensão de arquivo '{ext}' não permitida.")
             
-        name = f"{uuid.uuid4()}{ext}"
-        path = os.path.join(UPLOAD_DIR, name)
-        with open(path, "wb") as buf: shutil.copyfileobj(ufile.file, buf)
-        return path
+        file_id = str(uuid.uuid4())
+        content = ufile.file.read()
+        
+        # Compress images to save space
+        if ext in {'.jpg', '.jpeg', '.png', '.webp'}:
+            try:
+                import io
+                from PIL import Image
+                img = Image.open(io.BytesIO(content))
+                if img.mode in ("RGBA", "P"): img = img.convert("RGB")
+                img.thumbnail((1200, 1200))
+                output = io.BytesIO()
+                img.save(output, format="JPEG", quality=75)
+                content = output.getvalue()
+                ext = ".jpg"
+                ufile.content_type = "image/jpeg"
+            except Exception:
+                pass
+                
+        content_type = ufile.content_type or "application/octet-stream"
+        from ..models.schema import FileStorage
+        new_file = FileStorage(
+            id=file_id,
+            filename=f"{file_id}{ext}",
+            content_type=content_type,
+            data=content
+        )
+        db_sql.add(new_file)
+        # Flush to make it available (will commit at end of request)
+        db_sql.flush()
+        
+        return f"api/files/{file_id}"
 
     foto_path = save_file(foto) if foto and foto.filename else None
     video_path = save_file(video) if video and video.filename else None
@@ -134,12 +162,38 @@ async def update_status(
         
         ocorrencia.status = status.lower().strip()
         if foto_resolucao:
-            # Re-using internal save_file won't work easily here, just manually save
-            ext = os.path.splitext(foto_resolucao.filename)[1]
-            name = f"{uuid.uuid4()}{ext}"
-            path = os.path.join("uploads", name)
-            with open(path, "wb") as buf: shutil.copyfileobj(foto_resolucao.file, buf)
-            ocorrencia.foto_resolucao = path
+            # Use FileStorage logic for foto_resolucao
+            allowed_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.pdf'}
+            ext = os.path.splitext(foto_resolucao.filename)[1].lower()
+            
+            file_id = str(uuid.uuid4())
+            content = foto_resolucao.file.read()
+            
+            if ext in {'.jpg', '.jpeg', '.png', '.webp'}:
+                try:
+                    import io
+                    from PIL import Image
+                    img = Image.open(io.BytesIO(content))
+                    if img.mode in ("RGBA", "P"): img = img.convert("RGB")
+                    img.thumbnail((1200, 1200))
+                    output = io.BytesIO()
+                    img.save(output, format="JPEG", quality=75)
+                    content = output.getvalue()
+                    ext = ".jpg"
+                    foto_resolucao.content_type = "image/jpeg"
+                except Exception:
+                    pass
+            
+            content_type = foto_resolucao.content_type or "application/octet-stream"
+            from ..models.schema import FileStorage
+            new_file = FileStorage(
+                id=file_id,
+                filename=f"{file_id}{ext}",
+                content_type=content_type,
+                data=content
+            )
+            db_sql.add(new_file)
+            ocorrencia.foto_resolucao = f"api/files/{file_id}"
             
         if resposta:
             db_sql.add(Resposta(mensagem=resposta, ocorrencia_id=id, admin_id=current_user.id if current_user.tipo_usuario_verificado == "subadmin" else None))
