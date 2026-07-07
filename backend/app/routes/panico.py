@@ -136,6 +136,10 @@ def request_panic_authorization(
     if getattr(user, 'botao_panico_autorizado', 0) == 1:
         return {"message": "Você já possui acesso autorizado."}
         
+    # Restrição: apenas cidadãos do gênero feminino
+    if not user.genero or user.genero.lower() != 'feminino':
+        raise HTTPException(status_code=403, detail="O Botão do Pânico é exclusivo para cidadãos do gênero feminino.")
+        
     user.botao_panico_autorizado = 2 # 2 = Pendente
     
     log = LogAuditoria(
