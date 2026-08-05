@@ -374,56 +374,65 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
             user_coords[str(oc.usuario_id)] = (oc.latitude, oc.longitude)
             
     base_coords = {
-        "Belo Jardim": (-8.9080, -35.7245),
-        "Vila Nova": (-8.9075, -35.7285),
-        "Centro": (-8.9095, -35.7262),
-        "Loteamento Belo Jardim": (-8.9080, -35.7245),
+        # Centro / General
+        "Centro": (-8.9095, -35.7255),
+        
+        # Northern Streets / Bairros
+        "Boa Vista": (-8.9070, -35.7258),
+        "Vila Nova": (-8.9075, -35.7260),
+        "Artur Ferreira": (-8.9078, -35.7252),
+        "16 de Julho": (-8.9080, -35.7260),
+        "Padre Cícero": (-8.9082, -35.7262),
+        "Padre Cicero": (-8.9082, -35.7262),
+        "Pedro II": (-8.9082, -35.7258),
+        "Gustavo Fitipaldi": (-8.9075, -35.7255),
+        "Padre Francisco": (-8.9085, -35.7252),
+        
+        # Central Streets
+        "Genival Rodrigues": (-8.9092, -35.7258),
+        "Teódulo Augusto": (-8.9090, -35.7258),
+        "Teodulo Augusto": (-8.9090, -35.7258),
+        "Teofilo Augusto": (-8.9090, -35.7258),
+        "Durval Gonçalves": (-8.9098, -35.7256),
+        "Durval Goncalves": (-8.9098, -35.7256),
+        "Severino Ferreira": (-8.9095, -35.7248),
+        "Clodoaldo da Fonseca": (-8.9098, -35.7252),
+        "Mário Lima": (-8.9098, -35.7254),
+        "Mario Lima": (-8.9098, -35.7254),
+        "7 de Setembro": (-8.9102, -35.7252),
+        "Setembro": (-8.9102, -35.7252),
+        "Legarião Freire": (-8.9104, -35.7250),
+        "Adalgiso Borges": (-8.9106, -35.7248),
+        "Adalgisio Borges": (-8.9106, -35.7248),
+        "Manoel Ataíde": (-8.9108, -35.7250),
+        "Manoel Ataide": (-8.9108, -35.7250),
+        "Manoel Lino": (-8.9102, -35.7255),
+        "José Inácio": (-8.9105, -35.7255),
+        "Jose Inacio": (-8.9105, -35.7255),
+        "Maria Loureiro": (-8.9110, -35.7252),
+        "Filadelfo José": (-8.9100, -35.7248),
+        "Filadelfio": (-8.9100, -35.7248),
+        
+        # Southern Streets
+        "Mário de Gusmão": (-8.9118, -35.7255),
+        "Mario de Gusmao": (-8.9118, -35.7255),
         "Santa Luzia": (-8.9125, -35.7245),
-        "Boa Vista": (-8.9070, -35.7280),
-        "Maria Loureiro": (-8.9110, -35.7268),
-        "Teódulo Augusto": (-8.9090, -35.7285),
-        "Teodulo Augusto": (-8.9090, -35.7285),
-        "Teofilo Augusto": (-8.9090, -35.7285),
-        "Durval Gonçalves": (-8.9098, -35.7282),
-        "Durval Goncalves": (-8.9098, -35.7282),
-        "Padre Francisco": (-8.9085, -35.7262),
-        "Severino Ferreira": (-8.9095, -35.7250),
-        "Genival Rodrigues": (-8.9092, -35.7265),
-        "Mário Lima": (-8.9098, -35.7265),
-        "Mario Lima": (-8.9098, -35.7265),
-        "Manoel Lino": (-8.9102, -35.7278),
-        "José Inácio": (-8.9108, -35.7275),
-        "Jose Inacio": (-8.9108, -35.7275),
+        
+        # Eastern Streets / Bairros
+        "Belo Jardim": (-8.9080, -35.7242),
+        "Loteamento Belo Jardim": (-8.9080, -35.7242),
+        "Joaquim Monteiro": (-8.9090, -35.7238),
+        "Filomena Freitas": (-8.9095, -35.7233),
+        "José Maria Ramos": (-8.9085, -35.7230),
         "José Maria Quirino": (-8.9095, -35.7228),
         "Maria Quirino": (-8.9095, -35.7228),
         "Quirino": (-8.9095, -35.7228),
-        "Filomena Freitas": (-8.9095, -35.7233),
         "José Gomes": (-8.9100, -35.7225),
         "Genildo Loureiro": (-8.9100, -35.7225),
         "José Francisco Xavier": (-8.9100, -35.7225),
-        "José Maria Ramos": (-8.9085, -35.7230),
-        "Mário de Gusmão": (-8.9118, -35.7265),
-        "Mario de Gusmao": (-8.9118, -35.7265),
-        "7 de Setembro": (-8.9102, -35.7262),
-        "Setembro": (-8.9102, -35.7262),
-        "Legarião Freire": (-8.9104, -35.7260),
-        "Adalgiso Borges": (-8.9106, -35.7258),
-        "Adalgisio Borges": (-8.9106, -35.7258),
-        "Manoel Ataíde": (-8.9108, -35.7262),
-        "Manoel Ataide": (-8.9108, -35.7262),
-        "Artur Ferreira": (-8.9078, -35.7255),
-        "Joaquim Monteiro": (-8.9090, -35.7238),
-        "Clodoaldo da Fonseca": (-8.9098, -35.7258),
-        "Filadelfo José": (-8.9100, -35.7250),
-        "Filadelfio": (-8.9100, -35.7250),
-        "16 de Julho": (-8.9080, -35.7285),
-        "Padre Cícero": (-8.9082, -35.7290),
-        "Padre Cicero": (-8.9082, -35.7290),
-        "Gustavo Fitipaldi": (-8.9075, -35.7275),
-        "Pedro II": (-8.9082, -35.7275),
     }
     
-    city_center_lat, city_center_lng = -8.9095, -35.7262
+    city_center_lat, city_center_lng = -8.9095, -35.7252
     
     localidades_map = {}
     heat_points = []
@@ -433,7 +442,6 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
         full_addr = u["endereco"] or ""
         bairro, rua = _parse_address(full_addr)
         
-        # Match against full address string first so house numbers like "73" don't break matching
         matched_coord = None
         for key, coord in base_coords.items():
             k_low = key.lower()
@@ -443,8 +451,8 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
                 
         if not matched_coord:
             h = int(hashlib.md5(full_addr.encode('utf-8')).hexdigest(), 16)
-            lat_offset = ((h % 100) - 50) * 0.00003
-            lng_offset = (((h // 100) % 100) - 50) * 0.00004
+            lat_offset = ((h % 100) - 50) * 0.000015
+            lng_offset = (((h // 100) % 100) - 50) * 0.000015
             matched_coord = (city_center_lat + lat_offset, city_center_lng + lng_offset)
             
         loc_name = bairro if (bairro != "Não Informado" and not bairro.isdigit() and not bairro.startswith("N")) else (rua if rua != "Não Informado" else "Centro")
@@ -464,8 +472,8 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
             u_lat, u_lng = user_coords[u_id_str]
         else:
             h_u = int(hashlib.md5(f"{u_id_str}_{full_addr}".encode('utf-8')).hexdigest(), 16)
-            j_lat = ((h_u % 50) - 25) * 0.000015
-            j_lng = (((h_u // 50) % 50) - 25) * 0.000015
+            j_lat = ((h_u % 50) - 25) * 0.00001
+            j_lng = (((h_u // 50) % 50) - 25) * 0.00001
             u_lat, u_lng = matched_coord[0] + j_lat, matched_coord[1] + j_lng
             
         heat_points.append({"lat": u_lat, "lng": u_lng, "weight": 1})
