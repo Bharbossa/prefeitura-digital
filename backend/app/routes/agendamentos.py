@@ -1,11 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Response
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from typing import List, Optional
 import os
 import uuid
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from ..database import get_db
 from ..models.schema import Usuario, AdminSecretaria, Agendamento, LogAuditoria, Secretaria, FileStorage
@@ -69,21 +69,86 @@ def save_upload_file(upload_file: UploadFile, db_sql: Session) -> str:
 def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
     if getattr(current_user, "tipo_usuario_verificado", "") != "cidadao":
         raise HTTPException(status_code=403, detail="Apenas cidadãos podem criar agendamentos pelo perfil.")
-    
+
     protocolo = generate_protocol()
     
+    # Identifica se a solicitação atual é de máquina agrícola (independente de qual máquina)
+    is_solicitacao_maquina = is_maquina_agendamento(agend.secretaria_id, agend.tipo, agend.assunto, db_sql)
+
     if agend.tipo == "Bolsa Família":
         # Limite de 15 senhas por dia para o Bolsa Família
         data_escolhida = agend.data_hora.date()
-        count = db_sql.query(Agendamento).filter(
+        agendamentos_dia = db_sql.query(Agendamento).filter(
             Agendamento.tipo == "Bolsa Família",
             func.date(Agendamento.data_hora) == data_escolhida
-        ).count()
+        ).all()
         
+        count = len(agendamentos_dia)
         if count >= 15:
             raise HTTPException(status_code=400, detail="Limite diário de 15 agendamentos para Bolsa Família atingido para esta data.")
+            
+        data_hora_nova = agend.data_hora.replace(tzinfo=None)
+        for a in agendamentos_dia:
+            if a.status != "Cancelado":
+                diff_segundos = abs((a.data_hora - data_hora_nova).total_seconds())
+                if diff_segundos < 1800:
+                    raise HTTPException(
+                        status_code=400, 
+                        detail=f"O horário selecionado está indisponível. Já existe um agendamento às {a.data_hora.strftime('%H:%M')}. Escolha um horário com pelo menos 30 minutos de diferença."
+                    )
         
         senha = f"BF-{count + 1:02d}"
+    elif is_solicitacao_maquina:
+        data_escolhida = agend.data_hora.date()
+
+        # Trava do mês de Agosto (todas as datas de Agosto lotadas)
+        from datetime import date
+        if data_escolhida < date(2026, 9, 1):
+            raise HTTPException(
+                status_code=400,
+                detail="Todas as datas para o mês de Agosto já foram preenchidas. O agendamento de máquinas agrícolas está liberado apenas a partir de 01/09/2026."
+            )
+        
+        # 1. Trava de 1 agendamento por dia no sistema para a máquina (limite da frota/dia)
+        agendamentos_dia = db_sql.query(Agendamento).filter(
+            func.date(Agendamento.data_hora) == data_escolhida,
+            func.lower(Agendamento.status) != "cancelado"
+        ).all()
+
+        for a in agendamentos_dia:
+            if is_maquina_agendamento(a.secretaria_id, a.tipo, a.assunto, db_sql):
+                raise HTTPException(
+                    status_code=400,
+                    detail="A máquina agrícola já está agendada para este dia. Escolha outra data disponível."
+                )
+
+        # 2. Trava de 1 agendamento por mês (mínimo 30 dias de intervalo) por usuário (INDEPENDENTE DA MÁQUINA)
+        agendamentos_usuario = db_sql.query(Agendamento).filter(
+            Agendamento.usuario_id == current_user.id,
+            func.lower(Agendamento.status) != "cancelado"
+        ).order_by(Agendamento.data_hora.desc()).all()
+
+        maquinas_usuario = [a for a in agendamentos_usuario if is_maquina_agendamento(a.secretaria_id, a.tipo, a.assunto, db_sql)]
+
+        for ag in maquinas_usuario:
+            data_ag = ag.data_hora.date()
+            data_criacao = ag.criado_em.date() if ag.criado_em else data_ag
+
+            mesmo_mes = (data_escolhida.year == data_ag.year and data_escolhida.month == data_ag.month) or \
+                        (data_escolhida.year == data_criacao.year and data_escolhida.month == data_criacao.month)
+            dias_passados = abs((data_escolhida - data_ag).days)
+            dias_desde_criacao = abs((data_escolhida - data_criacao).days)
+
+            if mesmo_mes or dias_passados < 30 or dias_desde_criacao < 30:
+                fmt_ultimo = data_ag.strftime("%d/%m/%Y")
+                data_permitida = data_ag + timedelta(days=30)
+                fmt_permitida = data_permitida.strftime("%d/%m/%Y")
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"Você já possui um agendamento de máquina agrícola realizado em {fmt_ultimo}. É permitido apenas 1 agendamento por mês (mínimo de 30 dias de intervalo). Você poderá solicitar novamente a partir de {fmt_permitida}."
+                )
+
+        senha = generate_ticket_number()
     else:
         senha = generate_ticket_number()
 
@@ -134,8 +199,25 @@ def criar_agendamento_viagem(
     except ValueError:
         raise HTTPException(status_code=400, detail="Formato de data inválido. Use ISO 8601.")
         
+    # Validação dos campos obrigatórios
+    if not assunto or not assunto.strip():
+        raise HTTPException(status_code=400, detail="O destino da viagem é obrigatório.")
+    if not motivo or not motivo.strip():
+        raise HTTPException(status_code=400, detail="O motivo da viagem é obrigatório.")
+
     # Limite de 5 viagens por dia
     data_escolhida = data_obj.date()
+
+    # Validação de antecedência mínima de 10 dias para viagens
+    hoje_brasilia = get_brasilia_time().date()
+    data_minima = hoje_brasilia + timedelta(days=10)
+    if data_escolhida < data_minima:
+        fmt_minima = data_minima.strftime("%d/%m/%Y")
+        raise HTTPException(
+            status_code=400,
+            detail=f"As solicitações de viagem devem ser realizadas com antecedência mínima de 10 dias. Para a data de hoje, escolha uma data a partir de {fmt_minima}."
+        )
+
     count = db_sql.query(Agendamento).filter(
         Agendamento.tipo == tipo,
         func.date(Agendamento.data_hora) == data_escolhida
@@ -447,13 +529,19 @@ def atualizar_status(agend_id: int, status: str, current_user = Depends(get_curr
     if status == "Confirmado" and old_status != "Confirmado":
         if agendamento.usuario and agendamento.usuario.telefone:
             dt_str = agendamento.data_hora.strftime("%d/%m/%Y %H:%M")
-            msg = get_confirmed_message(agendamento.assunto, dt_str)
+            is_garagem = (agendamento.secretaria_id == 22) or \
+                         (agendamento.tipo and "viagem" in agendamento.tipo.lower())
+            if not is_garagem and agendamento.secretaria_id:
+                sec = db_sql.query(Secretaria).filter(Secretaria.id == agendamento.secretaria_id).first()
+                if sec and "garagem" in sec.nome.lower():
+                    is_garagem = True
+
+            msg = get_confirmed_message(agendamento.assunto, dt_str, is_garagem=is_garagem)
             send_status_sms(agendamento.usuario.telefone, msg)
             
     db_sql.commit()
     db_sql.refresh(agendamento)
     return agendamento
-
 
 CONCURSOS_DOCS_JSON = "uploads/concursos_documentos.json"
 

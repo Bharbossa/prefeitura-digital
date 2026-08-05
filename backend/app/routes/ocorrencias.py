@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Request
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 import os
@@ -63,7 +63,6 @@ async def create_ocorrencia(
     longitude: Optional[float] = Form(None),
     anonima: Optional[bool] = Form(False),
     current_user = Depends(get_current_user),
-    db_sql: Session = Depends(get_db)
 ):
     print(f"DEBUG: Recebendo ocorrência - Lat: {latitude}, Lng: {longitude}")
     UPLOAD_DIR = "uploads"
@@ -146,8 +145,9 @@ async def create_ocorrencia(
 @router.patch("/{id}/status")
 async def update_status(
     id: int, 
-    status: str, 
-    resposta: Optional[str] = None,
+    status: str,
+    request: Request,
+    resposta: Optional[str] = Form(None),
     foto_resolucao: Optional[UploadFile] = File(None),
     current_user = Depends(get_current_admin),
     db_sql: Session = Depends(get_db)
@@ -207,6 +207,53 @@ async def update_status(
         if status_limpo in ["resolvido", "em_atendimento", "cancelado"] and ocorrencia.usuario:
             phone_to_send = ocorrencia.usuario.whatsapp or ocorrencia.usuario.telefone
             should_send = True
+
+        # Ficha Policial Logic
+        form_data = await request.form()
+        has_ficha = form_data.get('has_ficha') == 'true'
+        
+        if has_ficha:
+            from ..models.schema import FichaPolicial
+            ficha = db_sql.query(FichaPolicial).filter(FichaPolicial.ocorrencia_id == id).first()
+            if not ficha:
+                ficha = FichaPolicial(ocorrencia_id=id)
+                db_sql.add(ficha)
+            
+            ficha.data_fato = form_data.get('fp_data_fato')
+            ficha.hora_fato = form_data.get('fp_hora_fato')
+            ficha.hora_registro = form_data.get('fp_hora_registro')
+            ficha.tipo_ocorrencia = form_data.get('fp_tipo_ocorrencia')
+            ficha.tipo_ocorrencia_outro = form_data.get('fp_tipo_ocorrencia_outro')
+            
+            ficha.vitima_nome = form_data.get('fp_vitima_nome')
+            ficha.vitima_cpf_rg = form_data.get('fp_vitima_cpf_rg')
+            ficha.vitima_data_nascimento = form_data.get('fp_vitima_data_nascimento')
+            ficha.vitima_endereco = form_data.get('fp_vitima_endereco')
+            ficha.vitima_telefone = form_data.get('fp_vitima_telefone')
+            
+            ficha.suspeito_nome = form_data.get('fp_suspeito_nome')
+            ficha.suspeito_apelido = form_data.get('fp_suspeito_apelido')
+            ficha.suspeito_cpf_rg = form_data.get('fp_suspeito_cpf_rg')
+            ficha.suspeito_data_nascimento = form_data.get('fp_suspeito_data_nascimento')
+            ficha.suspeito_endereco = form_data.get('fp_suspeito_endereco')
+            ficha.suspeito_caracteristicas = form_data.get('fp_suspeito_caracteristicas')
+            
+            ficha.objetos_envolvidos = form_data.get('fp_objetos_envolvidos')
+            ficha.descricao_detalhada = form_data.get('fp_descricao_detalhada')
+            
+            ficha.uso_algemas = form_data.get('fp_uso_algemas')
+            ficha.uso_algemas_justificativa = form_data.get('fp_uso_algemas_justificativa')
+            ficha.emprego_forca = form_data.get('fp_emprego_forca')
+            ficha.emprego_forca_tipo = form_data.get('fp_emprego_forca_tipo')
+            ficha.emprego_forca_justificativa = form_data.get('fp_emprego_forca_justificativa')
+            
+            ficha.providencias_gcm = form_data.get('fp_providencias_gcm')
+            ficha.agentes_envolvidos = form_data.get('fp_agentes_envolvidos')
+            ficha.viatura = form_data.get('fp_viatura')
+            ficha.encaminhamento = form_data.get('fp_encaminhamento')
+            
+            ficha.agente_responsavel = form_data.get('fp_agente_responsavel')
+            ficha.comandante_geral = form_data.get('fp_comandante_geral')
 
         db_sql.commit()
         

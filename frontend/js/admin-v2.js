@@ -107,13 +107,13 @@ function setupSidebar() {
         <div class="nav-item" onclick="showSection('agendamentos', this)">
             <i class="fa-solid fa-calendar-check"></i><span>Agendamentos</span>
         </div>
-        // <div class="nav-item" onclick="showSection('concursos', this)">
-        //     <i class="fa-solid fa-trophy"></i><span>Concursos</span>
-        // </div>
     `;
 
     if (currentRole === 'admin') {
         html += `
+            <div class="nav-item" onclick="showSection('concursos', this)">
+                <i class="fa-solid fa-trophy"></i><span>Concursos</span>
+            </div>
             <div class="nav-item" onclick="showSection('usuarios', this)">
                 <i class="fa-solid fa-users"></i><span>Gestão de Cidadãos</span>
             </div>
@@ -148,8 +148,12 @@ function setupSidebar() {
         `;
     }
     
-    const isGuarda = user && (user.secretaria_id == 17 || (user.secretaria_nome && user.secretaria_nome.toLowerCase().includes('guarda')));
-    if (currentRole === 'admin' || (currentRole === 'subadmin' && isGuarda)) {
+    const allowedPanicoEmails = ['patrulhamariadapenha.gcm.clp@gmail.com', 'guardamunicipalcolonia@gmail.com'];
+    const userEmail = (user && user.email) ? user.email.toLowerCase().trim() : '';
+    const isPanicoSecretaria = user && (user.secretaria_id == 16 || user.secretaria_id == 17 || (user.secretaria_nome && (user.secretaria_nome.toLowerCase().includes('mulher') || user.secretaria_nome.toLowerCase().includes('guarda') || user.secretaria_nome.toLowerCase().includes('patrulha'))));
+    const isPanicoAdmin = user && (allowedPanicoEmails.map(e => e.toLowerCase()).includes(userEmail) || isPanicoSecretaria);
+    
+    if (currentRole === 'admin' || (currentRole === 'subadmin' && isPanicoAdmin)) {
         html += `
             <div class="nav-item" onclick="showSection('gestao-panico', this)">
                 <i class="fa-solid fa-triangle-exclamation"></i><span>Botão do Pânico</span>
@@ -189,9 +193,12 @@ function showSection(sectionId, element) {
     }
 
     if (sectionId === 'gestao-panico') {
-        const isGuarda = user && (user.secretaria_id == 17 || (user.secretaria_nome && user.secretaria_nome.toLowerCase().includes('guarda')));
-        if (currentRole !== 'admin' && !isGuarda) {
-            alert("Acesso restrito à Guarda Municipal.");
+        const allowedPanicoEmails = ['patrulhamariadapenha.gcm.clp@gmail.com', 'guardamunicipalcolonia@gmail.com'];
+        const userEmail = (user && user.email) ? user.email.toLowerCase().trim() : '';
+        const isPanicoSecretaria = user && (user.secretaria_id == 16 || user.secretaria_id == 17 || (user.secretaria_nome && (user.secretaria_nome.toLowerCase().includes('mulher') || user.secretaria_nome.toLowerCase().includes('guarda') || user.secretaria_nome.toLowerCase().includes('patrulha'))));
+        const isPanicoAdmin = user && (allowedPanicoEmails.map(e => e.toLowerCase()).includes(userEmail) || isPanicoSecretaria);
+        if (currentRole !== 'admin' && !isPanicoAdmin) {
+            alert("Acesso restrito.");
             return;
         }
     }
@@ -236,9 +243,11 @@ function showSection(sectionId, element) {
     if (sectionId === 'mapas') {
         loadHeatmap();
         loadBairrosChart();
+        loadUserHeatmap();
         // Give time for DOM to render the block to invalidate Leaflet size
         setTimeout(() => {
             if (adminHeatmap) adminHeatmap.invalidateSize();
+            if (userHeatmap) userHeatmap.invalidateSize();
         }, 100);
     }
     if (sectionId === 'avisos') loadAvisosAdmin();
@@ -277,6 +286,11 @@ async function loadDashboard() {
         
         // Recent Activity (just reuse occurrences for now)
         loadRecentActivity();
+
+        // Load Maps and Bairros metrics on main dashboard
+        loadHeatmap();
+        loadBairrosChart();
+        loadUserHeatmap();
     } catch(e) { console.error(e); }
 }
 
@@ -352,7 +366,144 @@ async function loadHeatmap() {
     } catch (e) { console.error("Erro heatmap:", e); }
 }
 
+let userHeatmap = null;
+async function loadUserHeatmap() {
+    const mapDiv = document.getElementById('userHeatmapAdminDiv');
+    if (!mapDiv) return;
+
+    if (!userHeatmap) {
+        userHeatmap = L.map('userHeatmapAdminDiv').setView([-8.9048, -35.7297], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap'
+        }).addTo(userHeatmap);
+    }
+
+    try {
+        let res = await fetch(`${ADMIN_API}/metrics/users-heatmap`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        
+        let data = null;
+        if (res.ok) {
+            data = await res.json();
+        } else {
+            const resBairro = await fetch(`${ADMIN_API}/metrics/users-bairro`, {
+                headers: { 'Authorization': `Bearer ${getToken()}` }
+            });
+            if (resBairro.ok) {
+                const rawBairros = await resBairro.json();
+                const list = Array.isArray(rawBairros) ? rawBairros : (rawBairros.bairros || []);
+                const totalSum = list.reduce((acc, item) => acc + (item.total || 0), 0);
+                
+                const base_coords = {
+                    "Belo Jardim": [-8.9055, -35.7280],
+                    "Vila Nova": [-8.9020, -35.7320],
+                    "Centro": [-8.9048, -35.7297],
+                    "Loteamento Belo Jardim": [-8.9070, -35.7260],
+                    "Santa Luzia": [-8.9100, -35.7350],
+                    "Boa Vista": [-8.8980, -35.7250],
+                    "Maria Loureiro": [-8.9080, -35.7310],
+                    "Teódulo Augusto": [-8.9030, -35.7275],
+                    "Durval Gonçalves": [-8.9060, -35.7305]
+                };
+                
+                const localidades = [];
+                const heat_points = [];
+                
+                list.forEach((item, idx) => {
+                    const name = item.endereco || 'Desconhecido';
+                    let lat = -8.9048 + (Math.sin(idx + 1) * 0.003);
+                    let lng = -35.7297 + (Math.cos(idx + 1) * 0.003);
+                    
+                    for (let k in base_coords) {
+                        if (name.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(name.toLowerCase())) {
+                            lat = base_coords[k][0];
+                            lng = base_coords[k][1];
+                            break;
+                        }
+                    }
+                    
+                    localidades.push({ name, lat, lng, total: item.total });
+                    for (let i = 0; i < item.total; i++) {
+                        heat_points.push({ lat: lat + ((Math.random() - 0.5) * 0.0015), lng: lng + ((Math.random() - 0.5) * 0.0015), weight: 1 });
+                    }
+                });
+                
+                data = {
+                    localidades,
+                    heat_points,
+                    total_cadastrados: totalSum
+                };
+            }
+        }
+
+        if (!data) return;
+
+        const totalSpan = document.getElementById('totalCidadaosMapa');
+        if (totalSpan) {
+            totalSpan.innerText = `${data.total_cadastrados || 0} Cidadãos`;
+        }
+
+        userHeatmap.eachLayer((layer) => {
+            if (layer._heat || layer instanceof L.Marker || (layer.options && layer.options.gradient)) {
+                userHeatmap.removeLayer(layer);
+            }
+        });
+
+        if (data.heat_points && data.heat_points.length > 0) {
+            const heatData = data.heat_points.map(p => [p.lat, p.lng, (p.weight || 1) * 3.5]);
+            L.heatLayer(heatData, { 
+                radius: 30, 
+                blur: 15, 
+                maxZoom: 17,
+                gradient: { 0.2: '#00ff88', 0.5: '#ffff00', 0.8: '#ff5500', 1.0: '#ff0000' }
+            }).addTo(userHeatmap);
+        }
+
+        const markers = [];
+        if (data.localidades && data.localidades.length > 0) {
+            data.localidades.forEach(loc => {
+                if (!loc.lat || !loc.lng) return;
+                
+                const iconHtml = `
+                    <div style="background: #10b981; color: white; font-weight: 700; border-radius: 20px; padding: 4px 10px; display: flex; align-items: center; justify-content: center; gap: 4px; border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.4); font-size: 0.8rem; white-space: nowrap;">
+                        <i class="fa-solid fa-users"></i> <span>${loc.name}: <b>${loc.total}</b></span>
+                    </div>
+                `;
+                
+                const customIcon = L.divIcon({
+                    className: 'custom-user-locality-badge',
+                    html: iconHtml,
+                    iconSize: [120, 30],
+                    iconAnchor: [60, 15]
+                });
+                
+                const marker = L.marker([loc.lat, loc.lng], { icon: customIcon }).addTo(userHeatmap);
+                marker.bindPopup(`
+                    <div style="text-align: center; padding: 4px;">
+                        <h4 style="margin: 0 0 6px 0; color: #10b981;"><i class="fa-solid fa-location-dot"></i> ${loc.name}</h4>
+                        <p style="margin: 0; font-size: 0.9rem;">👥 <b>${loc.total}</b> pessoa(s) cadastrada(s)</p>
+                    </div>
+                `);
+                markers.push(marker);
+            });
+            
+            if (markers.length > 0) {
+                const group = new L.featureGroup(markers);
+                userHeatmap.fitBounds(group.getBounds(), { padding: [40, 40] });
+            }
+        }
+
+        setTimeout(() => {
+            if (userHeatmap) userHeatmap.invalidateSize();
+        }, 200);
+    } catch (e) { console.error("Erro mapa de usuarios:", e); }
+}
+
 let bairrosChart = null;
+let bairrosChartRawData = { bairros: [], ruas: [] };
+let activeBairroMode = 'bairros';
+
 async function loadBairrosChart() {
     try {
         const res = await fetch(`${ADMIN_API}/metrics/users-bairro`, {
@@ -361,33 +512,82 @@ async function loadBairrosChart() {
         if (!res.ok) return;
         const data = await res.json();
         
-        const ctx = document.getElementById('bairrosChart').getContext('2d');
-        if (bairrosChart) bairrosChart.destroy();
-
-        const topData = data.slice(0, 10); // Mostra Top 10 para não quebrar gráfico
-
-        bairrosChart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: topData.map(d => d.endereco.substring(0, 15) + (d.endereco.length > 15 ? '...' : '')),
-                datasets: [{
-                    label: 'Cidadãos',
-                    data: topData.map(d => d.total),
-                    backgroundColor: '#3b82f6',
-                    borderRadius: 4
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, ticks: { precision: 0 } },
-                    x: { ticks: { maxRotation: 45, minRotation: 45 } }
-                }
-            }
-        });
+        if (Array.isArray(data)) {
+            bairrosChartRawData = { bairros: data, ruas: data };
+        } else {
+            bairrosChartRawData = data;
+        }
+        
+        if (!bairrosChartRawData.ruas || !bairrosChartRawData.ruas.length) {
+            bairrosChartRawData.ruas = bairrosChartRawData.bairros || [];
+        }
+        
+        renderBairrosChart(activeBairroMode);
     } catch(e) { console.error("Erro grafico bairros:", e); }
+}
+
+function switchBairrosChart(mode) {
+    activeBairroMode = mode;
+    const btnBairro = document.getElementById('btnBairro');
+    const btnRua = document.getElementById('btnRua');
+    
+    if (btnBairro && btnRua) {
+        if (mode === 'bairros') {
+            btnBairro.className = 'btn btn-sm btn-primary';
+            btnRua.className = 'btn btn-sm btn-outline';
+        } else {
+            btnBairro.className = 'btn btn-sm btn-outline';
+            btnRua.className = 'btn btn-sm btn-primary';
+        }
+    }
+    
+    renderBairrosChart(mode);
+}
+
+function renderBairrosChart(mode) {
+    let list = (bairrosChartRawData && bairrosChartRawData[mode]) ? bairrosChartRawData[mode] : [];
+    if (!list.length && bairrosChartRawData && bairrosChartRawData.bairros) {
+        list = bairrosChartRawData.bairros;
+    }
+    const topData = list.slice(0, 10);
+
+    const canvas = document.getElementById('bairrosChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (bairrosChart) bairrosChart.destroy();
+
+    bairrosChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: topData.map(d => d.endereco.length > 18 ? d.endereco.substring(0, 18) + '...' : d.endereco),
+            datasets: [{
+                label: mode === 'bairros' ? 'Cidadãos por Bairro' : 'Cidadãos por Rua',
+                data: topData.map(d => d.total),
+                backgroundColor: '#3b82f6',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: (items) => {
+                            if (!items || !items.length) return '';
+                            const idx = items[0].dataIndex;
+                            return topData[idx]?.endereco || '';
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: { beginAtZero: true, ticks: { precision: 0 } },
+                x: { ticks: { maxRotation: 45, minRotation: 45 } }
+            }
+        }
+    });
 }
 
 
@@ -488,41 +688,104 @@ function renderDashboardChart(oc) {
 
 async function loadRecentActivity() {
     try {
-        const res = await fetch(`${API_URL}/ocorrencias`, {
-            headers: { 'Authorization': `Bearer ${getToken()}` }
-        });
-        if (res.ok) {
-            let list = await res.json();
-            // Filter by sec if subadmin
-            if (currentSecId) list = list.filter(o => parseInt(o.secretaria_id) === parseInt(currentSecId));
-            
-            const container = document.getElementById('recentActivity');
-            container.innerHTML = '';
-            
-            if (list.length === 0) {
-                container.innerHTML = '<p style="text-align:center; color: var(--text-muted); padding: 3rem 0; font-size: 1.1rem;"><i class="fa-solid fa-inbox fa-2x" style="display:block; margin-bottom: 1rem; color: #cbd5e1;"></i>Nenhuma solicitação recente.</p>';
-                return;
-            }
-            
-            list.slice(0, 5).forEach(o => {
-                const s = o.status.toLowerCase();
-                const statusType = s === 'resolvido' ? 'done' : (s === 'em_atendimento' ? 'progress' : 'pending');
-                container.innerHTML += `
-                    <div style="padding: 1rem 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
-                        <div>
-                            <div style="font-weight: 600; font-size: 0.9rem;">${o.titulo}</div>
-                            <div style="font-size: 0.8rem; color: var(--text-muted);">#${o.protocolo || o.id} • ${new Date(o.data).toLocaleDateString()}${o.usuario_nome ? ' • Cidadão: ' + o.usuario_nome : ''}</div>
-                            ${o.latitude != null && o.longitude != null ? `<a href="javascript:void(0)" onclick="openAdminMap('${o.latitude}', '${o.longitude}', '${encodeURIComponent(o.titulo)}')" style="color: #10b981; font-weight: 600; text-decoration: none; font-size: 0.75rem; display: inline-block; margin-top: 2px;"><i class="fa-solid fa-location-dot"></i> Ver no Mapa</a>` : ''}
-                        </div>
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <span class="badge badge-${statusType}">${o.status}</span>
-                            ${o.latitude && o.longitude ? `<button class="btn btn-outline" title="Ver no Mapa" style="border-color: #10b981; color: #10b981; padding: 4px 10px; font-size: 0.75rem;" onclick="openAdminMap('${o.latitude}', '${o.longitude}', '${encodeURIComponent(o.titulo)}')"><i class="fa-solid fa-location-dot"></i></button>` : ''}
-                            ${currentRole==='admin' && s !== 'resolvido' ? `<button class="btn" style="background-color: #ef4444; color: white; border: none; font-weight: bold; margin-left: 8px; padding: 4px 10px; border-radius: 6px; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4); display: flex; align-items: center; gap: 5px; font-size: 0.75rem;" title="Cobrar Secretaria URGENTE" onclick="cobrarSecretaria('${o.id}')"><i class="fa-solid fa-bell fa-shake"></i> Cobrar</button>` : ''}
-                        </div>
-                    </div>
-                `;
+        const headers = { 'Authorization': `Bearer ${getToken()}` };
+        const [resOcorrencias, resAgendamentos] = await Promise.all([
+            fetch(`${API_URL}/ocorrencias`, { headers }).catch(() => null),
+            fetch(`${API_URL}/agendamentos`, { headers }).catch(() => null)
+        ]);
+
+        let items = [];
+
+        if (resOcorrencias && resOcorrencias.ok) {
+            let listOcorrencias = await resOcorrencias.json();
+            if (currentSecId) listOcorrencias = listOcorrencias.filter(o => parseInt(o.secretaria_id) === parseInt(currentSecId));
+            listOcorrencias.forEach(o => {
+                items.push({
+                    type: 'ocorrencia',
+                    id: o.id,
+                    titulo: o.titulo,
+                    protocolo: o.protocolo || o.id,
+                    dataRaw: o.data,
+                    usuario_nome: o.usuario_nome,
+                    status: o.status,
+                    latitude: o.latitude,
+                    longitude: o.longitude
+                });
             });
         }
+
+        if (resAgendamentos && resAgendamentos.ok) {
+            let listAgendamentos = await resAgendamentos.json();
+            const userInfo = getUserInfo();
+            if (userInfo && userInfo.email === 'denilmalucass@gmail.com') {
+                listAgendamentos = listAgendamentos.filter(a => a.assunto && a.assunto.toUpperCase().includes('HOSPITAL MARIA LOUREIRO'));
+            } else if (userInfo && userInfo.email === 'ana.gabriela_2@hotmail.com') {
+                listAgendamentos = listAgendamentos.filter(a => (a.assunto && a.assunto.toUpperCase().includes('BELO JARDIM')) || (a.posto && a.posto.toUpperCase().includes('BELO JARDIM')));
+            } else if (userInfo && userInfo.email === 'cassianub12@icloud.com') {
+                listAgendamentos = listAgendamentos.filter(a => (a.assunto && a.assunto.toUpperCase().includes('DANIEL MONTEIRO')) || (a.posto && a.posto.toUpperCase().includes('DANIEL MONTEIRO')));
+            } else if (userInfo && userInfo.email === 'flaviadanielly381@gmail.com') {
+                listAgendamentos = listAgendamentos.filter(a => (a.assunto && a.assunto.toUpperCase().includes('ADAMOR')) || (a.posto && a.posto.toUpperCase().includes('ADAMOR')));
+            } else if (userInfo && userInfo.email === 'vivianlmk@hotmail.com') {
+                listAgendamentos = listAgendamentos.filter(a => (a.assunto && a.assunto.toUpperCase().includes('LUIZ LESSA')) || (a.posto && a.posto.toUpperCase().includes('LUIZ LESSA')));
+            } else if (userInfo && userInfo.email === 'ketlinandrade01@icloud.com') {
+                listAgendamentos = listAgendamentos.filter(a => (a.assunto && a.assunto.toUpperCase().includes('VILA NOVA')) || (a.posto && a.posto.toUpperCase().includes('VILA NOVA')));
+            } else if (userInfo && userInfo.email === 'trajanojuliana17@gmail.com') {
+                listAgendamentos = listAgendamentos.filter(a => (a.assunto && a.assunto.toUpperCase().includes('TAQUARA')) || (a.posto && a.posto.toUpperCase().includes('TAQUARA')));
+            } else if (userInfo && userInfo.email === 'arianacarater@gmail.com') {
+                listAgendamentos = listAgendamentos.filter(a => (a.assunto && a.assunto.toUpperCase().includes('ACIOLY')) || (a.posto && a.posto.toUpperCase().includes('ACIOLY')));
+            } else if (userInfo && userInfo.email === 'vanuzasoares667@gmail.com') {
+                listAgendamentos = listAgendamentos.filter(a => (a.assunto && (a.assunto.toUpperCase().includes('POSTO CENTRO') || a.assunto.toUpperCase().includes('PSF 02'))) || (a.posto && (a.posto.toUpperCase().includes('CENTRO') || a.posto.toUpperCase().includes('PSF 02'))));
+            } else if (currentSecId) {
+                listAgendamentos = listAgendamentos.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
+            }
+            listAgendamentos.forEach(a => {
+                items.push({
+                    type: 'agendamento',
+                    id: a.id,
+                    titulo: a.assunto || `Agendamento - ${a.tipo || 'Geral'}`,
+                    protocolo: a.protocolo || a.id,
+                    dataRaw: a.data || a.created_at,
+                    usuario_nome: a.usuario_nome,
+                    status: a.status
+                });
+            });
+        }
+
+        // Order by date descending
+        items.sort((a, b) => new Date(b.dataRaw) - new Date(a.dataRaw));
+
+        const container = document.getElementById('recentActivity');
+        container.innerHTML = '';
+
+        if (items.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color: var(--text-muted); padding: 3rem 0; font-size: 1.1rem;"><i class="fa-solid fa-inbox fa-2x" style="display:block; margin-bottom: 1rem; color: #cbd5e1;"></i>Nenhuma solicitação recente.</p>';
+            return;
+        }
+
+        items.slice(0, 6).forEach(item => {
+            const s = (item.status || '').toLowerCase();
+            const statusType = (s === 'resolvido' || s === 'concluido' || s === 'atendido' || s === 'confirmado') ? 'done' : (s === 'em_atendimento' || s === 'em andamento' ? 'progress' : 'pending');
+            const typeLabel = item.type === 'agendamento' ? '<span style="background: rgba(59, 130, 246, 0.15); color: #3b82f6; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-right: 6px;">Agendamento</span>' : '<span style="background: rgba(16, 185, 129, 0.15); color: #10b981; font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; font-weight: 600; margin-right: 6px;">Ocorrência</span>';
+
+            const dateStr = item.dataRaw ? new Date(item.dataRaw).toLocaleDateString() : '';
+
+            container.innerHTML += `
+                <div style="padding: 1rem 0; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 600; font-size: 0.9rem; display: flex; align-items: center; gap: 4px;">
+                            ${typeLabel} ${item.titulo}
+                        </div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 2px;">#${item.protocolo} • ${dateStr}${item.usuario_nome ? ' • Cidadão: ' + item.usuario_nome : ''}</div>
+                        ${item.latitude != null && item.longitude != null ? `<a href="javascript:void(0)" onclick="openAdminMap('${item.latitude}', '${item.longitude}', '${encodeURIComponent(item.titulo)}')" style="color: #10b981; font-weight: 600; text-decoration: none; font-size: 0.75rem; display: inline-block; margin-top: 2px;"><i class="fa-solid fa-location-dot"></i> Ver no Mapa</a>` : ''}
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span class="badge badge-${statusType}">${item.status}</span>
+                        ${item.latitude && item.longitude ? `<button class="btn btn-outline" title="Ver no Mapa" style="border-color: #10b981; color: #10b981; padding: 4px 10px; font-size: 0.75rem;" onclick="openAdminMap('${item.latitude}', '${item.longitude}', '${encodeURIComponent(item.titulo)}')"><i class="fa-solid fa-location-dot"></i></button>` : ''}
+                        ${item.type === 'ocorrencia' && currentRole==='admin' && s !== 'resolvido' ? `<button class="btn" style="background-color: #ef4444; color: white; border: none; font-weight: bold; margin-left: 8px; padding: 4px 10px; border-radius: 6px; box-shadow: 0 2px 5px rgba(239, 68, 68, 0.4); display: flex; align-items: center; gap: 5px; font-size: 0.75rem;" title="Cobrar Secretaria URGENTE" onclick="cobrarSecretaria('${item.id}')"><i class="fa-solid fa-bell fa-shake"></i> Cobrar</button>` : ''}
+                    </div>
+                </div>
+            `;
+        });
     } catch(e) { console.error(e); }
 }
 
@@ -561,8 +824,9 @@ async function loadOcorrencias() {
 
             list.forEach(o => {
                 const s = o.status.toLowerCase();
+                const isGCM = o.secretaria_nome && (o.secretaria_nome.toLowerCase().includes('guarda') || o.secretaria_nome.toLowerCase().includes('gcm') || o.secretaria_nome.toLowerCase().includes('segurança') || o.secretaria_nome.toLowerCase().includes('seguranca'));
                 const printBtn = `<button class="btn btn-outline" title="Imprimir" onclick="imprimirProtocolo('${o.id}')"><i class="fa-solid fa-print"></i></button>`;
-                const updateBtn = s === 'resolvido' ? '' : `<button class="btn btn-primary" onclick="openResponseModal('${o.id}', '${o.titulo}')">Atualizar</button>`;
+                const updateBtn = (s === 'resolvido' && !isGCM) ? '' : `<button class="btn btn-primary" onclick="openResponseModal('${o.id}', '${encodeURIComponent(o.titulo)}', '${encodeURIComponent(o.secretaria_nome || '')}')">${s === 'resolvido' ? 'Preencher Ficha' : 'Atualizar'}</button>`;
                 const statusBtn = `<div style="display: flex; gap: 5px;">${printBtn}${updateBtn}</div>`;
 
                 html += `
@@ -600,10 +864,42 @@ async function loadOcorrencias() {
 
 // ... Additional list loaders (Agendamentos, Users, Admins, Logs) follow similar patterns ...
 
-function openResponseModal(id, title) {
+function openResponseModal(id, title, secNome = '') {
+    if (title.includes('%')) title = decodeURIComponent(title);
+    if (secNome.includes('%')) secNome = decodeURIComponent(secNome);
+
     document.getElementById('modalResponseTitle').innerText = `Atualizar #${id}`;
     document.getElementById('modalResponseSubtitle').innerText = title;
     document.getElementById('respText').value = "";
+    
+    const fichaContainer = document.getElementById('fichaPolicialContainer');
+    const printBtn = document.getElementById('btnPrintFicha');
+    
+    if (fichaContainer) {
+        if (secNome.toLowerCase().includes('guarda') || secNome.toLowerCase().includes('gcm') || secNome.toLowerCase().includes('segurança') || secNome.toLowerCase().includes('seguranca')) {
+            fichaContainer.style.display = 'block';
+            fichaContainer.dataset.hasFicha = 'true';
+            const modalBox = document.getElementById('modalResponseCard');
+            if (modalBox) {
+                modalBox.style.maxWidth = window.innerWidth > 768 ? 'calc(100% - 300px)' : '95%';
+                modalBox.style.marginLeft = window.innerWidth > 768 ? '280px' : '0';
+            }
+            if (printBtn) {
+                printBtn.style.display = 'block';
+                printBtn.onclick = () => imprimirFichaPolicial(id);
+            }
+        } else {
+            fichaContainer.style.display = 'none';
+            fichaContainer.dataset.hasFicha = 'false';
+            const modalBox = document.getElementById('modalResponseCard');
+            if (modalBox) {
+                modalBox.style.maxWidth = '600px';
+                modalBox.style.marginLeft = '0';
+            }
+            if (printBtn) printBtn.style.display = 'none';
+        }
+    }
+
     document.getElementById('modalResponse').style.display = 'flex';
     
     document.getElementById('btnConfirmResp').onclick = () => confirmResolution(id);
@@ -622,6 +918,22 @@ async function confirmResolution(id) {
     }
     const selStatus = document.getElementById('respStatus') ? document.getElementById('respStatus').value : 'resolvido';
     
+    const fichaContainer = document.getElementById('fichaPolicialContainer');
+    if (fichaContainer && fichaContainer.dataset.hasFicha === 'true') {
+        formData.append('has_ficha', 'true');
+        
+        const textFields = ['fp_data_fato', 'fp_hora_fato', 'fp_hora_registro', 'fp_tipo_ocorrencia_outro', 'fp_vitima_nome', 'fp_vitima_cpf_rg', 'fp_vitima_data_nascimento', 'fp_vitima_endereco', 'fp_vitima_telefone', 'fp_suspeito_nome', 'fp_suspeito_apelido', 'fp_suspeito_cpf_rg', 'fp_suspeito_data_nascimento', 'fp_suspeito_endereco', 'fp_suspeito_caracteristicas', 'fp_objetos_envolvidos', 'fp_descricao_detalhada', 'fp_uso_algemas', 'fp_uso_algemas_justificativa', 'fp_emprego_forca', 'fp_emprego_forca_tipo', 'fp_emprego_forca_justificativa', 'fp_providencias_gcm', 'fp_agentes_envolvidos', 'fp_viatura', 'fp_encaminhamento', 'fp_agente_responsavel', 'fp_comandante_geral'];
+        
+        textFields.forEach(field => {
+            const el = document.getElementById(field);
+            if (el) formData.append(field, el.value);
+        });
+        
+        // Handle radio button for tipo_ocorrencia
+        const tipoRadio = document.querySelector('input[name="fp_tipo_ocorrencia"]:checked');
+        if (tipoRadio) formData.append('fp_tipo_ocorrencia', tipoRadio.value);
+    }
+    
     try {
         const res = await fetch(`${API_URL}/ocorrencias/${id}/status?status=${selStatus}`, {
             method: 'PATCH',
@@ -631,6 +943,15 @@ async function confirmResolution(id) {
         if (res.ok) {
             closeModal('modalResponse');
             if (document.getElementById('respFoto')) document.getElementById('respFoto').value = "";
+            
+            // Clear ficha fields
+            if (fichaContainer) {
+                const inputs = fichaContainer.querySelectorAll('input[type="text"], input[type="date"], input[type="time"], textarea, select');
+                inputs.forEach(i => i.value = '');
+                const radios = fichaContainer.querySelectorAll('input[type="radio"]');
+                radios.forEach(r => r.checked = false);
+            }
+
             loadOcorrencias();
             loadDashboard();
             alert("Resposta enviada com sucesso!");
@@ -638,7 +959,7 @@ async function confirmResolution(id) {
             const err = await res.json().catch(() => ({}));
             alert("Erro ao resolver: " + (err.detail || res.statusText));
         }
-} catch(e) { alert("Erro de conexão: " + e.message); }
+    } catch(e) { alert("Erro de conexão: " + e.message); }
 }
 
 async function deletarOcorrencia(id) {
@@ -763,6 +1084,22 @@ async function loadAgendamentos() {
             const userInfo = getUserInfo();
             if (userInfo && userInfo.email === 'denilmalucass@gmail.com') {
                 list = list.filter(a => a.assunto && a.assunto.toUpperCase().includes('HOSPITAL MARIA LOUREIRO'));
+            } else if (userInfo && userInfo.email === 'ana.gabriela_2@hotmail.com') {
+                list = list.filter(a => (a.assunto && a.assunto.toUpperCase().includes('BELO JARDIM')) || (a.posto && a.posto.toUpperCase().includes('BELO JARDIM')));
+            } else if (userInfo && userInfo.email === 'cassianub12@icloud.com') {
+                list = list.filter(a => (a.assunto && a.assunto.toUpperCase().includes('DANIEL MONTEIRO')) || (a.posto && a.posto.toUpperCase().includes('DANIEL MONTEIRO')));
+            } else if (userInfo && userInfo.email === 'flaviadanielly381@gmail.com') {
+                list = list.filter(a => (a.assunto && a.assunto.toUpperCase().includes('ADAMOR')) || (a.posto && a.posto.toUpperCase().includes('ADAMOR')));
+            } else if (userInfo && userInfo.email === 'vivianlmk@hotmail.com') {
+                list = list.filter(a => (a.assunto && a.assunto.toUpperCase().includes('LUIZ LESSA')) || (a.posto && a.posto.toUpperCase().includes('LUIZ LESSA')));
+            } else if (userInfo && userInfo.email === 'ketlinandrade01@icloud.com') {
+                list = list.filter(a => (a.assunto && a.assunto.toUpperCase().includes('VILA NOVA')) || (a.posto && a.posto.toUpperCase().includes('VILA NOVA')));
+            } else if (userInfo && userInfo.email === 'trajanojuliana17@gmail.com') {
+                list = list.filter(a => (a.assunto && a.assunto.toUpperCase().includes('TAQUARA')) || (a.posto && a.posto.toUpperCase().includes('TAQUARA')));
+            } else if (userInfo && userInfo.email === 'arianacarater@gmail.com') {
+                list = list.filter(a => (a.assunto && a.assunto.toUpperCase().includes('ACIOLY')) || (a.posto && a.posto.toUpperCase().includes('ACIOLY')));
+            } else if (userInfo && userInfo.email === 'vanuzasoares667@gmail.com') {
+                list = list.filter(a => (a.assunto && (a.assunto.toUpperCase().includes('POSTO CENTRO') || a.assunto.toUpperCase().includes('PSF 02'))) || (a.posto && (a.posto.toUpperCase().includes('CENTRO') || a.posto.toUpperCase().includes('PSF 02'))));
             } else if (currentSecId) {
                 list = list.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
             }
@@ -1126,20 +1463,28 @@ async function imprimirAgendamento(id) {
                 <head>
                     <title>${titleText} - ${a.protocolo || a.id}</title>
                     <style>
-                        body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; color: #1e293b; }
-                        .header { text-align: center; margin-bottom: 40px; border-bottom: 4px solid #10b981; padding-bottom: 20px; }
-                        .content { background: #f8fafc; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; }
-                        .row { display: flex; margin-bottom: 15px; }
-                        .label { width: 140px; font-weight: 700; color: #64748b; }
-                        .stamp { margin-top: 40px; text-align: right; }
-                        .badge { padding: 10px 20px; border: 2px solid ${stampColor}; color: ${stampColor}; font-weight: 800; border-radius: 8px; display: inline-block; transform: rotate(-5deg); }
-                        @media print { .no-print { display: none; } }
+                        @page { size: A4 portrait; margin: 10mm; }
+                        body { font-family: 'Inter', sans-serif; padding: 15px; line-height: 1.35; color: #1e293b; font-size: 0.9rem; margin: 0; }
+                        .header { text-align: center; margin-bottom: 15px; border-bottom: 3px solid #10b981; padding-bottom: 10px; }
+                        .header img { max-height: 120px; max-width: 100%; object-fit: contain; margin-bottom: 0.5rem; }
+                        .header h1 { font-size: 1.3rem; margin: 5px 0; }
+                        .header p { font-size: 0.8rem; margin: 0; }
+                        .content { background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; }
+                        .row { display: flex; margin-bottom: 8px; align-items: flex-start; }
+                        .label { width: 140px; font-weight: 700; color: #64748b; font-size: 0.85rem; }
+                        .stamp { margin-top: 15px; text-align: right; }
+                        .badge { padding: 6px 14px; border: 2px solid ${stampColor}; color: ${stampColor}; font-weight: 800; border-radius: 6px; display: inline-block; transform: rotate(-3deg); font-size: 0.85rem; }
+                        @media print { 
+                            .no-print { display: none !important; } 
+                            body { padding: 0; }
+                            .content { background: #ffffff !important; border: 1px solid #cbd5e1 !important; }
+                        }
                     </style>
                 </head>
                 <body>
                     <div class="header">
-                        <img src="images/logo-prefeitura.png" alt="Logo Prefeitura" style="max-height: 220px; max-width: 100%; object-fit: contain; margin-bottom: 1.5rem;"><br>
-                        ${isCulturaEsporte ? `<img src="imagens/logo-cultura-esporte.png" alt="Logo Cultura" style="max-height: 150px; margin-bottom: 1rem;"><br>` : ''}
+                        <img src="images/logo-prefeitura.png" alt="Logo Prefeitura"><br>
+                        ${isCulturaEsporte ? `<img src="imagens/logo-cultura-esporte.png" alt="Logo Cultura" style="max-height: 90px; margin-bottom: 0.5rem;"><br>` : ''}
                         <h1>${iconHeader} ${titleText}</h1>
                         <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA - AL</p>
                     </div>
@@ -1154,8 +1499,68 @@ async function imprimirAgendamento(id) {
                         ${a.motivo ? `<div class="row" style="white-space: pre-line;"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
                         ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
                         ${a.acompanhante ? `<div class="row"><span class="label">ACOMPANHANTE:</span> ${a.acompanhante}</div>` : ''}
-                        <div class="row" style="background: #f1f5f9; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;"><span class="label">${dateLabel}</span> <strong style="font-size: 1.2rem; color: #1e293b;">${(() => { const d = new Date(a.data_hora); const od = { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' }; const ot = { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }; return d.toLocaleDateString('pt-BR', od) + ' às ' + d.toLocaleTimeString('pt-BR', ot) + ' (Horário de Brasília)'; })()}</strong></div>
+                        <div class="row" style="background: #f1f5f9; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                            <span class="label">${dateLabel}</span> 
+                            <div style="flex: 1;">
+                                <strong style="font-size: 1.2rem; color: #1e293b;">${(() => { const d = new Date(a.data_hora); const od = { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' }; const ot = { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false }; return d.toLocaleDateString('pt-BR', od) + ' às ' + d.toLocaleTimeString('pt-BR', ot) + ' (Horário de Brasília)'; })()}</strong>
+                                ${(() => {
+                                    const tipoStr = (a.tipo || '').toLowerCase();
+                                    const assuntoStr = (a.assunto || '').toLowerCase();
+                                    const secStr = (secretariaNomeStr || '').toLowerCase();
+                                    const isMaquina = tipoStr.includes('máquina') || tipoStr.includes('maquina') || tipoStr.includes('trator') || tipoStr.includes('açude') || tipoStr.includes('estrada') || assuntoStr.includes('maquina') || assuntoStr.includes('máquina') || assuntoStr.includes('trator') || assuntoStr.includes('arado') || assuntoStr.includes('açude') || assuntoStr.includes('barreiro');
+                                    const isAgricultura = secStr.includes('agricultura') || isMaquina;
+                                    if (isAgricultura) {
+                                        return `<div style="color: #dc2626; font-weight: 800; font-size: 0.9rem; margin-top: 4px; text-transform: uppercase;">⚠️ SUJEITO A ALTERAÇÃO DE DATA DE ACORDO COM AS MANUTENÇÕES EM MAQUINAS</div>`;
+                                    }
+                                    return '';
+                                })()}
+                            </div>
+                        </div>
                         <div class="row"><span class="label">SITUAÇÃO:</span> <strong style="color: ${statusColor};">${statusText}</strong></div>
+                        ${(() => {
+                            const tipoStr = (a.tipo || '').toLowerCase();
+                            const assuntoStr = (a.assunto || '').toLowerCase();
+                            const secStr = (secretariaNomeStr || '').toLowerCase();
+                            const isViagem = tipoStr.includes('viagem') || tipoStr.includes('marcação de viagem') || assuntoStr.includes('viagem');
+                            const isGaragem = secStr.includes('garagem') || a.secretaria_id == 22 || isViagem;
+                            const isMaquina = tipoStr.includes('máquina') || tipoStr.includes('maquina') || tipoStr.includes('trator') || tipoStr.includes('açude') || tipoStr.includes('estrada') || assuntoStr.includes('maquina') || assuntoStr.includes('máquina') || assuntoStr.includes('trator') || assuntoStr.includes('arado') || assuntoStr.includes('açude') || assuntoStr.includes('barreiro');
+                            const isAgricultura = secStr.includes('agricultura') || isMaquina;
+                            const isConfirmado = a.status && a.status.toLowerCase() === 'confirmado';
+
+                            let avisoHtml = '';
+                            if (isGaragem && isViagem && isConfirmado) {
+                                avisoHtml += `
+                                    <div style="background: #fef2f2; border: 2px dashed #ef4444; border-radius: 12px; padding: 18px 24px; margin-top: 20px; margin-bottom: 10px; text-align: center; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.1);">
+                                        <strong style="color: #dc2626; font-size: 1.2rem; display: block; margin-bottom: 6px; text-transform: uppercase;">
+                                            ⚠️ ATENÇÃO - CONFIRMAÇÃO DE VIAGEM OBRIGATÓRIA
+                                        </strong>
+                                        <span style="color: #991b1b; font-weight: 700; font-size: 1.05rem; line-height: 1.5; display: block;">
+                                            O CIDADÃO DEVE COMPARECER À GARAGEM MUNICIPAL PARA CONFIRMAR SUA VIAGEM!
+                                        </span>
+                                    </div>
+                                `;
+                            }
+
+                            if (isAgricultura) {
+                                avisoHtml += `
+                                    <div style="background: #f0fdf4; border: 2px dashed #16a34a; border-radius: 12px; padding: 18px 24px; margin-top: 20px; margin-bottom: 10px; text-align: center; box-shadow: 0 2px 8px rgba(22, 163, 74, 0.1);">
+                                        <strong style="color: #15803d; font-size: 1.2rem; display: block; margin-bottom: 6px; text-transform: uppercase;">
+                                            🚜 ATENÇÃO - CONFIRMAÇÃO DA MÁQUINA AGRÍCOLA
+                                        </strong>
+                                        <div style="background: #ffffff; border: 1px solid #bbf7d0; border-radius: 8px; padding: 8px 12px; margin: 8px 0; color: #14532d; font-weight: 800; font-size: 1.05rem;">
+                                            MÁQUINA SOLICITADA: ${a.tipo || 'Máquina Agrícola'}
+                                        </div>
+                                        <span style="color: #166534; font-weight: 700; font-size: 1.05rem; line-height: 1.5; display: block; margin-bottom: 8px;">
+                                            COMPAREÇA À SECRETARIA DE AGRICULTURA UM DIA ANTES PARA CONFIRMAÇÃO DA MÁQUINA!
+                                        </span>
+                                        <span style="color: #dc2626; font-weight: 800; font-size: 0.95rem; display: block; text-transform: uppercase;">
+                                            ⚠️ SUJEITO A ALTERAÇÃO DE DATA DE ACORDO COM AS MANUTENÇÕES EM MAQUINAS
+                                        </span>
+                                    </div>
+                                `;
+                            }
+                            return avisoHtml;
+                        })()}
                         ${(() => {
                             if (!a.anexo) return '';
                             let anexosHtml = '<div style="margin-top: 20px; page-break-inside: avoid;"><h3 style="border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; color: #1e293b;">Documentos Anexados</h3><div style="display: flex; gap: 15px; flex-wrap: wrap; margin-top: 15px;">';
@@ -1279,7 +1684,28 @@ async function loadAdmins() {
             const select = document.getElementById('newAdminSec');
             select.innerHTML = secs.map(s => `<option value="${s.id}">${s.nome}</option>`).join('');
 
-            let html = `<table class="data-table"><thead><tr><th>Nome</th><th>Secretaria</th><th>E-mail</th><th>Telefone</th><th>Ações</th></tr></thead><tbody>`;
+            const postoHealthMap = {
+                'denilmalucass@gmail.com': 'HOSPITAL MARIA LOUREIRO (EMERGÊNCIA)',
+                'vivianlmk@hotmail.com': 'POSTO JOSÉ LUIZ LESSA (PSF 01)',
+                'vanuzasoares667@gmail.com': 'POSTO CENTRO (PSF 02)',
+                'ketlinandrade01@icloud.com': 'POSTO VILA NOVA (PSF 03)',
+                'cassianub12@icloud.com': 'POSTO DANIEL MONTEIRO DA CRUZ (PSF 04)',
+                'trajanojuliana17@gmail.com': 'POSTO DE SAÚDE USINA TAQUARA (PSF 05)',
+                'ana.gabriela_2@hotmail.com': 'POSTO BELO JARDIM (PSF 06)',
+                'flaviadanielly381@gmail.com': 'POSTO JOSÉ ADAMOR COSTA (PSF 07)',
+                'arianacarater@gmail.com': 'POSTO JOSÉ ACIOLY MACIEL (PSF 08)'
+            };
+
+            // Order subadmins: Health Posts first, then rest
+            list.sort((a, b) => {
+                const postoA = postoHealthMap[(a.email || '').toLowerCase()];
+                const postoB = postoHealthMap[(b.email || '').toLowerCase()];
+                if (postoA && !postoB) return -1;
+                if (!postoA && postoB) return 1;
+                return (a.nome || '').localeCompare(b.nome || '');
+            });
+
+            let html = `<table class="data-table"><thead><tr><th>Nome</th><th>Secretaria / Lotação</th><th>E-mail</th><th>Telefone</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(a => {
                 const currentUser = getUserInfo();
                 let actionButtons = '';
@@ -1291,15 +1717,24 @@ async function loadAdmins() {
                 }
                 if (currentRole === 'admin') {
                     actionButtons += `
+                        <button class="btn btn-primary" style="background-color: #10b981; border: none; font-size: 0.7rem; padding: 4px 10px;" onclick="changeSubAdminPhone('${a.id}', '${a.telefone || ''}')"><i class="fa-solid fa-phone"></i> Trocar Telefone</button>
                         <button class="btn" style="background-color: #f59e0b; color: white; border: none; font-size: 0.7rem; padding: 4px 10px; border-radius: 6px; display: flex; align-items: center; gap: 4px;" title="Notificar Pendências" onclick="notificarSubAdmin('${a.id}', '${a.nome}')"><i class="fa-solid fa-bell"></i> Notificar</button>
                         <button class="btn btn-outline" style="color: var(--danger); font-size: 0.7rem; padding: 4px 10px;" onclick="deleteAdmin('${a.id}')"><i class="fa-solid fa-trash"></i></button>
                     `;
                 }
 
+                const emailLower = (a.email || '').toLowerCase();
+                const postoNome = postoHealthMap[emailLower];
+
+                let lotacaoHtml = `<span class="badge badge-progress">${sMap[a.secretaria_id] || 'N/A'}</span>`;
+                if (postoNome) {
+                    lotacaoHtml += `<div style="margin-top: 4px;"><span style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-user-doctor"></i> ${postoNome}</span></div>`;
+                }
+
                 html += `
                     <tr>
-                        <td>${a.nome}</td>
-                        <td><span class="badge badge-progress">${sMap[a.secretaria_id] || 'N/A'}</span></td>
+                        <td style="font-weight: 600;">${a.nome}</td>
+                        <td>${lotacaoHtml}</td>
                         <td>${a.email}</td>
                         <td>${a.telefone || '-'}</td>
                         <td>
@@ -1333,6 +1768,7 @@ async function createSubAdmin(e) {
             body: JSON.stringify(data)
         });
         if (res.ok) {
+            document.getElementById('formAdmin').reset();
             closeModal('modalNewAdmin');
             loadAdmins();
             alert("Sub-administrador cadastrado!");
@@ -1397,6 +1833,7 @@ async function loadAllCombinedUsers() {
                             <div style="display: flex; gap: 0.5rem;">
                                 ${panicoBtn}
                                 <button class="btn btn-primary" style="font-size: 0.7rem; padding: 4px 10px;" onclick="openPasswordModal('${u.id}', '${u.source}', '${u.nome}')"><i class="fa-solid fa-key"></i> Trocar Senha</button>
+                                ${u.source === 'subadmin' && currentRole === 'admin' ? `<button class="btn btn-primary" style="background-color: #10b981; border: none; font-size: 0.7rem; padding: 4px 10px;" onclick="changeSubAdminPhone('${u.id}', '')"><i class="fa-solid fa-phone"></i> Trocar Telefone</button>` : ''}
                                 <button class="btn btn-outline" style="color: var(--danger); font-size: 0.7rem; padding: 4px 10px;" onclick="deleteCombinedUser('${u.id}', '${u.source}')"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </td>
@@ -1945,6 +2382,7 @@ async function imprimirRelatorioSecretaria(secId, secNome) {
             </head>
             <body>
                 <div class="header">
+                    <img src="images/logo-prefeitura.png" alt="Logo Prefeitura" style="max-height: 150px; margin-bottom: 1rem;"><br>
                     <h1>Prefeitura de Colônia Leopoldina</h1>
                     <p>Relatório de Desempenho e Solicitações - ${secNome}</p>
                     <small>Gerado em: ${new Date().toLocaleString()}</small>
@@ -2214,6 +2652,7 @@ async function imprimirContabilidadeGeral() {
             </head>
             <body>
                 <div class="header">
+                    <img src="images/logo-prefeitura.png" alt="Logo Prefeitura" style="max-height: 150px; margin-bottom: 1rem;"><br>
                     <h1>Prefeitura de Colônia Leopoldina</h1>
                     <p>Relatório Consolidado de Atendimentos e Serviços Municipais</p>
                     <div style="margin-top: 10px; font-size: 0.85rem; color: #64748b;">
@@ -2518,7 +2957,8 @@ async function imprimirResumoCamisas() {
 </head>
 <body>
     <div class="header">
-        <img src="imagens/logo-cultura-esporte.png" alt="Logo" style="max-height: 120px; margin-bottom: 1rem;"><br>
+        <img src="images/logo-prefeitura.png" alt="Logo Prefeitura" style="max-height: 120px; margin-bottom: 1rem;">
+        <img src="imagens/logo-cultura-esporte.png" alt="Logo" style="max-height: 120px; margin-bottom: 1rem; margin-left: 1rem;"><br>
         <h1>🏆 Relatório Consolidado de Camisas</h1>
         <p>CONCURSO ESPORTIVO: PÉ DE AÇO | COLÔNIA LEOPOLDINA</p>
     </div>
@@ -3074,12 +3514,16 @@ async function loadPanicoRequests() {
             const data = await res.json();
             if (data.length === 0) {
                 tbody.innerHTML = "<tr><td colspan=\"4\" style=\"text-align: center; padding: 20px;\">Nenhuma solicitao pendente ou aprovada.</td></tr>";
+                const totalPanicoCounter = document.getElementById("totalPanicoCounter");
+                if (totalPanicoCounter) totalPanicoCounter.innerText = "0";
                 return;
             }
             
             let html = "";
+            let authorizedCount = 0;
             data.forEach(u => {
                 const isPending = u.status === 2;
+                if (!isPending) authorizedCount++;
                 const statusBadge = isPending 
                     ? `<span style="background: #fef3c7; color: #92400e; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">Pendente</span>`
                     : `<span style="background: #dcfce7; color: #166534; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem;">Autorizado</span>`;
@@ -3097,6 +3541,8 @@ async function loadPanicoRequests() {
                 </tr>`;
             });
             tbody.innerHTML = html;
+            const totalPanicoCounter = document.getElementById("totalPanicoCounter");
+            if (totalPanicoCounter) totalPanicoCounter.innerText = authorizedCount;
         } else {
             const err = await res.json().catch(()=>({}));
             tbody.innerHTML = `<tr><td colspan="4" style="text-align: center; padding: 20px; color: red;">${err.detail || "Erro ao carregar"}</td></tr>`;
@@ -3142,6 +3588,102 @@ async function loadPanicoAlerts() {
         tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 15px; color: red;">Erro de conexão.</td></tr>';
     }
 }
+
+window.imprimirRelatorioPanico = async function() {
+    try {
+        const res = await fetch(`${API_URL}/panico/alerts`, {
+            headers: { "Authorization": `Bearer ${getToken()}` }
+        });
+        if (!res.ok) {
+            alert("Erro ao buscar dados do botão do pânico.");
+            return;
+        }
+        
+        const data = await res.json();
+        
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+            alert("Por favor, permita popups para gerar a impressão.");
+            return;
+        }
+
+        let tableHtml = "";
+        if (data.length === 0) {
+            tableHtml = "<p class='no-data'>Nenhum alerta de socorro registrado no histórico.</p>";
+        } else {
+            tableHtml = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Cidadão / Contato</th>
+                            <th>Data e Hora</th>
+                            <th>Endereço</th>
+                            <th>Ponto de Referência</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.map(a => {
+                            const dateStr = a.data_hora ? new Date(a.data_hora).toLocaleString('pt-BR') : 'Desconhecido';
+                            return `<tr>
+                                <td><strong>${a.nome}</strong><br><small style="color: #64748b;">Tel: ${a.telefone || "Não informado"}</small></td>
+                                <td><span style="color: #ef4444; font-weight: bold;">${dateStr}</span></td>
+                                <td>${a.endereco || "Não informado"}</td>
+                                <td>${a.ponto_referencia || "Não informado"}</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        printWindow.document.write(`
+            <html>
+            <head>
+                <title>Relatório - Botão do Pânico</title>
+                <style>
+                    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 30px; color: #334155; line-height: 1.5; }
+                    .header { text-align: center; margin-bottom: 40px; border-bottom: 4px double #ef4444; padding-bottom: 25px; }
+                    .header h1 { margin: 0; color: #ef4444; text-transform: uppercase; font-size: 2rem; letter-spacing: 1px; }
+                    .header p { margin: 8px 0 0; color: #475569; font-weight: 700; font-size: 1.2rem; }
+                    
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 0.9rem; }
+                    th { background: #fef2f2; text-align: left; padding: 12px; border-bottom: 2px solid #fca5a5; color: #991b1b; font-weight: 700; }
+                    td { padding: 12px; border-bottom: 1px solid #e2e8f0; vertical-align: top; }
+                    
+                    .no-data { padding: 10px; color: #94a3b8; font-style: italic; font-size: 0.9rem; text-align: center; }
+                    
+                    @media print {
+                        .no-print { display: none; }
+                        body { padding: 0; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <img src="images/logo-prefeitura.png" alt="Logo Prefeitura" style="max-height: 150px; margin-bottom: 1rem;"><br>
+                    <h1>Histórico de Alertas de Socorro</h1>
+                    <p>Relatório Geral do Botão do Pânico</p>
+                    <div style="margin-top: 10px; font-size: 0.85rem; color: #64748b;">
+                        <strong>Gerado por:</strong> Administrador Geral &bull; 
+                        <strong>Data de Emissão:</strong> ${new Date().toLocaleString('pt-BR')}
+                    </div>
+                </div>
+
+                ${tableHtml}
+
+                <div style="text-align: center; margin-top: 40px;">
+                    <button onclick="window.print()" class="no-print" style="padding: 10px 30px; background: #ef4444; color: white; border: none; border-radius: 6px; cursor: pointer;">Imprimir</button>
+                </div>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+
+    } catch (e) {
+        console.error(e);
+        alert("Erro ao gerar relatório do botão do pânico.");
+    }
+};
 
 async function authorizePanicoRequest(userId, authorize) {
     if (!confirm(authorize ? "Tem certeza que deseja AUTORIZAR este cidado?" : "Tem certeza que deseja NEGAR/REVOGAR o acesso deste cidado?")) return;
@@ -3204,4 +3746,216 @@ async function addPanicoUser() {
         console.error(e);
         Swal.fire("Erro", "Falha de conexão com o servidor.", "error");
     }
+}
+
+async function changeSubAdminPhone(adminId, currentPhone) {
+    const { value: novoTelefone } = await Swal.fire({
+        title: 'Trocar Telefone',
+        input: 'text',
+        inputLabel: 'Novo Telefone',
+        inputValue: currentPhone || '',
+        showCancelButton: true,
+        confirmButtonText: 'Salvar',
+        cancelButtonText: 'Cancelar',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Você precisa digitar um telefone!';
+            }
+        }
+    });
+
+    if (novoTelefone) {
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch(`${API_URL}/admin-users/secretaria-admins/${adminId}/telefone`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ novo_telefone: novoTelefone })
+            });
+
+            if (res.ok) {
+                Swal.fire('Sucesso!', 'Telefone atualizado com sucesso.', 'success');
+                if (document.getElementById('admins').classList.contains('active')) loadAdmins();
+                if (document.getElementById('usuarios-todos').classList.contains('active')) loadAllUsersCombined();
+            } else {
+                const err = await res.json();
+                Swal.fire('Erro', err.detail || 'Não foi possível atualizar o telefone.', 'error');
+            }
+        } catch (e) {
+            Swal.fire('Erro', 'Falha de conexão com o servidor.', 'error');
+        }
+    }
+}
+
+
+function imprimirFichaPolicial(id) {
+    // Collect all data from the form to print
+    const dataFato = document.getElementById('fp_data_fato')?.value || '';
+    const horaFato = document.getElementById('fp_hora_fato')?.value || '';
+    const horaRegistro = document.getElementById('fp_hora_registro')?.value || '';
+    const tipo = document.querySelector('input[name="fp_tipo_ocorrencia"]:checked')?.value || document.getElementById('fp_tipo_ocorrencia_outro')?.value || '';
+    
+    const vitimaNome = document.getElementById('fp_vitima_nome')?.value || '';
+    const vitimaCPF = document.getElementById('fp_vitima_cpf_rg')?.value || '';
+    const vitimaData = document.getElementById('fp_vitima_data_nascimento')?.value || '';
+    const vitimaEnd = document.getElementById('fp_vitima_endereco')?.value || '';
+    const vitimaTel = document.getElementById('fp_vitima_telefone')?.value || '';
+    
+    const suspeitoNome = document.getElementById('fp_suspeito_nome')?.value || '';
+    const suspeitoApelido = document.getElementById('fp_suspeito_apelido')?.value || '';
+    const suspeitoCPF = document.getElementById('fp_suspeito_cpf_rg')?.value || '';
+    const suspeitoData = document.getElementById('fp_suspeito_data_nascimento')?.value || '';
+    const suspeitoEnd = document.getElementById('fp_suspeito_endereco')?.value || '';
+    const suspeitoCarac = document.getElementById('fp_suspeito_caracteristicas')?.value || '';
+    
+    const objetos = document.getElementById('fp_objetos_envolvidos')?.value || '';
+    const desc = document.getElementById('fp_descricao_detalhada')?.value || '';
+    
+    const algemas = document.getElementById('fp_uso_algemas')?.value || '';
+    const algemasJust = document.getElementById('fp_uso_algemas_justificativa')?.value || '';
+    const forca = document.getElementById('fp_emprego_forca')?.value || '';
+    const forcaTipo = document.getElementById('fp_emprego_forca_tipo')?.value || '';
+    const forcaJust = document.getElementById('fp_emprego_forca_justificativa')?.value || '';
+    
+    const providencias = document.getElementById('fp_providencias_gcm')?.value || '';
+    const agentes = document.getElementById('fp_agentes_envolvidos')?.value || '';
+    const viatura = document.getElementById('fp_viatura')?.value || '';
+    const encaminhamento = document.getElementById('fp_encaminhamento')?.value || '';
+    
+    const resp = document.getElementById('fp_agente_responsavel')?.value || '';
+    const cmd = document.getElementById('fp_comandante_geral')?.value || '';
+
+    const win = window.open('', '_blank');
+    win.document.write(`
+        <html>
+        <head>
+            <title>Ficha de Ocorrência Policial #${id}</title>
+            <style>
+                body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.4; color: #000; }
+                h2 { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+                .section { margin-bottom: 20px; border: 1px solid #ccc; padding: 10px; }
+                .section-title { font-weight: bold; background: #eee; padding: 5px; margin: -10px -10px 10px -10px; border-bottom: 1px solid #ccc; }
+                .row { display: flex; margin-bottom: 5px; }
+                .col { flex: 1; padding: 0 5px; }
+                .label { font-weight: bold; font-size: 0.85em; color: #555; }
+                .val { border-bottom: 1px solid #000; min-height: 1.2em; display: inline-block; width: 100%; font-family: monospace; font-size: 1.1em;}
+                @media print {
+                    body { -webkit-print-color-adjust: exact; }
+                }
+            </style>
+        </head>
+        <body>
+            <div style="text-align: center; margin-bottom: 20px;">
+                <img src="${window.location.origin}/images/logo-gcm.png" alt="Logo GCM" style="max-height: 120px;" onerror="this.style.display='none'">
+            </div>
+            <h2>Ficha de Ocorrência Policial (GCM) - Protocolo #${id}</h2>
+            
+            <div class="section">
+                <div class="section-title">1. IDENTIFICAÇÃO DA OCORRÊNCIA</div>
+                <div class="row">
+                    <div class="col"><div class="label">Data do Fato:</div><div class="val">${dataFato}</div></div>
+                    <div class="col"><div class="label">Hora do Fato:</div><div class="val">${horaFato}</div></div>
+                    <div class="col"><div class="label">Hora do Registro:</div><div class="val">${horaRegistro}</div></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">2. TIPO DE OCORRÊNCIA</div>
+                <div class="row">
+                    <div class="col"><div class="val">${tipo}</div></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">3. DADOS DA VÍTIMA</div>
+                <div class="row">
+                    <div class="col" style="flex:2"><div class="label">Nome:</div><div class="val">${vitimaNome}</div></div>
+                    <div class="col"><div class="label">CPF/RG:</div><div class="val">${vitimaCPF}</div></div>
+                    <div class="col"><div class="label">Data Nasc.:</div><div class="val">${vitimaData}</div></div>
+                </div>
+                <div class="row">
+                    <div class="col" style="flex:2"><div class="label">Endereço:</div><div class="val">${vitimaEnd}</div></div>
+                    <div class="col"><div class="label">Telefone:</div><div class="val">${vitimaTel}</div></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">4. DADOS DO ENVOLVIDO/SUSPEITO</div>
+                <div class="row">
+                    <div class="col"><div class="label">Nome:</div><div class="val">${suspeitoNome}</div></div>
+                    <div class="col"><div class="label">Apelido:</div><div class="val">${suspeitoApelido}</div></div>
+                    <div class="col"><div class="label">CPF/RG:</div><div class="val">${suspeitoCPF}</div></div>
+                </div>
+                <div class="row">
+                    <div class="col"><div class="label">Data Nasc.:</div><div class="val">${suspeitoData}</div></div>
+                    <div class="col" style="flex:2"><div class="label">Endereço:</div><div class="val">${suspeitoEnd}</div></div>
+                </div>
+                <div class="row">
+                    <div class="col"><div class="label">Características:</div><div class="val" style="min-height: 40px; white-space: pre-wrap;">${suspeitoCarac}</div></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">5. OBJETOS / BENS ENVOLVIDOS</div>
+                <div class="row">
+                    <div class="col"><div class="val" style="min-height: 40px; white-space: pre-wrap;">${objetos}</div></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">7. DESCRIÇÃO DETALHADA</div>
+                <div class="row">
+                    <div class="col"><div class="val" style="min-height: 80px; white-space: pre-wrap;">${desc}</div></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">8. USO DE ALGEMAS / 9. EMPREGO DA FORÇA</div>
+                <div class="row">
+                    <div class="col"><div class="label">Uso de Algemas:</div><div class="val">${algemas}</div></div>
+                    <div class="col" style="flex:2"><div class="label">Justificativa (SV 11 STF):</div><div class="val">${algemasJust}</div></div>
+                </div>
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col"><div class="label">Emprego da Força:</div><div class="val">${forca}</div></div>
+                    <div class="col"><div class="label">Tipo:</div><div class="val">${forcaTipo}</div></div>
+                    <div class="col" style="flex:2"><div class="label">Justificativa:</div><div class="val">${forcaJust}</div></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">10. PROVIDÊNCIAS ADOTADAS PELA GCM</div>
+                <div class="row">
+                    <div class="col"><div class="val" style="min-height: 40px; white-space: pre-wrap;">${providencias}</div></div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="section-title">11. AGENTES ENVOLVIDOS / 12. ENCAMINHAMENTO</div>
+                <div class="row">
+                    <div class="col" style="flex:2"><div class="label">Agentes:</div><div class="val" style="min-height: 40px; white-space: pre-wrap;">${agentes}</div></div>
+                    <div class="col"><div class="label">Viatura:</div><div class="val">${viatura}</div></div>
+                </div>
+                <div class="row" style="margin-top: 10px;">
+                    <div class="col"><div class="label">Encaminhamento:</div><div class="val">${encaminhamento}</div></div>
+                </div>
+            </div>
+
+            <div style="margin-top: 50px; display: flex; justify-content: space-around; text-align: center;">
+                <div style="width: 40%;">
+                    <div style="border-top: 1px solid #000; padding-top: 5px; font-weight: bold;">${resp || 'Assinatura do Agente Responsável'}</div>
+                </div>
+                <div style="width: 40%;">
+                    <div style="border-top: 1px solid #000; padding-top: 5px; font-weight: bold;">${cmd || 'Assinatura do Comandante Geral'}</div>
+                </div>
+            </div>
+
+        </body>
+        </html>
+    `);
+    win.document.close();
+    win.focus();
+    setTimeout(() => { win.print(); }, 500);
 }

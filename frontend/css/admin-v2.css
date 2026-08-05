@@ -239,6 +239,12 @@ body::before {
 .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text-main); }
 .btn-outline:hover { background: var(--border); }
 
+/* Ficha Policial Responsive Grids */
+.grid-ficha-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+.grid-ficha-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.grid-ficha-radio { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; font-size: 0.85rem; }
+.grid-ficha-flex { display: flex; gap: 10px; }
+
 /* Responsive Mobile */
 @media (max-width: 768px) {
     .sidebar { transform: translateX(-100%); }
@@ -251,6 +257,10 @@ body::before {
     #userName { display: none; } /* Save space on mobile */
     #userRole { display: none; }
     #roleDebug { display: none; }
+
+    /* Ficha Policial Mobile adjustments */
+    .grid-ficha-3, .grid-ficha-2, .grid-ficha-radio { grid-template-columns: 1fr; }
+    .grid-ficha-flex { flex-direction: column; }
     
     /* Modais Admin Mobile */
     [id^="modal"] {

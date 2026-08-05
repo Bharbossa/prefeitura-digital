@@ -109,7 +109,8 @@ def add_panic_user(
             endereco=data.endereco,
             email=f"{data.cpf}@panico.local", # placeholder email
             senha_hash=get_password_hash(data.cpf), # Default password is CPF
-            botao_panico_autorizado=1
+            botao_panico_autorizado=1,
+            genero="feminino"
         )
         db_sql.add(user)
         db_sql.flush()
@@ -158,11 +159,23 @@ def request_panic_authorization(
     return {"message": "Solicitação enviada com sucesso. Aguarde análise da Guarda Municipal."}
 
 def check_admin_permission(admin):
-    # Only general admin or Guarda Municipal sub-admin (sec_id 17) can access
     if admin.tipo_usuario_verificado == "admin":
         return True
-    if admin.tipo_usuario_verificado == "subadmin" and getattr(admin, "secretaria_id", None) == 17:
-        return True
+    
+    allowed_emails = ["patrulhamariadapenha.gcm.clp@gmail.com", "guardamunicipalcolonia@gmail.com"]
+    if admin.tipo_usuario_verificado == "subadmin":
+        admin_email = (getattr(admin, "email", "") or "").strip().lower()
+        sec_id = getattr(admin, "secretaria_id", None)
+        sec_nome = (getattr(admin, "secretaria_nome", "") or "").strip().lower()
+        if (
+            admin_email in [e.lower() for e in allowed_emails]
+            or sec_id in [16, 17]
+            or "mulher" in sec_nome
+            or "guarda" in sec_nome
+            or "patrulha" in sec_nome
+        ):
+            return True
+        
     raise HTTPException(status_code=403, detail="Sem permissão para gerenciar o Botão do Pânico.")
 
 @router.get("/requests")

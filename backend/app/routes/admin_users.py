@@ -101,7 +101,11 @@ def reject_user(user_id: int, current_admin = Depends(get_general_admin), db_sql
     return {"message": "Usuário rejeitado."}
 
 @router.post("/{user_id}/panico-auth")
-def toggle_panico_auth(user_id: int, current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+def toggle_panico_auth(user_id: int, current_admin = Depends(get_current_admin), db_sql: Session = Depends(get_db)):
+    if current_admin.tipo_usuario_verificado != "admin":
+        from .panico import check_admin_permission
+        check_admin_permission(current_admin)
+        
     user = db_sql.query(Usuario).filter(Usuario.id == user_id).first()
     if not user:
         raise HTTPException(status_code=404, detail="Usuário não encontrado.")
@@ -165,8 +169,10 @@ def get_secretaria_admins(current_admin = Depends(get_current_admin), db_sql: Se
     return db_sql.query(AdminSecretaria).all()
 
 @router.post("/secretaria-admins", response_model=AdminSecretariaResponse)
-def create_secretaria_admin(admin_in: AdminSecretariaCreate, current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
-    # Only General Admin can create sub-admins
+def create_secretaria_admin(admin_in: AdminSecretariaCreate, current_admin = Depends(get_current_admin), db_sql: Session = Depends(get_db)):
+    # Admin Geral ou Subadmin (como o gestor de saúde) pode criar sub-admins
+    if current_admin.tipo_usuario_verificado != "admin" and getattr(current_admin, 'email', '') != 'denilmalucass@gmail.com' and getattr(current_admin, 'secretaria_id', None) != admin_in.secretaria_id:
+        raise HTTPException(status_code=403, detail="Acesso restrito ao Administrador Geral ou ao Administrador da Secretaria.")
     
     existing = db_sql.query(AdminSecretaria).filter(AdminSecretaria.email == admin_in.email).first()
     if existing:
@@ -187,8 +193,8 @@ def create_secretaria_admin(admin_in: AdminSecretariaCreate, current_admin = Dep
     log = LogAuditoria(
         usuario_id=current_admin.id,
         usuario_tipo=current_admin.tipo_admin if hasattr(current_admin, 'tipo_admin') else current_admin.tipo_usuario_verificado,
-        acao="create_subadmin",
-        detalhes=f"Criou sub-admin {admin_in.email} para secretaria {admin_in.secretaria_id}"
+        acao="cadastro_usuario_subadmin",
+        detalhes=f"Novo sub-administrador cadastrado: {admin_in.nome} ({admin_in.email}) para secretaria {admin_in.secretaria_id}"
     )
     db_sql.add(log)
     db_sql.commit()
@@ -298,3 +304,18 @@ def reset_user_password(
             if admin_docs: db.collection("admin_secretarias").document(admin_docs[0].id).update({"senha_hash": hashed_password})
             
     return {"message": "Senha alterada com sucesso"}
+
+class AdminPhoneUpdate(BaseModel):
+    novo_telefone: str
+
+@router.patch("/secretaria-admins/{admin_id}/telefone")
+def update_subadmin_phone(admin_id: int, data: AdminPhoneUpdate, current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+    sadmin = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == admin_id).first()
+    if not sadmin:
+        raise HTTPException(status_code=404, detail="Sub-admin não encontrado")
+    
+    sadmin.telefone = data.novo_telefone
+    db_sql.commit()
+    
+    return {"message": "Telefone atualizado com sucesso"}
+

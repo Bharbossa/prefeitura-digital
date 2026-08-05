@@ -56,6 +56,18 @@ def register(user_in: UsuarioCreate, db_sql: Session = Depends(get_db)) -> Any:
         db_sql.add(db_user)
         db_sql.commit()
         db_sql.refresh(db_user)
+        
+        # Log de Auditoria para Cidadão
+        from ..models.schema import LogAuditoria
+        log = LogAuditoria(
+            usuario_id=db_user.id,
+            usuario_tipo="cidadao",
+            acao="cadastro_usuario_cidadao",
+            detalhes=f"Novo cidadão cadastrado: {db_user.nome} ({db_user.email})"
+        )
+        db_sql.add(log)
+        db_sql.commit()
+        
         return db_user
 
 @router.post("/login", response_model=Token)
@@ -112,8 +124,9 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = De
         user_subadmin = None
         
         if is_cpf:
-            user_cidadao = db_sql.query(Usuario).filter(Usuario.cpf == clean_cpf).first()
-            user_subadmin = db_sql.query(AdminSecretaria).filter(AdminSecretaria.cpf == clean_cpf).first()
+            cpf_fmt = f"{clean_cpf[:3]}.{clean_cpf[3:6]}.{clean_cpf[6:9]}-{clean_cpf[9:]}"
+            user_cidadao = db_sql.query(Usuario).filter((Usuario.cpf == clean_cpf) | (Usuario.cpf == cpf_fmt) | (Usuario.cpf == form_data.username.strip())).first()
+            user_subadmin = db_sql.query(AdminSecretaria).filter((AdminSecretaria.cpf == clean_cpf) | (AdminSecretaria.cpf == cpf_fmt) | (AdminSecretaria.cpf == form_data.username.strip())).first()
         else:
             user_cidadao = db_sql.query(Usuario).filter(func.lower(Usuario.email) == clean_username).first()
             user_subadmin = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == clean_username).first()
@@ -202,8 +215,13 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
         clean_id = raw_id
 
     # 2. Find user by email or CPF - case insensitive for email
-    user_cidadao = db_sql.query(Usuario).filter((func.lower(Usuario.email) == clean_id) | (Usuario.cpf == clean_id)).first()
-    user_subadmin = db_sql.query(AdminSecretaria).filter((func.lower(AdminSecretaria.email) == clean_id) | (AdminSecretaria.cpf == clean_id)).first()
+    if re.match(r'^[0-9]+$', clean_id) and len(clean_id) == 11:
+        cpf_fmt = f"{clean_id[:3]}.{clean_id[3:6]}.{clean_id[6:9]}-{clean_id[9:]}"
+        user_cidadao = db_sql.query(Usuario).filter((Usuario.cpf == clean_id) | (Usuario.cpf == cpf_fmt) | (Usuario.cpf == raw_id)).first()
+        user_subadmin = db_sql.query(AdminSecretaria).filter((AdminSecretaria.cpf == clean_id) | (AdminSecretaria.cpf == cpf_fmt) | (AdminSecretaria.cpf == raw_id)).first()
+    else:
+        user_cidadao = db_sql.query(Usuario).filter(func.lower(Usuario.email) == clean_id).first()
+        user_subadmin = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == clean_id).first()
     
     if not user_cidadao and not user_subadmin:
         raise HTTPException(status_code=404, detail="Usuário não encontrado com os dados informados.")

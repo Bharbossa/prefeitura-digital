@@ -12,11 +12,14 @@ def _notify_admins_thread(secretaria_id: int):
     db = SessionLocal()
     try:
         message = "NOVA SOLICITAÇÃO DE SERVIÇO. Entre no Sistema e veja a solicitação do cidadão!"
+        
         # 1. Notify Sub-Administrators of the department
         subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
         for sa in subadmins:
             if sa.telefone:
-                send_status_sms(sa.telefone, message)
+                # Custom message for Assistencia Social (ID 22) sub-admins
+                custom_msg = "COLÔNIA DIGITAL: Cadastro unico! Existe uma nova solicitação de serviço!" if secretaria_id == 22 else message
+                send_status_sms(sa.telefone, custom_msg)
         
         # 2. Notify General Administrator(s)
         global_admins = db.query(Usuario).filter(Usuario.tipo_usuario == TipoUsuario.admin).all()

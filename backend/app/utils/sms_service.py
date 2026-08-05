@@ -100,7 +100,9 @@ def get_progress_message(titulo: str):
 def get_cancelled_message(titulo: str):
     return f"COLÔNIA DIGITAL: Sua solicitação ({titulo}) foi CANCELADA."
 
-def get_confirmed_message(assunto: str, data_hora: str):
+def get_confirmed_message(assunto: str, data_hora: str, is_garagem: bool = False):
+    if is_garagem:
+        return f"ATENÇÃO - CONFIRMAÇÃO DE VIAGEM OBRIGATÓRIA\nO CIDADÃO DEVE COMPARECER À GARAGEM MUNICIPAL PARA CONFIRMAR SUA VIAGEM!"
     return f"COLÔNIA DIGITAL: Seu agendamento ({assunto}) para {data_hora} foi CONFIRMADO."
 
 def send_password_sms(phone: str, password: str):
@@ -148,13 +150,26 @@ def send_password_sms(phone: str, password: str):
 def notify_subadmins_background(secretaria_id: int, message: str):
     from app.database import SessionLocal
     from app.models.schema import AdminSecretaria
+    from sqlalchemy import or_
     db = SessionLocal()
     try:
-        subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
+        if secretaria_id == 17:
+            subadmins = db.query(AdminSecretaria).filter(
+                or_(AdminSecretaria.secretaria_id == secretaria_id, 
+                    AdminSecretaria.email == "patrulhamariadapenha.gcm.clp@gmail.com")
+            ).all()
+        else:
+            subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
+            
+        if secretaria_id == 22:
+            custom_msg = "COLÔNIA DIGITAL: Cadastro unico! Existe uma nova solicitação de serviço!"
+        else:
+            custom_msg = message
+            
         for sub in subadmins:
             phone = getattr(sub, 'telefone', None)
             if phone:
-                send_status_sms(phone, message)
+                send_status_sms(phone, custom_msg)
     except Exception as e:
         logger.error(f"Erro em notify_subadmins_background: {e}")
     finally:
@@ -166,13 +181,26 @@ def notify_subadmins_voice_background(secretaria_id: int, message: str):
     """
     from app.database import SessionLocal
     from app.models.schema import AdminSecretaria
+    from sqlalchemy import or_
     db = SessionLocal()
     try:
-        subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
+        if secretaria_id == 17:
+            subadmins = db.query(AdminSecretaria).filter(
+                or_(AdminSecretaria.secretaria_id == secretaria_id, 
+                    AdminSecretaria.email == "patrulhamariadapenha.gcm.clp@gmail.com")
+            ).all()
+        else:
+            subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
+            
+        if secretaria_id == 22:
+            custom_msg = "COLÔNIA DIGITAL: Cadastro unico! Existe uma nova solicitação de serviço!"
+        else:
+            custom_msg = message
+            
         for sub in subadmins:
             phone = getattr(sub, 'telefone', None)
             if phone:
-                make_voice_call(phone, message)
+                make_voice_call(phone, custom_msg)
     except Exception as e:
         logger.error(f"Erro em notify_subadmins_voice_background: {e}")
     finally:

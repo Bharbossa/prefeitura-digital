@@ -8,6 +8,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel Administrativo - Colônia Digital</title>
+    <link rel="manifest" href="admin-manifest.json">
+    <link rel="apple-touch-icon" sizes="180x180" href="images/admin-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/admin-icon.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/admin-icon.png">
+    <link rel="shortcut icon" href="images/admin-icon.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -169,18 +174,31 @@
             </div>
 
             <!-- Inteligência Geográfica -->
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem;" id="geoDataContainer">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;" id="geoDataContainer">
                 <div class="stat-card">
                     <h3 style="margin-bottom: 0.5rem;"><i class="fa-solid fa-fire" style="color: #ef4444;"></i> Mapa de Calor de Ocorrências</h3>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Áreas com maior volume de solicitações (manchas quentes).</p>
                     <div id="heatmapAdminDiv" style="height: 450px; width: 100%; border-radius: 12px; border: 1px solid var(--border); z-index: 1;"></div>
                 </div>
                 <div class="stat-card">
-                    <h3 style="margin-bottom: 0.5rem;"><i class="fa-solid fa-users-viewfinder" style="color: #3b82f6;"></i> Usuários por Bairro / Endereço</h3>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <h3 style="margin: 0;"><i class="fa-solid fa-users-viewfinder" style="color: #3b82f6;"></i> Usuários por Bairro / Endereço</h3>
+                        <div class="btn-group" style="display: flex; gap: 4px; background: rgba(255,255,255,0.05); padding: 4px; border-radius: 8px; border: 1px solid var(--border);">
+                            <button id="btnBairro" class="btn btn-sm btn-primary" style="padding: 4px 12px; font-size: 0.75rem; border-radius: 6px;" onclick="switchBairrosChart('bairros')">Por Bairro</button>
+                            <button id="btnRua" class="btn btn-sm btn-outline" style="padding: 4px 12px; font-size: 0.75rem; border-radius: 6px;" onclick="switchBairrosChart('ruas')">Por Rua</button>
+                        </div>
+                    </div>
                     <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Ranking das regiões com mais cidadãos ativos.</p>
                     <div style="position: relative; height: 450px;">
                         <canvas id="bairrosChart"></canvas>
                     </div>
+                <div class="stat-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <h3 style="margin: 0;"><i class="fa-solid fa-map-location-dot" style="color: #10b981;"></i> Mapa de Cidadãos por Localidade</h3>
+                        <span id="totalCidadaosMapa" style="background: rgba(16, 185, 129, 0.15); color: #10b981; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600;">0 Cidadãos</span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem;">Distribuição geográfica e número de pessoas cadastradas por região.</p>
+                    <div id="userHeatmapAdminDiv" style="height: 450px; width: 100%; border-radius: 12px; border: 1px solid var(--border); z-index: 1;"></div>
                 </div>
             </div>
         </section>
@@ -319,11 +337,14 @@
 
         <!-- ADMINS SECTION (Only Admin Geral) -->
         <section id="admins" class="section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
                 <h3 id="adminsSectionTitle">Sub-Administradores (Secretarias)</h3>
-                <button class="btn btn-primary" id="btnNewAdminHeader" onclick="openModal('modalNewAdmin')">
-                    <i class="fa-solid fa-plus"></i> Novo Sub-Admin
-                </button>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <input type="text" id="searchSubAdmins" class="btn btn-outline" placeholder="Buscar por nome, e-mail ou secretaria..." onkeyup="filterTable('adminsTableContainer', this.value)" style="min-width: 280px;">
+                    <button class="btn btn-primary" id="btnNewAdminHeader" onclick="openModal('modalNewAdmin')">
+                        <i class="fa-solid fa-plus"></i> Novo Sub-Admin
+                    </button>
+                </div>
             </div>
             <div id="adminsTableContainer"></div>
         </section>
@@ -378,7 +399,7 @@
 
         <!-- GESTÃO PANICO SECTION -->
         <section id="gestao-panico" class="section">
-            <h2 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-triangle-exclamation"></i> Gestão do Botão de Pânico</h2>
+            <h2 style="margin-bottom: 1.5rem;"><i class="fa-solid fa-triangle-exclamation"></i> Gestão do Botão de Pânico <span id="totalPanicoCounter" class="badge badge-primary" style="font-size: 1rem; padding: 4px 10px; background: #3b82f6; color: white; border-radius: 8px;">0</span></h2>
             <div class="stat-card" style="margin-bottom: 1.5rem; background: var(--bg-color); border: 1px solid #ef4444; border-left: 5px solid #ef4444;">
                 <p style="margin: 0; color: var(--text-primary);">
                     <i class="fa-solid fa-info-circle" style="color: #ef4444;"></i>
@@ -435,9 +456,12 @@
                 </div>
 
                 <div class="stat-card" style="margin-top: 2rem; border: 1px solid var(--border); padding: 0;">
-                    <div style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;">
+                    <div style="padding: 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
                         <h4 style="margin: 0; color: #ef4444;"><i class="fa-solid fa-bell"></i> Histórico de Alertas de Socorro</h4>
-                        <button class="btn btn-outline" onclick="loadPanicoAlerts()"><i class="fa-solid fa-rotate-right"></i> Atualizar Alertas</button>
+                        <div style="display: flex; gap: 10px;">
+                            <button class="btn btn-outline" onclick="imprimirRelatorioPanico()" style="border-color: #ef4444; color: #ef4444;"><i class="fa-solid fa-print"></i> Imprimir Relatório</button>
+                            <button class="btn btn-outline" onclick="loadPanicoAlerts()"><i class="fa-solid fa-rotate-right"></i> Atualizar Alertas</button>
+                        </div>
                     </div>
                     <div class="table-responsive">
                         <table class="data-table">
@@ -585,7 +609,7 @@
     <!-- MODAL RESPONSE/STATUS -->
     <div id="modalResponse"
         style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:2000; align-items:center; justify-content:center; overflow-y:auto;">
-        <div class="stat-card" style="width: 100%; max-width: 500px; padding: 2rem;">
+        <div id="modalResponseCard" class="stat-card" style="width: 100%; max-width: 600px; padding: 2rem; transition: max-width 0.3s ease;">
             <h3 id="modalResponseTitle">Responder Ocorrência</h3>
             <p id="modalResponseSubtitle" style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
             </p>
@@ -610,8 +634,155 @@
                 </select>
             </div>
 
+            <!-- FICHA POLICIAL CONTAINER (Oculto por padrão, ativado via JS para GCM) -->
+            <div id="fichaPolicialContainer" style="display: none; border: 1px solid var(--border); border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; background: var(--bg-body);">
+                <h4 style="margin-top: 0; color: #1e3a8a; border-bottom: 2px solid #1e3a8a; padding-bottom: 0.5rem; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 10px;">
+                    <img src="./images/logo-gcm.png" alt="Logo GCM" style="height: 50px;" onerror="this.style.display='none'">
+                    <span><i class="fa-solid fa-shield-halved"></i> Ficha de Ocorrência Policial (GCM)</span>
+                </h4>
+
+                <!-- 1. IDENTIFICAÇÃO DA OCORRÊNCIA -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">1. IDENTIFICAÇÃO DA OCORRÊNCIA</h5>
+                    <div class="grid-ficha-3">
+                        <div>
+                            <label style="font-size: 0.8rem;">Data do Fato:</label>
+                            <input type="date" id="fp_data_fato" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.8rem;">Hora do Fato:</label>
+                            <input type="time" id="fp_hora_fato" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                        </div>
+                        <div>
+                            <label style="font-size: 0.8rem;">Hora do Registro:</label>
+                            <input type="time" id="fp_hora_registro" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. TIPO DE OCORRÊNCIA -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">2. TIPO DE OCORRÊNCIA</h5>
+                    <div class="grid-ficha-radio">
+                        <label><input type="radio" name="fp_tipo_ocorrencia" value="Furto"> Furto</label>
+                        <label><input type="radio" name="fp_tipo_ocorrencia" value="Roubo"> Roubo</label>
+                        <label><input type="radio" name="fp_tipo_ocorrencia" value="Ameaça"> Ameaça</label>
+                        <label><input type="radio" name="fp_tipo_ocorrencia" value="Lesão Corporal"> Lesão Corporal</label>
+                        <label><input type="radio" name="fp_tipo_ocorrencia" value="Dano ao Patrimônio"> Dano ao Patrimônio</label>
+                        <label><input type="radio" name="fp_tipo_ocorrencia" value="Perturbação do Sossego"> Perturbação do Sossego</label>
+                        <label><input type="radio" name="fp_tipo_ocorrencia" value="Desordem"> Desordem</label>
+                        <label><input type="radio" name="fp_tipo_ocorrencia" value="Apoio a Outro Órgão"> Apoio a Outro Órgão</label>
+                        <label><input type="radio" name="fp_tipo_ocorrencia" value="Outro"> Outro</label>
+                    </div>
+                    <input type="text" id="fp_tipo_ocorrencia_outro" placeholder="Especifique caso Outro..." class="btn btn-outline" style="width: 100%; padding: 6px; margin-top: 5px;">
+                </div>
+
+                <!-- 3. DADOS DA VÍTIMA -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">3. DADOS DA VÍTIMA (SE HOUVER)</h5>
+                    <div class="grid-ficha-3" style="margin-bottom: 5px;">
+                        <input type="text" id="fp_vitima_nome" placeholder="Nome da Vítima" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                        <input type="text" id="fp_vitima_cpf_rg" placeholder="CPF/RG" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                        <input type="date" id="fp_vitima_data_nascimento" title="Data Nascimento" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                    </div>
+                    <div class="grid-ficha-2">
+                        <input type="text" id="fp_vitima_endereco" placeholder="Endereço Completo" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                        <input type="text" id="fp_vitima_telefone" placeholder="Telefone" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                    </div>
+                </div>
+
+                <!-- 4. DADOS DO ENVOLVIDO/SUSPEITO -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">4. DADOS DO ENVOLVIDO / SUSPEITO (SE HOUVER)</h5>
+                    <div class="grid-ficha-3" style="margin-bottom: 5px;">
+                        <input type="text" id="fp_suspeito_nome" placeholder="Nome do Suspeito" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                        <input type="text" id="fp_suspeito_apelido" placeholder="Apelido" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                        <input type="text" id="fp_suspeito_cpf_rg" placeholder="CPF/RG" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                    </div>
+                    <div class="grid-ficha-2" style="margin-bottom: 5px;">
+                        <input type="date" id="fp_suspeito_data_nascimento" title="Data Nascimento" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                        <input type="text" id="fp_suspeito_endereco" placeholder="Endereço" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                    </div>
+                    <textarea id="fp_suspeito_caracteristicas" placeholder="Características Físicas" class="btn btn-outline" style="width: 100%; padding: 6px; height: 60px; font-family: inherit;"></textarea>
+                </div>
+
+                <!-- 5 e 7. DETALHES -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">5. OBJETOS / BENS ENVOLVIDOS</h5>
+                    <textarea id="fp_objetos_envolvidos" class="btn btn-outline" style="width: 100%; padding: 6px; height: 60px; font-family: inherit;"></textarea>
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">7. DESCRIÇÃO DETALHADA DA OCORRÊNCIA</h5>
+                    <textarea id="fp_descricao_detalhada" class="btn btn-outline" style="width: 100%; padding: 6px; height: 80px; font-family: inherit;"></textarea>
+                </div>
+
+                <!-- 8 e 9. FORÇA E ALGEMAS -->
+                <div class="grid-ficha-2" style="margin-bottom: 1.5rem;">
+                    <div>
+                        <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">8. USO DE ALGEMAS</h5>
+                        <select id="fp_uso_algemas" class="btn btn-outline" style="width: 100%; padding: 6px; margin-bottom: 5px;">
+                            <option value="">Selecione...</option>
+                            <option value="Não houve">Não houve</option>
+                            <option value="Houve">Houve</option>
+                        </select>
+                        <input type="text" id="fp_uso_algemas_justificativa" placeholder="Justificativa (SV 11 STF)" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                    </div>
+                    <div>
+                        <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">9. EMPREGO DA FORÇA</h5>
+                        <select id="fp_emprego_forca" class="btn btn-outline" style="width: 100%; padding: 6px; margin-bottom: 5px;">
+                            <option value="">Selecione...</option>
+                            <option value="Não houve">Não houve</option>
+                            <option value="Houve">Houve</option>
+                        </select>
+                        <select id="fp_emprego_forca_tipo" class="btn btn-outline" style="width: 100%; padding: 6px; margin-bottom: 5px;">
+                            <option value="">Tipo...</option>
+                            <option value="Contenção Física">Contenção Física</option>
+                            <option value="IMPO">IMPO</option>
+                            <option value="Outro">Outro</option>
+                        </select>
+                        <input type="text" id="fp_emprego_forca_justificativa" placeholder="Justificativa" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                    </div>
+                </div>
+
+                <!-- 10. PROVIDÊNCIAS -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">10. PROVIDÊNCIAS ADOTADAS PELA GCM</h5>
+                    <textarea id="fp_providencias_gcm" class="btn btn-outline" style="width: 100%; padding: 6px; height: 60px; font-family: inherit;"></textarea>
+                </div>
+
+                <!-- 11 e 12. AGENTES E ENCAMINHAMENTO -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">11. AGENTES ENVOLVIDOS DA GCM</h5>
+                    <textarea id="fp_agentes_envolvidos" placeholder="Nomes / Matrículas (Um por linha)" class="btn btn-outline" style="width: 100%; padding: 6px; height: 60px; font-family: inherit; margin-bottom: 5px;"></textarea>
+                    <input type="text" id="fp_viatura" placeholder="Viatura" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                </div>
+                
+                <div style="margin-bottom: 1.5rem;">
+                    <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">12. ENCAMINHAMENTO</h5>
+                    <select id="fp_encaminhamento" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                        <option value="">Selecione...</option>
+                        <option value="Delegacia">Delegacia</option>
+                        <option value="Conselho Tutelar">Conselho Tutelar</option>
+                        <option value="SAMU / Bombeiros">SAMU / Bombeiros</option>
+                        <option value="Liberado no Local">Liberado no Local</option>
+                        <option value="Outro">Outro</option>
+                    </select>
+                </div>
+
+                <!-- 13. DECLARAÇÃO / ASSINATURAS -->
+                <div style="margin-bottom: 1.5rem;">
+                    <h5 style="margin-bottom: 0.5rem; font-size: 0.9rem;">13. ASSINATURAS</h5>
+                    <div class="grid-ficha-2">
+                        <input type="text" id="fp_agente_responsavel" placeholder="Nome do Agente Responsável" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                        <input type="text" id="fp_comandante_geral" placeholder="Nome do Comandante Geral" class="btn btn-outline" style="width: 100%; padding: 6px;">
+                    </div>
+                </div>
+            </div>
+
             <div style="display:flex; gap:1rem;">
                 <button class="btn btn-primary" id="btnConfirmResp" style="flex:1;">Enviar Resposta</button>
+                <button class="btn btn-outline" id="btnPrintFicha" style="flex:1; display:none; border-color: #1e3a8a; color: #1e3a8a;">Imprimir Ficha</button>
                 <button class="btn btn-outline" style="flex:1;" onclick="closeModal('modalResponse')">Cancelar</button>
             </div>
         </div>

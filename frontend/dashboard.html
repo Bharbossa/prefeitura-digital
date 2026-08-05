@@ -123,10 +123,11 @@
         <div class="tabs-nav" style="display: flex; gap: 0.5rem; flex-wrap: wrap; padding-bottom: 1rem; margin-bottom: 2rem; border-bottom: 2px solid var(--border);">
             <button class="btn tab-btn active" onclick="selecionarAba('todas')" style="background: var(--primary-color); color: white; border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-layer-group"></i> Todas</button>
             <button class="btn tab-btn" onclick="selecionarAba('ocorrencias')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-triangle-exclamation"></i> Ocorrências</button>
-            <button class="btn tab-btn" onclick="selecionarAba('consultas')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-user-doctor"></i> Consultas</button>
+            <!-- <button class="btn tab-btn" onclick="selecionarAba('consultas')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-user-doctor"></i> Consultas</button> -->
             <button class="btn tab-btn" onclick="selecionarAba('atendimentos')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-users"></i> Atendimentos</button>
             <button class="btn tab-btn" onclick="selecionarAba('viagens')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-bus"></i> Viagens</button>
             <button class="btn tab-btn" onclick="selecionarAba('bolsafamilia')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-hands-holding-child"></i> Bolsa Família</button>
+            <button class="btn tab-btn" onclick="selecionarAba('maquinas')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-tractor"></i> Máquinas Agrícolas</button>
             <!-- <button class="btn tab-btn" onclick="selecionarAba('concursos')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-trophy"></i> Concursos</button> -->
         </div>
 
@@ -135,9 +136,9 @@
             <button id="btn-nova-ocorrencia" class="btn btn-primary action-btn" style="background: var(--primary-color); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalOcorrencia()">
                 <i class="fa-solid fa-plus"></i> Registrar Problema
             </button>
-            <button id="btn-nova-consulta" class="btn btn-primary action-btn" style="background: var(--success); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalConsulta()">
+            <!-- <button id="btn-nova-consulta" class="btn btn-primary action-btn" style="background: var(--success); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalConsulta()">
                 <i class="fa-solid fa-user-doctor"></i> Consulta
-            </button>
+            </button> -->
             <button id="btn-novo-atendimento" class="btn btn-primary action-btn" style="background: var(--accent); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalAtendimento()">
                 <i class="fa-solid fa-users"></i> Atendimento
             </button>
@@ -146,6 +147,9 @@
             </button>
             <button id="btn-novo-bolsafamilia" class="btn btn-primary action-btn" style="background: #f59e0b; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalBolsaFamilia()">
                 <i class="fa-solid fa-hands-holding-child"></i> Bolsa Família
+            </button>
+            <button id="btn-nova-maquina" class="btn btn-primary action-btn" style="background: #8b5cf6; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalMaquinas()">
+                <i class="fa-solid fa-tractor"></i> Máquinas Agrícolas
             </button>
             <!-- <button id="btn-novo-concurso" class="btn btn-primary action-btn" style="background: #a855f7; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalConcursos()">
                 <i class="fa-solid fa-trophy"></i> Concursos
@@ -252,6 +256,38 @@
                 style="position: absolute; right: 20px; top: 20px; cursor: pointer; font-size: 1.5rem;"
                 onclick="document.getElementById('modalNovoAgendamento').style.display='none'"></i>
             <h3 id="modalAgTitle" style="margin-bottom: 1.5rem;">Agendamento</h3>
+            
+            <!-- Banner em destaque de Antecedência Mínima de Viagem (10 dias) -->
+            <div id="viagem_aviso_container" style="display: none; background: #fffbe6; border: 2px dashed #f59e0b; border-radius: 12px; padding: 1.2rem; margin-bottom: 1.5rem; animation: borderPulse 2s infinite;">
+                <div style="display: flex; align-items: flex-start; gap: 12px; color: #92400e;">
+                    <i class="fa-solid fa-triangle-exclamation" style="font-size: 1.8rem; color: #d97706; margin-top: 2px;"></i>
+                    <div>
+                        <h4 style="margin: 0 0 4px 0; font-size: 1.05rem; font-weight: 800; color: #92400e; text-transform: uppercase; letter-spacing: 0.5px;">
+                            🚨 Antecedência Mínima de 10 Dias
+                        </h4>
+                        <p style="margin: 0; font-size: 0.9rem; color: #78350f; line-height: 1.4;">
+                            A marcação de viagem deve ser realizada com <strong>antecedência mínima de 10 dias</strong> da data desejada. 
+                            <strong>Todos os campos são de preenchimento obrigatório</strong>, exceto o envio de arquivos.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Banner em destaque de Vagas Lotadas em Agosto para Máquinas Agrícolas -->
+            <div id="maquina_aviso_container" style="display: none; background: #eff6ff; border: 2px dashed #3b82f6; border-radius: 12px; padding: 1.2rem; margin-bottom: 1.5rem; animation: borderPulse 2s infinite;">
+                <div style="display: flex; align-items: flex-start; gap: 12px; color: #1e40af;">
+                    <i class="fa-solid fa-calendar-xmark" style="font-size: 1.8rem; color: #2563eb; margin-top: 2px;"></i>
+                    <div>
+                        <h4 style="margin: 0 0 4px 0; font-size: 1.05rem; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px;">
+                            🚜 Vagas do Mês de Agosto Preenchidas
+                        </h4>
+                        <p style="margin: 0; font-size: 0.9rem; color: #1e40af; line-height: 1.4;">
+                            Todas as datas para o mês de <strong>Agosto</strong> já foram preenchidas. O agendamento de máquinas agrícolas está <strong>liberado apenas a partir de Setembro (01/09/2026)</strong>.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
             <form id="formAgendamento">
                 <div class="form-group" id="group_dados_usuario"
                     style="display: none; background: #f8fafc; padding: 1rem; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 1rem;">
@@ -271,7 +307,7 @@
                     </select>
                 </div>
                 <div class="form-group">
-                    <label>Tipo de Atendimento</label>
+                    <label id="ag_tipo_label">Tipo de Atendimento</label>
                     <select id="ag_tipo">
                         <option value="">Selecione...</option>
                         <option value="Consulta Presencial">Consulta Presencial</option>
@@ -364,6 +400,21 @@
                     <div class="form-group">
                         <label>Horário Desejado</label>
                         <input type="time" id="ag_data_time">
+                    </div>
+                </div>
+
+                <div class="form-group" id="group_mapa_agendamento" style="display: none;">
+                    <label><i class="fa-solid fa-map-location-dot"></i> Localização do Serviço / Propriedade (Opcional)</label>
+                    <p style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                        Selecione no mapa o local exato onde o serviço/máquina deve ser executado.
+                    </p>
+                    <div id="map_agendamento" style="height: 250px; width: 100%; border-radius: 8px; border: 1px solid var(--border); margin-bottom: 1rem;"></div>
+                    <button type="button" class="btn btn-outline" style="width: 100%; font-size: 0.8rem; margin-bottom: 1rem;" onclick="getAgendamentoUserLocation()">
+                        <i class="fa-solid fa-location-crosshairs"></i> Usar Minha Localização
+                    </button>
+                    <div class="form-group">
+                        <label>Endereço / Propriedade / Sítio</label>
+                        <input type="text" id="ag_local_endereco" placeholder="Ex: Sítio Boa Vista, Povoado Santa Luzia, Rua...">
                     </div>
                 </div>
                 <div class="form-group" id="group_sus" style="display: none;">
@@ -571,7 +622,6 @@
             </div>
 
             <div>
-                <h4 style="margin-bottom: 1rem; color: var(--text-primary);"><i class="fa-solid fa-lock"></i> Segurança</h4>
                 <button type="button" class="btn btn-outline" style="width: 100%; color: #2563eb; border-color: #2563eb;" onclick="document.getElementById('modalMinhaConta').style.display='none'; abrirModalTrocaSenha();">
                     <i class="fa-solid fa-key"></i> Mudar Minha Senha
                 </button>
@@ -579,6 +629,246 @@
         </div>
     </div>
 
+    <script>
+        function checarLimiteMaquinaUsuario() {
+            if (!todosAgendamentos || !Array.isArray(todosAgendamentos)) return null;
+            
+            const maquinaKeywords = ["maquina", "trator", "acude", "estrada", "arado", "escavadeira", "retroescavadeira", "motoniveladora", "patrol", "cacamba", "carregadeira", "barreiro", "agricola", "esteira", "grade", "pa carregadeira", "rural"];
+            
+            const normalize = str => str ? str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase() : '';
+
+            const agsMaquina = todosAgendamentos.filter(a => {
+                if (!a || (a.status && a.status.toLowerCase() === 'cancelado')) return false;
+                const normTipo = normalize(a.tipo);
+                const normAssunto = normalize(a.assunto);
+                const secId = parseInt(a.secretaria_id);
+                if (secId === 21) return true;
+                return maquinaKeywords.some(k => normTipo.includes(k) || normAssunto.includes(k));
+            });
+
+            if (agsMaquina.length > 0) {
+                agsMaquina.sort((a, b) => new Date(b.data_hora) - new Date(a.data_hora));
+                const ultimo = agsMaquina[0];
+                const dtUltimo = new Date(ultimo.data_hora);
+                
+                const day = String(dtUltimo.getDate()).padStart(2, '0');
+                const month = String(dtUltimo.getMonth() + 1).padStart(2, '0');
+                const year = dtUltimo.getFullYear();
+                const strAnterior = `${day}/${month}/${year}`;
+                
+                const dtPermitida = new Date(dtUltimo);
+                dtPermitida.setDate(dtPermitida.getDate() + 30);
+                const dayP = String(dtPermitida.getDate()).padStart(2, '0');
+                const monthP = String(dtPermitida.getMonth() + 1).padStart(2, '0');
+                const yearP = dtPermitida.getFullYear();
+                const strPermitida = `${dayP}/${monthP}/${yearP}`;
+                
+                const hoje = new Date();
+                const diffDays = Math.abs((hoje - dtUltimo) / (1000 * 60 * 60 * 24));
+                const mesmoMes = (hoje.getFullYear() === dtUltimo.getFullYear() && hoje.getMonth() === dtUltimo.getMonth());
+
+                if (mesmoMes || diffDays < 30) {
+                    return {
+                        anterior: strAnterior,
+                        permitida: strPermitida,
+                        mensagem: `Você já possui um agendamento de máquina agrícola realizado em ${strAnterior}. É permitido apenas 1 agendamento por mês (mínimo de 30 dias de intervalo). Você poderá solicitar novamente a partir de ${strPermitida}.`
+                    };
+                }
+            }
+            return null;
+        }
+
+        function abrirModalMaquinas() {
+            const limite = checarLimiteMaquinaUsuario();
+            if (limite) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Limite Mensal Atingido',
+                    text: limite.mensagem,
+                    confirmButtonColor: '#8b5cf6'
+                });
+                return;
+            }
+            resetAgendamentoModalFields();
+            document.getElementById('modalNovoAgendamento').style.display = 'block';
+            document.getElementById('modalAgTitle').innerText = 'Solicitação de Máquinas Agrícolas';
+
+            const avisoMaquina = document.getElementById('maquina_aviso_container');
+            if (avisoMaquina) avisoMaquina.style.display = 'block';
+
+            // Liberar agendamento apenas a partir de Setembro (01/09/2026)
+            document.getElementById('ag_data_date').min = '2026-09-01';
+            document.getElementById('ag_data_date').required = true;
+            document.getElementById('ag_data_time').required = true;
+
+            const tipoSelect = document.getElementById('ag_tipo');
+            tipoSelect.innerHTML = `
+                <option value="">Selecione o Tipo de Máquina Agrícola...</option>
+                <option value="Trator de Pneus / Arado de Terra">🚜 Trator de Pneus / Arado de Terra</option>
+                <option value="Trator de Esteira (Grade / Limpeza)">🚜 Trator de Esteira (Grade / Limpeza)</option>
+                <option value="Retroescavadeira / Escavadeira">🚜 Retroescavadeira / Escavadeira</option>
+                <option value="Motoniveladora (Patrol)">🚜 Motoniveladora (Patrol)</option>
+                <option value="Caminhão Caçamba (Transporte de Terra/Barro)">🚛 Caminhão Caçamba (Transporte de Terra/Barro)</option>
+                <option value="Pá Carregadeira">🚜 Pá Carregadeira</option>
+                <option value="Limpeza de Açude / Barreiro">💧 Limpeza de Açude / Barreiro</option>
+                <option value="Abertura / Manutenção de Estrada RURAL">🛣️ Abertura / Manutenção de Estrada RURAL</option>
+                <option value="Outro Tipo de Máquina / Serviço">🚜 Outra Máquina / Serviço Agrícola</option>
+            `;
+            tipoSelect.value = "";
+
+            const secSelect = document.getElementById('ag_secretaria');
+            secSelect.disabled = false;
+            for (let i = 0; i < secSelect.options.length; i++) {
+                if (secSelect.options[i].text.toUpperCase().includes("AGRICULTURA") || secSelect.options[i].text.toUpperCase().includes("OBRAS") || secSelect.options[i].text.toUpperCase().includes("MÁQUINAS")) {
+                    secSelect.options[i].style.display = 'block';
+                    secSelect.selectedIndex = i;
+                } else {
+                    secSelect.options[i].style.display = 'block';
+                }
+            }
+
+            const tipoLabel = document.querySelector('label[for="ag_tipo"]') || document.getElementById('ag_tipo_label');
+            if (tipoLabel) tipoLabel.innerText = 'Tipo de Máquina Desejada (Obrigatório)';
+
+            document.getElementById('ag_assunto_label').innerText = 'Descrição do Serviço Agrícola (Obrigatório)';
+            document.getElementById('ag_assunto').placeholder = 'Ex: Arado de 2 hectares para plantio de milho, limpeza de barreiro no sítio...';
+            document.getElementById('ag_assunto').required = true;
+
+            document.getElementById('group_dados_usuario').style.display = 'block';
+            const user = getUserInfo();
+            if (user) {
+                document.getElementById('ag_nome').value = user.nome || '';
+                document.getElementById('ag_cpf').value = user.cpf || '';
+            }
+
+            // Exibir mapa para localização exata do serviço agrícola
+            document.getElementById('group_mapa_agendamento').style.display = 'block';
+            setTimeout(initAgendamentoMap, 300);
+
+            document.getElementById('group_profissional').style.display = 'none';
+            document.getElementById('ag_profissional').required = false;
+            document.getElementById('group_posto').style.display = 'none';
+            document.getElementById('ag_posto').required = false;
+            document.getElementById('group_sus').style.display = 'none';
+            document.getElementById('ag_cartao_sus').required = false;
+            document.getElementById('group_motivo').style.display = 'none';
+            document.getElementById('group_acompanhante').style.display = 'none';
+            document.getElementById('group_comprovante').style.display = 'none';
+            document.getElementById('ag_comprovante').required = false;
+            document.getElementById('group_concurso').style.display = 'none';
+            document.getElementById('ag_concurso').required = false;
+        }
+
+        let agendamentoMap, agendamentoMarker;
+        function initAgendamentoMap() {
+            const mapElement = document.getElementById('map_agendamento');
+            if (!mapElement || typeof L === 'undefined') return;
+
+            if (agendamentoMap) {
+                agendamentoMap.invalidateSize();
+                return;
+            }
+
+            agendamentoMap = L.map('map_agendamento').setView(defaultLocation, 15);
+
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(agendamentoMap);
+
+            agendamentoMarker = L.marker(defaultLocation, { draggable: true }).addTo(agendamentoMap);
+
+            agendamentoMarker.on('dragend', function (event) {
+                const position = agendamentoMarker.getLatLng();
+                updateAgendamentoCoords(position.lat, position.lng);
+            });
+
+            agendamentoMap.on('click', function (e) {
+                agendamentoMarker.setLatLng(e.latlng);
+                updateAgendamentoCoords(e.latlng.lat, e.latlng.lng);
+            });
+        }
+
+        async function updateAgendamentoCoords(lat, lng) {
+            try {
+                const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+                const data = await res.json();
+                if (data && data.display_name) {
+                    const street = data.address.road || data.address.pedestrian || data.address.suburb || "";
+                    const houseNumber = data.address.house_number || "";
+                    const localInput = document.getElementById('ag_local_endereco');
+                    if (localInput && !localInput.value) {
+                        localInput.value = street + (houseNumber ? ", " + houseNumber : "");
+                    }
+                }
+            } catch (e) { console.warn("Erro geocodificação agendamento:", e); }
+        }
+
+        function getAgendamentoUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const lat = position.coords.latitude;
+                        const lng = position.coords.longitude;
+                        const pos = [lat, lng];
+
+                        if (agendamentoMarker && agendamentoMap) {
+                            agendamentoMarker.setLatLng(pos);
+                            agendamentoMap.setView(pos, 17);
+                            updateAgendamentoCoords(lat, lng);
+                        }
+                    },
+                    () => { alert("Não foi possível obter sua localização atual."); }
+                );
+            } else { alert("Seu navegador não suporta geolocalização."); }
+        }
+
+        function selecionarAba(aba) {
+            abaAtiva = aba;
+            
+            // Atualizar visual dos botões de aba
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.style.background = 'var(--bg-card)';
+                btn.style.color = 'var(--text-primary)';
+            });
+            event.currentTarget.style.background = 'var(--primary-color)';
+            event.currentTarget.style.color = 'white';
+
+            // Atualizar botões de ação
+            document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = 'none');
+            if (aba === 'todas') document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = 'block');
+            else if (aba === 'ocorrencias') document.getElementById('btn-nova-ocorrencia').style.display = 'block';
+            else if (aba === 'consultas') document.getElementById('btn-nova-consulta').style.display = 'block';
+            else if (aba === 'atendimentos') document.getElementById('btn-novo-atendimento').style.display = 'block';
+            else if (aba === 'viagens') document.getElementById('btn-nova-viagem').style.display = 'block';
+            else if (aba === 'bolsafamilia') document.getElementById('btn-novo-bolsafamilia').style.display = 'block';
+            else if (aba === 'maquinas') document.getElementById('btn-nova-maquina').style.display = 'block';
+            else if (aba === 'concursos') document.getElementById('btn-novo-concurso').style.display = 'block';
+
+            renderizarLista();
+        }
+
+        function obterCategoriaAgendamento(a) {
+            const tipo = (a.tipo || '').toLowerCase();
+            const assunto = (a.assunto || '').toLowerCase();
+            
+            if (tipo.includes('maquina') || tipo.includes('máquina') || assunto.includes('maquina') || assunto.includes('máquina') || assunto.includes('trator') || assunto.includes('arado') || assunto.includes('açude') || assunto.includes('barreiro')) {
+                return 'maquinas';
+            }
+            if (tipo.includes('concurso') || assunto.includes('concurso')) {
+                return 'concursos';
+            }
+            if (tipo.includes('bolsa') || assunto.includes('bolsa') || tipo.includes('família') || tipo.includes('familia')) {
+                return 'bolsafamilia';
+            }
+            if (tipo.includes('viagem') || tipo.includes('garagem') || assunto.includes('viagem') || assunto.includes('garagem') || tipo.includes('viagens') || tipo.includes('viagen')) {
+                return 'viagens';
+            }
+            if (tipo.includes('consulta') || assunto.includes('consulta') || assunto.includes('médica') || assunto.includes('medica') || assunto.includes('posto de saúde') || assunto.includes('posto de saude')) {
+                return 'consultas';
+            }
+            return 'atendimentos';
+        }
+    </script>
     <script src="js/main.js?v=1.0.7"></script>
     <script>
         if (!checkAuth()) {
@@ -587,8 +877,23 @@
 
         function resetAgendamentoModalFields() {
             document.getElementById('group_data_hora').style.display = 'block';
-            document.getElementById('ag_data_date').required = false;
+            const agDateInput = document.getElementById('ag_data_date');
+            if (agDateInput) {
+                agDateInput.required = false;
+                agDateInput.removeAttribute('min');
+            }
             document.getElementById('ag_data_time').required = false;
+
+            const avisoViagem = document.getElementById('viagem_aviso_container');
+            if (avisoViagem) avisoViagem.style.display = 'none';
+
+            const avisoMaquina = document.getElementById('maquina_aviso_container');
+            if (avisoMaquina) avisoMaquina.style.display = 'none';
+
+            const mapaGroup = document.getElementById('group_mapa_agendamento');
+            if (mapaGroup) mapaGroup.style.display = 'none';
+            const localInput = document.getElementById('ag_local_endereco');
+            if (localInput) localInput.value = '';
             
             // Reset health post selection & professional
             const btnSubmit = document.getElementById('btnSubmitAgendamento');
@@ -760,6 +1065,11 @@
         });
 
         function abrirModalAtendimento() {
+            if (typeof verificarEExecutarAcao === 'function' && !verificarEExecutarAcao(() => _abrirModalAtendimentoDireto())) return;
+            _abrirModalAtendimentoDireto();
+        }
+
+        function _abrirModalAtendimentoDireto() {
             resetAgendamentoModalFields();
             document.getElementById('group_dados_usuario').style.display = 'none';
             document.getElementById('modalNovoAgendamento').style.display = 'block';
@@ -799,10 +1109,18 @@
         }
 
         function abrirModalViagem() {
+            if (typeof verificarEExecutarAcao === 'function' && !verificarEExecutarAcao(() => _abrirModalViagemDireto())) return;
+            _abrirModalViagemDireto();
+        }
+
+        function _abrirModalViagemDireto() {
             resetAgendamentoModalFields();
             document.getElementById('group_dados_usuario').style.display = 'none';
             document.getElementById('modalNovoAgendamento').style.display = 'block';
             document.getElementById('modalAgTitle').innerText = 'Marcação de Viagem (Garagem Municipal)';
+
+            const avisoViagem = document.getElementById('viagem_aviso_container');
+            if (avisoViagem) avisoViagem.style.display = 'block';
 
             const tipoSelect = document.getElementById('ag_tipo');
             tipoSelect.innerHTML = `<option value="Marcação de Viagem">Marcação de Viagem</option>`;
@@ -819,9 +1137,19 @@
             }
             secSelect.disabled = true; // Força para a Garagem Municipal
 
-            document.getElementById('ag_assunto_label').innerText = 'Destino da Viagem';
+            document.getElementById('ag_assunto_label').innerText = 'Destino da Viagem (Obrigatório)';
             document.getElementById('ag_assunto').placeholder = 'Ex: Maceió, Recife, etc.';
-            document.getElementById('ag_assunto').required = false;
+            document.getElementById('ag_assunto').required = true;
+
+            // Limitar a data mínima no calendário para 10 dias de antecedência
+            const dtMin = new Date();
+            dtMin.setDate(dtMin.getDate() + 10);
+            const yyyy = dtMin.getFullYear();
+            const mm = String(dtMin.getMonth() + 1).padStart(2, '0');
+            const dd = String(dtMin.getDate()).padStart(2, '0');
+            document.getElementById('ag_data_date').min = `${yyyy}-${mm}-${dd}`;
+            document.getElementById('ag_data_date').required = true;
+            document.getElementById('ag_data_time').required = true;
 
             document.getElementById('group_profissional').style.display = 'none';
             document.getElementById('ag_profissional').required = false;
@@ -830,17 +1158,29 @@
             document.getElementById('ag_posto').required = false;
             document.getElementById('group_sus').style.display = 'none';
             document.getElementById('ag_cartao_sus').required = false;
+
             document.getElementById('group_motivo').style.display = 'block';
-            document.getElementById('ag_motivo').required = false;
+            const motivoLabel = document.querySelector('label[for="ag_motivo"]') || document.getElementById('group_motivo').querySelector('label');
+            if (motivoLabel) motivoLabel.innerText = 'Motivo da Viagem (Ex: Consulta, Exame, Cirurgia) - Obrigatório';
+            document.getElementById('ag_motivo').placeholder = 'Ex: Consulta médica agendada no Hospital das Clínicas em Maceió...';
+            document.getElementById('ag_motivo').required = true;
+
             document.getElementById('group_acompanhante').style.display = 'block';
+            document.getElementById('ag_acompanhante').required = false;
+
             document.getElementById('group_comprovante').style.display = 'block';
-            document.getElementById('ag_comprovante').required = false;
+            document.getElementById('ag_comprovante').required = false; // "menos envio de arquivos"
             
             document.getElementById('group_concurso').style.display = 'none';
             document.getElementById('ag_concurso').required = false;
         }
 
         function abrirModalBolsaFamilia() {
+            if (typeof verificarEExecutarAcao === 'function' && !verificarEExecutarAcao(() => _abrirModalBolsaFamiliaDireto())) return;
+            _abrirModalBolsaFamiliaDireto();
+        }
+
+        function _abrirModalBolsaFamiliaDireto() {
             resetAgendamentoModalFields();
             document.getElementById('modalNovoAgendamento').style.display = 'block';
             document.getElementById('modalAgTitle').innerText = 'Agendamento Bolsa Família';
@@ -1199,7 +1539,7 @@
             }
             
             // Filtrar Agendamentos
-            if (['todas', 'consultas', 'atendimentos', 'viagens', 'bolsafamilia', 'concursos'].includes(abaAtiva)) {
+            if (['todas', 'consultas', 'atendimentos', 'viagens', 'bolsafamilia', 'maquinas', 'concursos'].includes(abaAtiva)) {
                 todosAgendamentos.forEach(a => {
                     let abaCorresponde = false;
                     if (abaAtiva === 'todas') abaCorresponde = true;
@@ -1655,13 +1995,49 @@
                     if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.innerText = originalText; }
                 }
             } else if (tipoAtend === "Marcação de Viagem") {
+                const destinoVal = document.getElementById('ag_assunto').value.trim();
+                const motivoVal = document.getElementById('ag_motivo').value.trim();
+
+                if (!destinoVal || !motivoVal || !dataDate || !dataTime) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Campos Obrigatórios',
+                        text: 'Por favor, preencha todos os campos obrigatórios da viagem: Destino, Data, Horário e Motivo.',
+                        confirmButtonColor: '#8b5cf6'
+                    });
+                    return;
+                }
+
+                // Validar antecedência mínima de 10 dias
+                const selectedDate = new Date(`${dataDate}T${dataTime || '00:00'}:00`);
+                const hoje = new Date();
+                hoje.setHours(0, 0, 0, 0);
+
+                const minDateAllowed = new Date(hoje);
+                minDateAllowed.setDate(minDateAllowed.getDate() + 10);
+
+                if (selectedDate < minDateAllowed) {
+                    const dayP = String(minDateAllowed.getDate()).padStart(2, '0');
+                    const monthP = String(minDateAllowed.getMonth() + 1).padStart(2, '0');
+                    const yearP = minDateAllowed.getFullYear();
+                    const fmtPermitida = `${dayP}/${monthP}/${yearP}`;
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Antecedência Mínima de 10 Dias',
+                        text: `As solicitações de viagem devem ser realizadas com antecedência mínima de 10 dias. Para a data de hoje, escolha uma data a partir de ${fmtPermitida}.`,
+                        confirmButtonColor: '#8b5cf6'
+                    });
+                    return;
+                }
+
                 const formData = new FormData();
                 formData.append('secretaria_id', parseInt(dropdown.value));
                 formData.append('tipo', tipoAtend);
-                formData.append('assunto', assuntoFinal);
-                formData.append('motivo', document.getElementById('ag_motivo').value);
+                formData.append('assunto', destinoVal);
+                formData.append('motivo', motivoVal);
                 formData.append('acompanhante', document.getElementById('ag_acompanhante').value);
-                formData.append('data_hora', (dataDate && dataTime) ? `${dataDate}T${dataTime}:00` : '');
+                formData.append('data_hora', `${dataDate}T${dataTime}:00`);
                 formData.append('cartao_sus', '');
 
                 const fileInput = document.getElementById('ag_comprovante');
@@ -1676,20 +2052,35 @@
                         body: formData
                     });
                     if (res.ok) {
-                        alert('Viagem agendada com sucesso! Aguarde a confirmação da Garagem.');
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Viagem Agendada com Sucesso!',
+                            text: 'Sua solicitação de viagem foi registrada. Aguarde a confirmação da Garagem Municipal.',
+                            confirmButtonColor: '#10b981'
+                        });
                         document.getElementById('modalNovoAgendamento').style.display = 'none';
                         e.target.reset();
                         loadAgendamentos();
                     } else {
                         try {
                             const errData = await res.json();
-                            alert(errData.detail || 'Erro ao agendar viagem.');
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Solicitação Indisponível',
+                                text: errData.detail || 'Erro ao agendar viagem.',
+                                confirmButtonColor: '#8b5cf6'
+                            });
                         } catch(err) {
-                            alert('Erro ao agendar viagem.');
+                            Swal.fire({icon: 'error', title: 'Erro de Conexão', text: 'Erro ao agendar viagem.'});
                         }
                     }
                 } catch (e) { Swal.fire({icon: 'error', title: 'Erro de Conexão', text: 'Não foi possível conectar ao servidor.'}); }
             } else {
+                const localServico = document.getElementById('ag_local_endereco')?.value.trim();
+                if (localServico) {
+                    assuntoFinal += ` (Local: ${localServico})`;
+                }
+
                 const data = {
                     secretaria_id: parseInt(dropdown.value),
                     tipo: tipoAtend,
@@ -1712,7 +2103,14 @@
                         e.target.reset();
                         loadAgendamentos();
                     } else {
-                        alert('Erro ao agendar.');
+                        const errData = await res.json().catch(() => ({}));
+                        const isLimiteUsuario = errData.detail && errData.detail.includes('1 agendamento por mês');
+                        Swal.fire({
+                            icon: 'warning',
+                            title: isLimiteUsuario ? 'Limite Mensal Atingido' : 'Solicitação Indisponível',
+                            text: errData.detail || 'Não foi possível concluir o agendamento. Verifique os dados.',
+                            confirmButtonColor: '#8b5cf6'
+                        });
                     }
                 } catch (e) { Swal.fire({icon: 'error', title: 'Erro de Conexão', text: 'Não foi possível conectar ao servidor.'}); }
             }
@@ -1861,22 +2259,30 @@
     <meta http-equiv="Expires" content="0">
                             <title>${titleText} - ${a.protocolo || a.id}</title>
                             <style>
-                                body { font-family: 'Inter', sans-serif; padding: 40px; line-height: 1.6; color: #1e293b; }
-                                .header { text-align: center; margin-bottom: 40px; border-bottom: 4px solid #10b981; padding-bottom: 20px; }
-                                .content { background: #f8fafc; padding: 30px; border-radius: 12px; border: 1px solid #e2e8f0; }
-                                .row { display: flex; margin-bottom: 15px; align-items: flex-start; }
-                                .label { min-width: 180px; font-weight: 700; color: #1e293b; }
-                                .stamp { margin-top: 40px; text-align: right; }
-                                .badge { padding: 10px 20px; border: 2px solid ${stampColor}; color: ${stampColor}; font-weight: 800; border-radius: 8px; display: inline-block; transform: rotate(-5deg); }
-                                .highlight { background: #f1f5f9; padding: 12px 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0; }
-                                .section-title { font-weight: 700; color: #1e293b; font-size: 1rem; margin-top: 20px; margin-bottom: 10px; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; }
-                                @media print { .no-print { display: none; } }
+                                @page { size: A4 portrait; margin: 10mm; }
+                                body { font-family: 'Inter', sans-serif; padding: 15px; line-height: 1.35; color: #1e293b; font-size: 0.9rem; margin: 0; }
+                                .header { text-align: center; margin-bottom: 15px; border-bottom: 3px solid #10b981; padding-bottom: 10px; }
+                                .header img { max-height: 120px; max-width: 100%; object-fit: contain; margin-bottom: 0.5rem; }
+                                .header h1 { font-size: 1.3rem; margin: 5px 0; }
+                                .header p { font-size: 0.8rem; margin: 0; }
+                                .content { background: #f8fafc; padding: 15px; border-radius: 10px; border: 1px solid #e2e8f0; }
+                                .row { display: flex; margin-bottom: 8px; align-items: flex-start; }
+                                .label { min-width: 160px; font-weight: 700; color: #1e293b; font-size: 0.85rem; }
+                                .stamp { margin-top: 15px; text-align: right; }
+                                .badge { padding: 6px 14px; border: 2px solid ${stampColor}; color: ${stampColor}; font-weight: 800; border-radius: 6px; display: inline-block; transform: rotate(-3deg); font-size: 0.85rem; }
+                                .highlight { background: #f1f5f9; padding: 8px 12px; border-radius: 6px; margin-bottom: 10px; border: 1px solid #e2e8f0; }
+                                .section-title { font-weight: 700; color: #1e293b; font-size: 0.9rem; margin-top: 12px; margin-bottom: 8px; border-bottom: 2px solid #e2e8f0; padding-bottom: 3px; }
+                                @media print { 
+                                    .no-print { display: none !important; } 
+                                    body { padding: 0; }
+                                    .content { background: #ffffff !important; border: 1px solid #cbd5e1 !important; }
+                                }
                             </style>
                         </head>
                         <body>
                             <div class="header">
-                                <img src="images/logo-prefeitura.png" alt="Logo Prefeitura" style="max-height: 220px; max-width: 100%; object-fit: contain; margin-bottom: 1.5rem;"><br>
-                                ${isCulturaEsporte ? `<img src="imagens/logo-cultura-esporte.png" alt="Logo Cultura" style="max-height: 150px; margin-bottom: 1rem;"><br>` : ''}
+                                <img src="images/logo-prefeitura.png" alt="Logo Prefeitura"><br>
+                                ${isCulturaEsporte ? `<img src="imagens/logo-cultura-esporte.png" alt="Logo Cultura" style="max-height: 90px; margin-bottom: 0.5rem;"><br>` : ''}
                                 <h1>${iconHeader} ${titleText}</h1>
                                 <p>PREFEITURA MUNICIPAL DE COLÔNIA LEOPOLDINA - AL</p>
                             </div>
@@ -1896,10 +2302,66 @@
                                 ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
                                 ${a.motivo ? `<div class="row" style="white-space: pre-line;"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
                                 ${a.acompanhante ? `<div class="row"><span class="label">ACOMPANHANTE:</span> ${a.acompanhante}</div>` : ''}
+                                
+                                ${(() => {
+                                     const tipoStr = (a.tipo || '').toLowerCase();
+                                     const assuntoStr = (a.assunto || '').toLowerCase();
+                                     const secStr = (secretariaNomeStr || '').toLowerCase();
+                                     const isViagem = tipoStr.includes('viagem') || tipoStr.includes('marcação de viagem') || assuntoStr.includes('viagem');
+                                     const isGaragem = secStr.includes('garagem') || a.secretaria_id == 22 || isViagem;
+                                     const isMaquina = tipoStr.includes('máquina') || tipoStr.includes('maquina') || tipoStr.includes('trator') || tipoStr.includes('açude') || tipoStr.includes('estrada') || assuntoStr.includes('maquina') || assuntoStr.includes('máquina') || assuntoStr.includes('trator') || assuntoStr.includes('arado') || assuntoStr.includes('açude') || assuntoStr.includes('barreiro');
+                                     const isAgricultura = secStr.includes('agricultura') || isMaquina;
+                                     const isConfirmado = a.status && a.status.toLowerCase() === 'confirmado';
+
+                                     let avisoHtml = '';
+                                     if (isGaragem && isViagem && isConfirmado) {
+                                         avisoHtml += `
+                                             <div style="background: #fef2f2; border: 2px dashed #ef4444; border-radius: 10px; padding: 10px 14px; margin-top: 10px; margin-bottom: 8px; text-align: center;">
+                                                 <strong style="color: #dc2626; font-size: 1rem; display: block; margin-bottom: 4px; text-transform: uppercase;">
+                                                     ⚠️ ATENÇÃO - CONFIRMAÇÃO DE VIAGEM OBRIGATÓRIA
+                                                 </strong>
+                                                 <span style="color: #991b1b; font-weight: 700; font-size: 0.9rem; line-height: 1.3; display: block;">
+                                                     O CIDADÃO DEVE COMPARECER À GARAGEM MUNICIPAL PARA CONFIRMAR SUA VIAGEM!
+                                                 </span>
+                                             </div>
+                                         `;
+                                     }
+
+                                     if (isAgricultura) {
+                                         avisoHtml += `
+                                             <div style="background: #f0fdf4; border: 2px dashed #16a34a; border-radius: 10px; padding: 10px 14px; margin-top: 10px; margin-bottom: 8px; text-align: center;">
+                                                 <strong style="color: #15803d; font-size: 1rem; display: block; margin-bottom: 4px; text-transform: uppercase;">
+                                                     🚜 ATENÇÃO - CONFIRMAÇÃO DA MÁQUINA AGRÍCOLA
+                                                 </strong>
+                                                 <div style="background: #ffffff; border: 1px solid #bbf7d0; border-radius: 6px; padding: 4px 8px; margin: 4px 0; color: #14532d; font-weight: 800; font-size: 0.95rem;">
+                                                     MÁQUINA SOLICITADA: ${a.tipo || 'Máquina Agrícola'}
+                                                 </div>
+                                                 <span style="color: #166534; font-weight: 700; font-size: 0.9rem; line-height: 1.3; display: block; margin-bottom: 4px;">
+                                                     COMPAREÇA À SECRETARIA DE AGRICULTURA UM DIA ANTES PARA CONFIRMAÇÃO DA MÁQUINA!
+                                                 </span>
+                                                 <span style="color: #dc2626; font-weight: 800; font-size: 0.85rem; display: block; text-transform: uppercase;">
+                                                     ⚠️ SUJEITO A ALTERAÇÃO DE DATA DE ACORDO COM AS MANUTENÇÕES EM MAQUINAS
+                                                 </span>
+                                             </div>
+                                         `;
+                                     }
+                                     return avisoHtml;
+                                 })()}
 
                                 <div class="section-title">🕐 ${timeSectionTitle}</div>
                                 <div class="highlight">
                                     <strong style="font-size: 1.3rem; color: #1e293b;">📌 ${dataHoraBrasilia}</strong>
+                                    ${(() => {
+                                        const tipoStr = (a.tipo || '').toLowerCase();
+                                        const assuntoStr = (a.assunto || '').toLowerCase();
+                                        const secStr = (secretariaNomeStr || '').toLowerCase();
+                                        const isMaquina = tipoStr.includes('máquina') || tipoStr.includes('maquina') || tipoStr.includes('trator') || tipoStr.includes('açude') || tipoStr.includes('estrada') || assuntoStr.includes('maquina') || assuntoStr.includes('máquina') || assuntoStr.includes('trator') || assuntoStr.includes('arado') || assuntoStr.includes('açude') || assuntoStr.includes('barreiro');
+                                        const isAgricultura = secStr.includes('agricultura') || isMaquina;
+                                        if (isAgricultura) {
+                                            return `<div style="color: #dc2626; font-weight: 800; font-size: 0.9rem; margin-top: 6px; text-transform: uppercase;">⚠️ SUJEITO A ALTERAÇÃO DE DATA DE ACORDO COM AS MANUTENÇÕES EM MAQUINAS</div>`;
+                                        }
+                                        return '';
+                                    })()}
                                 </div>
                                 ${(() => {
                                     if (!a.anexo) return '';
@@ -2162,9 +2624,49 @@
         let map, marker;
         const defaultLocation = [-8.97, -35.91]; // Colônia Leopoldina
 
+        function obterAtendimentoPendenteAvaliacao() {
+            // Procura entre as ocorrências um item resolvido sem nota
+            const ocPendente = todasOcorrencias.find(o => o.status && o.status.toLowerCase() === 'resolvido' && (o.avaliacao_nota == null || o.avaliacao_nota === undefined));
+            if (ocPendente) {
+                return { id: ocPendente.id, type: 'ocorrencia', titulo: ocPendente.titulo };
+            }
+            // Procura entre os agendamentos um item finalizado sem nota
+            const agPendente = todosAgendamentos.find(a => a.status && ['resolvido', 'concluido', 'concluído', 'confirmado'].includes(a.status.toLowerCase()) && (a.avaliacao_nota == null || a.avaliacao_nota === undefined));
+            if (agPendente) {
+                return { id: agPendente.id, type: 'agendamento', titulo: agPendente.assunto || agPendente.tipo };
+            }
+            return null;
+        }
+
+        function verificarEExecutarAcao(callbackAcao) {
+            if (typeof callbackAcao === 'function') {
+                callbackAcao();
+            }
+            return true;
+        }
+
         function abrirModalOcorrencia() {
+            if (!verificarEExecutarAcao(() => _abrirModalOcorrenciaDireto())) return;
+        }
+
+        function _abrirModalOcorrenciaDireto() {
             document.getElementById('modalNovaOcorrencia').style.display = 'block';
             setTimeout(initMap, 300); // Aguarda o modal abrir para renderizar o mapa
+        }
+
+        function fecharModalAvaliacao() {
+            document.getElementById('modalAvaliacao').style.display = 'none';
+        }
+        
+        function abrirModalAvaliacao(id, type) {
+            document.getElementById('aval_id').value = id;
+            document.getElementById('aval_type').value = type;
+            document.getElementById('modalAvaliacao').style.display = 'block';
+            
+            // Reset stars
+            const radios = document.querySelectorAll('input[name="nota"]');
+            radios.forEach(r => r.checked = false);
+            document.getElementById('aval_comentario').value = '';
         }
 
         function initMap() {
@@ -2380,8 +2882,15 @@
                     Swal.fire({icon: 'success', title: 'Obrigado!', text: 'Sua avaliação ajuda a melhorar nossa cidade.', timer: 2500});
                     fecharModalAvaliacao();
                     // Atualiza as listas
-                    if(type === 'ocorrencia') loadOcorrencias();
-                    else loadAgendamentos();
+                    await loadOcorrencias();
+                    await loadAgendamentos();
+
+                    // Se havia uma solicitação/agendamento travado aguardando avaliação, libera a ação agora
+                    if (typeof acaoPendenteAposAvaliacao === 'function') {
+                        const proximaAcao = acaoPendenteAposAvaliacao;
+                        acaoPendenteAposAvaliacao = null;
+                        proximaAcao();
+                    }
                 } else {
                     const err = await res.json();
                     Swal.fire({icon: 'error', title: 'Erro', text: err.detail || 'Não foi possível enviar a avaliação.'});
@@ -2458,12 +2967,13 @@
     </script>
 
     <footer class="footer">
-        <p>Desenvolvido por Barbosa Nunes</p>
-        <p style="font-size: 0.8rem; margin-top: 0.5rem; opacity: 0.8;">
-            <i class="fa-solid fa-shield-halved"></i> Seus dados estão protegidos conforme a <strong>LGPD</strong>.
-            <br><a href="privacidade.html" style="color: inherit; text-decoration: underline;">Política de
-                Privacidade</a>.
-        </p>
+        <div class="footer-card">
+            <p style="font-weight: 700;">Desenvolvido por Barbosa Nunes</p>
+            <p style="font-size: 0.85rem; margin-top: 0.4rem;">
+                <i class="fa-solid fa-shield-halved"></i> Seus dados estão protegidos conforme a <strong>LGPD</strong>.
+                <br><a href="privacidade.html">Política de Privacidade</a>.
+            </p>
+        </div>
     </footer>
 
     <!-- Leaflet (Free Map Alternative to Google Maps) -->

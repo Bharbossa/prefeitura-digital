@@ -154,14 +154,26 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
 
-    // Hamburger Menu Toggle
-    const hamburger = document.querySelector('.hamburger');
-    if (hamburger) {
-        hamburger.addEventListener('click', () => {
+    // Hamburger Menu Toggle (com delegação de eventos)
+    document.addEventListener('click', (e) => {
+        const hamburgerBtn = e.target.closest('.hamburger');
+        if (hamburgerBtn) {
             const nav = document.querySelector('.nav-links');
-            nav.classList.toggle('active');
-        });
-    }
+            if (nav) {
+                nav.classList.toggle('active');
+                hamburgerBtn.classList.toggle('active');
+            }
+            return;
+        }
+
+        // Fechar o menu ao clicar fora dele no mobile
+        const navLinks = document.querySelector('.nav-links');
+        if (navLinks && navLinks.classList.contains('active') && !e.target.closest('.nav-links') && !e.target.closest('.hamburger')) {
+            navLinks.classList.remove('active');
+            const activeHamburger = document.querySelector('.hamburger.active');
+            if (activeHamburger) activeHamburger.classList.remove('active');
+        }
+    });
     
     // Always sync all theme switches on the page once fully loaded
     initThemeSwitches();

@@ -86,14 +86,20 @@
                 </select>
             </div>
 
-            <div class="form-group">
-                <label for="endereco">Endereço Completo</label>
-                <input type="text" id="endereco" required>
+            <div class="form-group" style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 200px;">
+                    <label for="endereco">Rua / Logradouro</label>
+                    <input type="text" id="endereco" required placeholder="Ex: Rua Teódulo Augusto, nº 100">
+                </div>
+                <div style="flex: 1; min-width: 200px;">
+                    <label for="bairro">Bairro</label>
+                    <input type="text" id="bairro" required placeholder="Ex: Belo Jardim">
+                </div>
             </div>
 
             <div class="form-group">
                 <label for="senha">Senha</label>
-                <input type="password" id="senha" required>
+                <input type="password" id="senha" required placeholder="Sua senha secreta">
             </div>
 
             <div class="form-group"
@@ -125,13 +131,18 @@
 
         document.getElementById('registerForm').addEventListener('submit', async function (e) {
             e.preventDefault();
+            
+            const rua = document.getElementById('endereco').value.trim();
+            const bairro = document.getElementById('bairro').value.trim();
+            const fullAddress = (rua && bairro) ? `${rua}, ${bairro}` : (rua || bairro);
+
             const data = {
-                nome: document.getElementById('nome').value,
-                cpf: document.getElementById('cpf').value,
-                email: document.getElementById('email').value,
-                telefone: document.getElementById('telefone').value,
-                whatsapp: document.getElementById('whatsapp').value,
-                endereco: document.getElementById('endereco').value,
+                nome: document.getElementById('nome').value.trim(),
+                cpf: document.getElementById('cpf').value.trim(),
+                email: document.getElementById('email').value.trim(),
+                telefone: document.getElementById('telefone').value.trim(),
+                whatsapp: document.getElementById('whatsapp').value.trim(),
+                endereco: fullAddress,
                 genero: document.getElementById('genero').value,
                 senha: document.getElementById('senha').value
             };

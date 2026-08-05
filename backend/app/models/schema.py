@@ -95,6 +95,50 @@ class Ocorrencia(Base):
     usuario = relationship("Usuario", back_populates="ocorrencias")
     secretaria = relationship("Secretaria", back_populates="ocorrencias")
     respostas = relationship("Resposta", back_populates="ocorrencia")
+    ficha_policial = relationship("FichaPolicial", back_populates="ocorrencia", uselist=False)
+
+class FichaPolicial(Base):
+    __tablename__ = "fichas_policiais"
+
+    id = Column(Integer, primary_key=True, index=True)
+    ocorrencia_id = Column(Integer, ForeignKey("ocorrencias.id"), unique=True)
+    data_fato = Column(String(20), nullable=True) # DD/MM/YYYY or similar
+    hora_fato = Column(String(10), nullable=True) # HH:MM
+    hora_registro = Column(String(10), nullable=True)
+    tipo_ocorrencia = Column(String(100), nullable=True)
+    tipo_ocorrencia_outro = Column(String(100), nullable=True)
+    
+    vitima_nome = Column(String(150), nullable=True)
+    vitima_cpf_rg = Column(String(50), nullable=True)
+    vitima_data_nascimento = Column(String(20), nullable=True)
+    vitima_endereco = Column(String(255), nullable=True)
+    vitima_telefone = Column(String(50), nullable=True)
+    
+    suspeito_nome = Column(String(150), nullable=True)
+    suspeito_apelido = Column(String(100), nullable=True)
+    suspeito_cpf_rg = Column(String(50), nullable=True)
+    suspeito_data_nascimento = Column(String(20), nullable=True)
+    suspeito_endereco = Column(String(255), nullable=True)
+    suspeito_caracteristicas = Column(Text, nullable=True)
+    
+    objetos_envolvidos = Column(Text, nullable=True)
+    descricao_detalhada = Column(Text, nullable=True)
+    
+    uso_algemas = Column(String(20), nullable=True)
+    uso_algemas_justificativa = Column(Text, nullable=True)
+    emprego_forca = Column(String(20), nullable=True)
+    emprego_forca_tipo = Column(String(50), nullable=True)
+    emprego_forca_justificativa = Column(Text, nullable=True)
+    
+    providencias_gcm = Column(Text, nullable=True)
+    agentes_envolvidos = Column(Text, nullable=True)
+    viatura = Column(String(50), nullable=True)
+    encaminhamento = Column(String(100), nullable=True)
+    
+    agente_responsavel = Column(String(150), nullable=True)
+    comandante_geral = Column(String(150), nullable=True)
+
+    ocorrencia = relationship("Ocorrencia", back_populates="ficha_policial")
 
 class Resposta(Base):
     __tablename__ = "respostas"

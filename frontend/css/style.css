@@ -499,18 +499,60 @@ input:checked + .slider:before {
     cursor: pointer;
 }
 
-/* Footer */
+/* Footer Card */
 .footer {
     text-align: center;
-    padding: 2rem;
-    color: var(--text-secondary);
-    font-size: 0.9rem;
+    padding: 1.5rem 1rem;
     width: 100%;
     margin-top: auto;
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-[data-theme="dark"] .footer {
-    color: var(--text-secondary);
+.footer-card {
+    background: #ffffff;
+    color: #1e293b;
+    padding: 1.2rem 2rem;
+    border-radius: 16px;
+    border: 2px solid #e2e8f0;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    max-width: 600px;
+    width: 90%;
+    backdrop-filter: blur(10px);
+}
+
+.footer-card p {
+    color: #1e293b;
+    margin: 0.4rem 0;
+    font-size: 0.95rem;
+}
+
+.footer-card a {
+    color: #0284c7;
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+.footer-card a:hover {
+    color: #0369a1;
+}
+
+[data-theme="dark"] .footer-card {
+    background: #0f172a;
+    color: #f8fafc;
+    border-color: #334155;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+}
+
+[data-theme="dark"] .footer-card p {
+    color: #f8fafc;
+}
+
+[data-theme="dark"] .footer-card a {
+    color: #38bdf8;
 }
 
 /* --- Mobile Responsiveness --- */
@@ -545,15 +587,19 @@ input:checked + .slider:before {
         position: fixed;
         top: 0;
         right: -100%;
-        width: 70%;
+        width: 75%;
+        max-width: 320px;
         height: 100vh;
         background-color: var(--card-bg);
         flex-direction: column;
-        justify-content: center;
-        gap: 2rem;
-        transition: 0.4s ease-in-out;
-        box-shadow: -5px 0 15px rgba(0,0,0,0.1);
+        justify-content: flex-start;
+        align-items: center;
+        padding: 5rem 1.5rem 2rem 1.5rem;
+        gap: 1.2rem;
+        transition: 0.3s ease-in-out;
+        box-shadow: -5px 0 25px rgba(0,0,0,0.25);
         z-index: 1000;
+        overflow-y: auto;
     }
 
     .nav-links.active {
