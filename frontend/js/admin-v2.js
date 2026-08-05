@@ -397,30 +397,52 @@ async function loadUserHeatmap() {
                 
                 const base_coords = {
                     "Belo Jardim": [-8.9080, -35.7245],
-                    "Vila Nova": [-8.9075, -35.7290],
-                    "Centro": [-8.9095, -35.7270],
+                    "Vila Nova": [-8.9075, -35.7285],
+                    "Centro": [-8.9095, -35.7262],
                     "Loteamento Belo Jardim": [-8.9080, -35.7245],
                     "Santa Luzia": [-8.9125, -35.7245],
-                    "Boa Vista": [-8.9070, -35.7285],
+                    "Boa Vista": [-8.9070, -35.7280],
                     "Maria Loureiro": [-8.9110, -35.7268],
-                    "Teódulo Augusto": [-8.9090, -35.7295],
-                    "Durval Gonçalves": [-8.9100, -35.7290],
-                    "Padre Francisco": [-8.9085, -35.7265],
-                    "Severino Ferreira": [-8.9095, -35.7255],
-                    "Genival Rodrigues": [-8.9095, -35.7280],
-                    "Mário Lima": [-8.9100, -35.7270],
-                    "Manoel Lino": [-8.9105, -35.7285],
-                    "José Inácio": [-8.9110, -35.7280],
+                    "Teódulo Augusto": [-8.9090, -35.7285],
+                    "Teodulo Augusto": [-8.9090, -35.7285],
+                    "Teofilo Augusto": [-8.9090, -35.7285],
+                    "Durval Gonçalves": [-8.9098, -35.7282],
+                    "Durval Goncalves": [-8.9098, -35.7282],
+                    "Padre Francisco": [-8.9085, -35.7262],
+                    "Severino Ferreira": [-8.9095, -35.7250],
+                    "Genival Rodrigues": [-8.9092, -35.7265],
+                    "Mário Lima": [-8.9098, -35.7265],
+                    "Mario Lima": [-8.9098, -35.7265],
+                    "Manoel Lino": [-8.9102, -35.7278],
+                    "José Inácio": [-8.9108, -35.7275],
+                    "Jose Inacio": [-8.9108, -35.7275],
                     "José Maria Quirino": [-8.9095, -35.7228],
+                    "Maria Quirino": [-8.9095, -35.7228],
                     "Quirino": [-8.9095, -35.7228],
                     "Filomena Freitas": [-8.9095, -35.7233],
                     "José Gomes": [-8.9100, -35.7225],
                     "Genildo Loureiro": [-8.9100, -35.7225],
                     "José Francisco Xavier": [-8.9100, -35.7225],
                     "José Maria Ramos": [-8.9085, -35.7230],
-                    "Mário de Gusmão": [-8.9118, -35.7270],
-                    "7 de Setembro": [-8.9105, -35.7265],
-                    "Manoel Ataíde": [-8.9105, -35.7275]
+                    "Mário de Gusmão": [-8.9118, -35.7265],
+                    "Mario de Gusmao": [-8.9118, -35.7265],
+                    "7 de Setembro": [-8.9102, -35.7262],
+                    "Setembro": [-8.9102, -35.7262],
+                    "Legarião Freire": [-8.9104, -35.7260],
+                    "Adalgiso Borges": [-8.9106, -35.7258],
+                    "Adalgisio Borges": [-8.9106, -35.7258],
+                    "Manoel Ataíde": [-8.9108, -35.7262],
+                    "Manoel Ataide": [-8.9108, -35.7262],
+                    "Artur Ferreira": [-8.9078, -35.7255],
+                    "Joaquim Monteiro": [-8.9090, -35.7238],
+                    "Clodoaldo da Fonseca": [-8.9098, -35.7258],
+                    "Filadelfo José": [-8.9100, -35.7250],
+                    "Filadelfio": [-8.9100, -35.7250],
+                    "16 de Julho": [-8.9080, -35.7285],
+                    "Padre Cícero": [-8.9082, -35.7290],
+                    "Padre Cicero": [-8.9082, -35.7290],
+                    "Gustavo Fitipaldi": [-8.9075, -35.7275],
+                    "Pedro II": [-8.9082, -35.7275]
                 };
                 
                 const localidades = [];
@@ -428,20 +450,27 @@ async function loadUserHeatmap() {
                 
                 list.forEach((item, idx) => {
                     const name = item.endereco || 'Desconhecido';
-                    let lat = -8.9095 + (Math.sin(idx + 1) * 0.0015);
-                    let lng = -35.7270 + (Math.cos(idx + 1) * 0.0015);
+                    let lat = -8.9095;
+                    let lng = -35.7262;
+                    let found = false;
                     
                     for (let k in base_coords) {
                         if (name.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(name.toLowerCase())) {
                             lat = base_coords[k][0];
                             lng = base_coords[k][1];
+                            found = true;
                             break;
                         }
                     }
                     
+                    if (!found) {
+                        lat = -8.9095 + (Math.sin(idx + 1) * 0.0003);
+                        lng = -35.7262 + (Math.cos(idx + 1) * 0.0004);
+                    }
+                    
                     localidades.push({ name, lat, lng, total: item.total });
                     for (let i = 0; i < item.total; i++) {
-                        heat_points.push({ lat: lat + ((Math.random() - 0.5) * 0.0006), lng: lng + ((Math.random() - 0.5) * 0.0006), weight: 1 });
+                        heat_points.push({ lat: lat + ((Math.random() - 0.5) * 0.00015), lng: lng + ((Math.random() - 0.5) * 0.00015), weight: 1 });
                     }
                 });
                 

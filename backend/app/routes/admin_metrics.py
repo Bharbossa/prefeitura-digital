@@ -375,55 +375,81 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
             
     base_coords = {
         "Belo Jardim": (-8.9080, -35.7245),
-        "Vila Nova": (-8.9075, -35.7290),
-        "Centro": (-8.9095, -35.7270),
+        "Vila Nova": (-8.9075, -35.7285),
+        "Centro": (-8.9095, -35.7262),
         "Loteamento Belo Jardim": (-8.9080, -35.7245),
         "Santa Luzia": (-8.9125, -35.7245),
-        "Boa Vista": (-8.9070, -35.7285),
+        "Boa Vista": (-8.9070, -35.7280),
         "Maria Loureiro": (-8.9110, -35.7268),
-        "Teódulo Augusto": (-8.9090, -35.7295),
-        "Durval Gonçalves": (-8.9100, -35.7290),
-        "Padre Francisco": (-8.9085, -35.7265),
-        "Severino Ferreira": (-8.9095, -35.7255),
-        "Genival Rodrigues": (-8.9095, -35.7280),
-        "Mário Lima": (-8.9100, -35.7270),
-        "Manoel Lino": (-8.9105, -35.7285),
-        "José Inácio": (-8.9110, -35.7280),
+        "Teódulo Augusto": (-8.9090, -35.7285),
+        "Teodulo Augusto": (-8.9090, -35.7285),
+        "Teofilo Augusto": (-8.9090, -35.7285),
+        "Durval Gonçalves": (-8.9098, -35.7282),
+        "Durval Goncalves": (-8.9098, -35.7282),
+        "Padre Francisco": (-8.9085, -35.7262),
+        "Severino Ferreira": (-8.9095, -35.7250),
+        "Genival Rodrigues": (-8.9092, -35.7265),
+        "Mário Lima": (-8.9098, -35.7265),
+        "Mario Lima": (-8.9098, -35.7265),
+        "Manoel Lino": (-8.9102, -35.7278),
+        "José Inácio": (-8.9108, -35.7275),
+        "Jose Inacio": (-8.9108, -35.7275),
         "José Maria Quirino": (-8.9095, -35.7228),
+        "Maria Quirino": (-8.9095, -35.7228),
         "Quirino": (-8.9095, -35.7228),
         "Filomena Freitas": (-8.9095, -35.7233),
         "José Gomes": (-8.9100, -35.7225),
         "Genildo Loureiro": (-8.9100, -35.7225),
         "José Francisco Xavier": (-8.9100, -35.7225),
         "José Maria Ramos": (-8.9085, -35.7230),
-        "Mário de Gusmão": (-8.9118, -35.7270),
-        "7 de Setembro": (-8.9105, -35.7265),
-        "Manoel Ataíde": (-8.9105, -35.7275),
+        "Mário de Gusmão": (-8.9118, -35.7265),
+        "Mario de Gusmao": (-8.9118, -35.7265),
+        "7 de Setembro": (-8.9102, -35.7262),
+        "Setembro": (-8.9102, -35.7262),
+        "Legarião Freire": (-8.9104, -35.7260),
+        "Adalgiso Borges": (-8.9106, -35.7258),
+        "Adalgisio Borges": (-8.9106, -35.7258),
+        "Manoel Ataíde": (-8.9108, -35.7262),
+        "Manoel Ataide": (-8.9108, -35.7262),
+        "Artur Ferreira": (-8.9078, -35.7255),
+        "Joaquim Monteiro": (-8.9090, -35.7238),
+        "Clodoaldo da Fonseca": (-8.9098, -35.7258),
+        "Filadelfo José": (-8.9100, -35.7250),
+        "Filadelfio": (-8.9100, -35.7250),
+        "16 de Julho": (-8.9080, -35.7285),
+        "Padre Cícero": (-8.9082, -35.7290),
+        "Padre Cicero": (-8.9082, -35.7290),
+        "Gustavo Fitipaldi": (-8.9075, -35.7275),
+        "Pedro II": (-8.9082, -35.7275),
     }
     
-    city_center_lat, city_center_lng = -8.9095, -35.7270
+    city_center_lat, city_center_lng = -8.9095, -35.7262
     
     localidades_map = {}
     heat_points = []
     cidadaos = []
     
     for u in usuarios:
-        bairro, rua = _parse_address(u["endereco"])
-        loc_name = bairro if bairro != "Não Informado" else (rua if rua != "Não Informado" else "Não Informado")
+        full_addr = u["endereco"] or ""
+        bairro, rua = _parse_address(full_addr)
+        
+        # Match against full address string first so house numbers like "73" don't break matching
+        matched_coord = None
+        for key, coord in base_coords.items():
+            k_low = key.lower()
+            if k_low in full_addr.lower() or k_low in rua.lower() or k_low in bairro.lower():
+                matched_coord = coord
+                break
+                
+        if not matched_coord:
+            h = int(hashlib.md5(full_addr.encode('utf-8')).hexdigest(), 16)
+            lat_offset = ((h % 100) - 50) * 0.00003
+            lng_offset = (((h // 100) % 100) - 50) * 0.00004
+            matched_coord = (city_center_lat + lat_offset, city_center_lng + lng_offset)
+            
+        loc_name = bairro if (bairro != "Não Informado" and not bairro.isdigit() and not bairro.startswith("N")) else (rua if rua != "Não Informado" else "Centro")
         
         if loc_name not in localidades_map:
-            matched_coord = None
-            for key, coord in base_coords.items():
-                if key.lower() in loc_name.lower() or loc_name.lower() in key.lower():
-                    matched_coord = coord
-                    break
-            
-            if not matched_coord:
-                h = int(hashlib.md5(loc_name.encode('utf-8')).hexdigest(), 16)
-                lat_offset = ((h % 100) - 50) * 0.00004
-                lng_offset = (((h // 100) % 100) - 50) * 0.00005
-                matched_coord = (city_center_lat + lat_offset, city_center_lng + lng_offset)
-                
             localidades_map[loc_name] = {
                 "name": loc_name,
                 "lat": matched_coord[0],
@@ -437,11 +463,10 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
         if u_id_str in user_coords:
             u_lat, u_lng = user_coords[u_id_str]
         else:
-            loc = localidades_map[loc_name]
-            h_u = int(hashlib.md5(f"{u_id_str}_{loc_name}".encode('utf-8')).hexdigest(), 16)
-            j_lat = ((h_u % 50) - 25) * 0.00008
-            j_lng = (((h_u // 50) % 50) - 25) * 0.00008
-            u_lat, u_lng = loc["lat"] + j_lat, loc["lng"] + j_lng
+            h_u = int(hashlib.md5(f"{u_id_str}_{full_addr}".encode('utf-8')).hexdigest(), 16)
+            j_lat = ((h_u % 50) - 25) * 0.000015
+            j_lng = (((h_u // 50) % 50) - 25) * 0.000015
+            u_lat, u_lng = matched_coord[0] + j_lat, matched_coord[1] + j_lng
             
         heat_points.append({"lat": u_lat, "lng": u_lng, "weight": 1})
         cidadaos.append({
