@@ -462,7 +462,11 @@ async function loadUserHeatmap() {
 
         const markers = [];
         if (data.localidades && data.localidades.length > 0) {
-            data.localidades.forEach(loc => {
+            // Sort and filter top localities so badges don't overlap heavily
+            const sortedLocs = [...data.localidades].sort((a, b) => b.total - a.total);
+            const topLocalidades = sortedLocs.filter(loc => loc.total >= 2 || sortedLocs.indexOf(loc) < 10).slice(0, 15);
+
+            topLocalidades.forEach(loc => {
                 if (!loc.lat || !loc.lng) return;
                 
                 const iconHtml = `

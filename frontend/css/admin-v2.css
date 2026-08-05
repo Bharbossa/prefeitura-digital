@@ -336,3 +336,22 @@ input:checked + .slider {
 input:checked + .slider:before {
     transform: translateX(22px);
 }
+
+/* Responsive Map Container for Desktop */
+.map-card-desktop-large {
+    grid-column: 1 / -1;
+}
+
+.admin-map-div {
+    height: 450px;
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    z-index: 1;
+}
+
+@media (min-width: 992px) {
+    .map-card-desktop-large .admin-map-div {
+        height: 620px;
+    }
+}
