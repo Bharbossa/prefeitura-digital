@@ -434,6 +434,11 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
     
     city_center_lat, city_center_lng = -8.9095, -35.7252
     
+    def _clamp(lat, lng):
+        c_lat = max(-8.9115, min(-8.9072, lat))
+        c_lng = max(-35.7260, min(-35.7225, lng))
+        return c_lat, c_lng
+
     localidades_map = {}
     heat_points = []
     cidadaos = []
@@ -451,17 +456,18 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
                 
         if not matched_coord:
             h = int(hashlib.md5(full_addr.encode('utf-8')).hexdigest(), 16)
-            lat_offset = ((h % 100) - 50) * 0.000015
-            lng_offset = (((h // 100) % 100) - 50) * 0.000015
+            lat_offset = ((h % 100) - 50) * 0.00001
+            lng_offset = (((h // 100) % 100) - 50) * 0.00001
             matched_coord = (city_center_lat + lat_offset, city_center_lng + lng_offset)
             
+        m_lat, m_lng = _clamp(matched_coord[0], matched_coord[1])
         loc_name = bairro if (bairro != "Não Informado" and not bairro.isdigit() and not bairro.startswith("N")) else (rua if rua != "Não Informado" else "Centro")
         
         if loc_name not in localidades_map:
             localidades_map[loc_name] = {
                 "name": loc_name,
-                "lat": matched_coord[0],
-                "lng": matched_coord[1],
+                "lat": m_lat,
+                "lng": m_lng,
                 "total": 0
             }
             
@@ -469,12 +475,12 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
         
         u_id_str = str(u["id"])
         if u_id_str in user_coords:
-            u_lat, u_lng = user_coords[u_id_str]
+            u_lat, u_lng = _clamp(user_coords[u_id_str][0], user_coords[u_id_str][1])
         else:
             h_u = int(hashlib.md5(f"{u_id_str}_{full_addr}".encode('utf-8')).hexdigest(), 16)
-            j_lat = ((h_u % 50) - 25) * 0.00001
-            j_lng = (((h_u // 50) % 50) - 25) * 0.00001
-            u_lat, u_lng = matched_coord[0] + j_lat, matched_coord[1] + j_lng
+            j_lat = ((h_u % 50) - 25) * 0.000008
+            j_lng = (((h_u // 50) % 50) - 25) * 0.000008
+            u_lat, u_lng = _clamp(m_lat + j_lat, m_lng + j_lng)
             
         heat_points.append({"lat": u_lat, "lng": u_lng, "weight": 1})
         cidadaos.append({

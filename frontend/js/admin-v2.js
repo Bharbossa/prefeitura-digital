@@ -445,13 +445,18 @@ async function loadUserHeatmap() {
                     "José Francisco Xavier": [-8.9100, -35.7225]
                 };
                 
+                const clamp = (lt, lg) => [
+                    Math.max(-8.9115, Math.min(-8.9072, lt)),
+                    Math.max(-35.7260, Math.min(-35.7225, lg))
+                ];
+                
                 const localidades = [];
                 const heat_points = [];
                 
                 list.forEach((item, idx) => {
                     const name = item.endereco || 'Desconhecido';
                     let lat = -8.9095;
-                    let lng = -35.7262;
+                    let lng = -35.7252;
                     let found = false;
                     
                     for (let k in base_coords) {
@@ -464,13 +469,15 @@ async function loadUserHeatmap() {
                     }
                     
                     if (!found) {
-                        lat = -8.9095 + (Math.sin(idx + 1) * 0.0003);
-                        lng = -35.7262 + (Math.cos(idx + 1) * 0.0004);
+                        lat = -8.9095 + (Math.sin(idx + 1) * 0.0001);
+                        lng = -35.7252 + (Math.cos(idx + 1) * 0.0001);
                     }
                     
-                    localidades.push({ name, lat, lng, total: item.total });
+                    const [cLat, cLng] = clamp(lat, lng);
+                    localidades.push({ name, lat: cLat, lng: cLng, total: item.total });
                     for (let i = 0; i < item.total; i++) {
-                        heat_points.push({ lat: lat + ((Math.random() - 0.5) * 0.00015), lng: lng + ((Math.random() - 0.5) * 0.00015), weight: 1 });
+                        const [hLat, hLng] = clamp(cLat + ((Math.random() - 0.5) * 0.0001), cLng + ((Math.random() - 0.5) * 0.0001));
+                        heat_points.push({ lat: hLat, lng: hLng, weight: 1 });
                     }
                 });
                 
