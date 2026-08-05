@@ -356,18 +356,28 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
             user_coords[str(oc.usuario_id)] = (oc.latitude, oc.longitude)
             
     base_coords = {
-        "Belo Jardim": (-8.9055, -35.7280),
-        "Vila Nova": (-8.9020, -35.7320),
-        "Centro": (-8.9048, -35.7297),
-        "Loteamento Belo Jardim": (-8.9070, -35.7260),
-        "Santa Luzia": (-8.9100, -35.7350),
-        "Boa Vista": (-8.8980, -35.7250),
-        "Maria Loureiro": (-8.9080, -35.7310),
-        "Teódulo Augusto": (-8.9030, -35.7275),
-        "Durval Gonçalves": (-8.9060, -35.7305),
+        "Belo Jardim": (-8.9085, -35.7235),
+        "Vila Nova": (-8.9075, -35.7290),
+        "Centro": (-8.9095, -35.7270),
+        "Loteamento Belo Jardim": (-8.9085, -35.7235),
+        "Santa Luzia": (-8.9125, -35.7245),
+        "Boa Vista": (-8.9070, -35.7285),
+        "Maria Loureiro": (-8.9110, -35.7268),
+        "Teódulo Augusto": (-8.9090, -35.7295),
+        "Durval Gonçalves": (-8.9100, -35.7290),
+        "Padre Francisco": (-8.9085, -35.7265),
+        "Severino Ferreira": (-8.9095, -35.7255),
+        "Genival Rodrigues": (-8.9095, -35.7280),
+        "Mário Lima": (-8.9100, -35.7270),
+        "Manoel Lino": (-8.9105, -35.7285),
+        "José Inácio": (-8.9110, -35.7280),
+        "José Maria Quirino": (-8.9115, -35.7260),
+        "Mário de Gusmão": (-8.9118, -35.7270),
+        "7 de Setembro": (-8.9105, -35.7265),
+        "Manoel Ataíde": (-8.9105, -35.7275),
     }
     
-    city_center_lat, city_center_lng = -8.9048, -35.7297
+    city_center_lat, city_center_lng = -8.9095, -35.7270
     
     localidades_map = {}
     heat_points = []
@@ -385,8 +395,8 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
             
             if not matched_coord:
                 h = int(hashlib.md5(loc_name.encode('utf-8')).hexdigest(), 16)
-                lat_offset = ((h % 100) - 50) * 0.00015
-                lng_offset = (((h // 100) % 100) - 50) * 0.00015
+                lat_offset = ((h % 100) - 50) * 0.00004
+                lng_offset = (((h // 100) % 100) - 50) * 0.00005
                 matched_coord = (city_center_lat + lat_offset, city_center_lng + lng_offset)
                 
             localidades_map[loc_name] = {

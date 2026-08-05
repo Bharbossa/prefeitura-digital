@@ -372,7 +372,7 @@ async function loadUserHeatmap() {
     if (!mapDiv) return;
 
     if (!userHeatmap) {
-        userHeatmap = L.map('userHeatmapAdminDiv').setView([-8.9048, -35.7297], 13);
+        userHeatmap = L.map('userHeatmapAdminDiv').setView([-8.9095, -35.7270], 15);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap'
         }).addTo(userHeatmap);
@@ -396,15 +396,25 @@ async function loadUserHeatmap() {
                 const totalSum = list.reduce((acc, item) => acc + (item.total || 0), 0);
                 
                 const base_coords = {
-                    "Belo Jardim": [-8.9055, -35.7280],
-                    "Vila Nova": [-8.9020, -35.7320],
-                    "Centro": [-8.9048, -35.7297],
-                    "Loteamento Belo Jardim": [-8.9070, -35.7260],
-                    "Santa Luzia": [-8.9100, -35.7350],
-                    "Boa Vista": [-8.8980, -35.7250],
-                    "Maria Loureiro": [-8.9080, -35.7310],
-                    "Teódulo Augusto": [-8.9030, -35.7275],
-                    "Durval Gonçalves": [-8.9060, -35.7305]
+                    "Belo Jardim": [-8.9085, -35.7235],
+                    "Vila Nova": [-8.9075, -35.7290],
+                    "Centro": [-8.9095, -35.7270],
+                    "Loteamento Belo Jardim": [-8.9085, -35.7235],
+                    "Santa Luzia": [-8.9125, -35.7245],
+                    "Boa Vista": [-8.9070, -35.7285],
+                    "Maria Loureiro": [-8.9110, -35.7268],
+                    "Teódulo Augusto": [-8.9090, -35.7295],
+                    "Durval Gonçalves": [-8.9100, -35.7290],
+                    "Padre Francisco": [-8.9085, -35.7265],
+                    "Severino Ferreira": [-8.9095, -35.7255],
+                    "Genival Rodrigues": [-8.9095, -35.7280],
+                    "Mário Lima": [-8.9100, -35.7270],
+                    "Manoel Lino": [-8.9105, -35.7285],
+                    "José Inácio": [-8.9110, -35.7280],
+                    "José Maria Quirino": [-8.9115, -35.7260],
+                    "Mário de Gusmão": [-8.9118, -35.7270],
+                    "7 de Setembro": [-8.9105, -35.7265],
+                    "Manoel Ataíde": [-8.9105, -35.7275]
                 };
                 
                 const localidades = [];
@@ -412,8 +422,8 @@ async function loadUserHeatmap() {
                 
                 list.forEach((item, idx) => {
                     const name = item.endereco || 'Desconhecido';
-                    let lat = -8.9048 + (Math.sin(idx + 1) * 0.003);
-                    let lng = -35.7297 + (Math.cos(idx + 1) * 0.003);
+                    let lat = -8.9095 + (Math.sin(idx + 1) * 0.0015);
+                    let lng = -35.7270 + (Math.cos(idx + 1) * 0.0015);
                     
                     for (let k in base_coords) {
                         if (name.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(name.toLowerCase())) {
@@ -425,7 +435,7 @@ async function loadUserHeatmap() {
                     
                     localidades.push({ name, lat, lng, total: item.total });
                     for (let i = 0; i < item.total; i++) {
-                        heat_points.push({ lat: lat + ((Math.random() - 0.5) * 0.0015), lng: lng + ((Math.random() - 0.5) * 0.0015), weight: 1 });
+                        heat_points.push({ lat: lat + ((Math.random() - 0.5) * 0.0006), lng: lng + ((Math.random() - 0.5) * 0.0006), weight: 1 });
                     }
                 });
                 
