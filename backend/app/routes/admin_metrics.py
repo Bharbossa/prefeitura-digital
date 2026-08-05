@@ -356,10 +356,10 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
             user_coords[str(oc.usuario_id)] = (oc.latitude, oc.longitude)
             
     base_coords = {
-        "Belo Jardim": (-8.9085, -35.7235),
+        "Belo Jardim": (-8.9080, -35.7245),
         "Vila Nova": (-8.9075, -35.7290),
         "Centro": (-8.9095, -35.7270),
-        "Loteamento Belo Jardim": (-8.9085, -35.7235),
+        "Loteamento Belo Jardim": (-8.9080, -35.7245),
         "Santa Luzia": (-8.9125, -35.7245),
         "Boa Vista": (-8.9070, -35.7285),
         "Maria Loureiro": (-8.9110, -35.7268),
@@ -371,7 +371,13 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
         "Mário Lima": (-8.9100, -35.7270),
         "Manoel Lino": (-8.9105, -35.7285),
         "José Inácio": (-8.9110, -35.7280),
-        "José Maria Quirino": (-8.9115, -35.7260),
+        "José Maria Quirino": (-8.9095, -35.7228),
+        "Quirino": (-8.9095, -35.7228),
+        "Filomena Freitas": (-8.9095, -35.7233),
+        "José Gomes": (-8.9100, -35.7225),
+        "Genildo Loureiro": (-8.9100, -35.7225),
+        "José Francisco Xavier": (-8.9100, -35.7225),
+        "José Maria Ramos": (-8.9085, -35.7230),
         "Mário de Gusmão": (-8.9118, -35.7270),
         "7 de Setembro": (-8.9105, -35.7265),
         "Manoel Ataíde": (-8.9105, -35.7275),
