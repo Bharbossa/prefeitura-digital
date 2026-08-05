@@ -268,7 +268,7 @@ def _parse_address(raw_address: str):
         return single, single
 
 def _get_all_users(db_sql: Session):
-    """Retorna lista de dicionários com id e endereco dos usuários cadastrados (Firestore e SQL)."""
+    """Retorna lista de dicionários com todos os campos cadastrais dos usuários (Firestore e SQL)."""
     from ..core.firebase_config import db, DB_MODE
     from ..models.schema import Usuario
     
@@ -284,17 +284,35 @@ def _get_all_users(db_sql: Session):
                 u_id = doc.id
                 addr = data.get("endereco") or data.get("rua") or data.get("bairro") or ""
                 seen_ids.add(str(u_id))
-                users.append({"id": str(u_id), "endereco": addr})
+                users.append({
+                    "id": str(u_id),
+                    "nome": data.get("nome", "Não informado"),
+                    "cpf": data.get("cpf", "Não informado"),
+                    "email": data.get("email", "Não informado"),
+                    "telefone": data.get("telefone", "Não informado"),
+                    "whatsapp": data.get("whatsapp", "Não informado"),
+                    "genero": data.get("genero", "Não informado"),
+                    "endereco": addr
+                })
         except Exception as e:
             pass
             
     # Busca usuários no SQL (MySQL/SQLite/PostgreSQL)
     try:
-        sql_users = db_sql.query(Usuario.id, Usuario.endereco).all()
+        sql_users = db_sql.query(Usuario).all()
         for u in sql_users:
             if str(u.id) not in seen_ids:
                 seen_ids.add(str(u.id))
-                users.append({"id": str(u.id), "endereco": u.endereco or ""})
+                users.append({
+                    "id": str(u.id),
+                    "nome": u.nome or "Não informado",
+                    "cpf": u.cpf or "Não informado",
+                    "email": u.email or "Não informado",
+                    "telefone": u.telefone or "Não informado",
+                    "whatsapp": u.whatsapp or "Não informado",
+                    "genero": u.genero or "Não informado",
+                    "endereco": u.endereco or ""
+                })
     except Exception as e:
         pass
         
@@ -336,7 +354,7 @@ def get_users_bairro(current_admin = Depends(get_general_admin), db_sql: Session
 
 @router.get("/users-heatmap")
 def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
-    """Retorna dados de localização e mapa de calor dos cidadãos cadastrados por localidade."""
+    """Retorna dados de localização, mapa de calor e detalhes individuais de todos os cidadãos cadastrados."""
     from ..models.schema import Ocorrencia
     import hashlib
     
@@ -387,6 +405,7 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
     
     localidades_map = {}
     heat_points = []
+    cidadaos = []
     
     for u in usuarios:
         bairro, rua = _parse_address(u["endereco"])
@@ -425,11 +444,24 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
             u_lat, u_lng = loc["lat"] + j_lat, loc["lng"] + j_lng
             
         heat_points.append({"lat": u_lat, "lng": u_lng, "weight": 1})
+        cidadaos.append({
+            "id": u["id"],
+            "nome": u["nome"],
+            "cpf": u["cpf"],
+            "email": u["email"],
+            "telefone": u["telefone"],
+            "whatsapp": u["whatsapp"],
+            "genero": u["genero"],
+            "endereco": u["endereco"],
+            "lat": u_lat,
+            "lng": u_lng
+        })
         
     localidades_list = sorted(localidades_map.values(), key=lambda x: x["total"], reverse=True)
     
     return {
         "localidades": localidades_list,
         "heat_points": heat_points,
+        "cidadaos": cidadaos,
         "total_cadastrados": len(usuarios)
     }

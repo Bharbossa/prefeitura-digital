@@ -461,7 +461,7 @@ async function loadUserHeatmap() {
         }
 
         userHeatmap.eachLayer((layer) => {
-            if (layer._heat || layer instanceof L.Marker || (layer.options && layer.options.gradient)) {
+            if (layer._heat || layer instanceof L.Marker || layer instanceof L.CircleMarker || (layer.options && layer.options.gradient)) {
                 userHeatmap.removeLayer(layer);
             }
         });
@@ -469,47 +469,50 @@ async function loadUserHeatmap() {
         if (data.heat_points && data.heat_points.length > 0) {
             const heatData = data.heat_points.map(p => [p.lat, p.lng, (p.weight || 1) * 3.5]);
             L.heatLayer(heatData, { 
-                radius: 30, 
-                blur: 15, 
+                radius: 32, 
+                blur: 16, 
                 maxZoom: 17,
                 gradient: { 0.2: '#00ff88', 0.5: '#ffff00', 0.8: '#ff5500', 1.0: '#ff0000' }
             }).addTo(userHeatmap);
         }
 
-        const markers = [];
-        if (data.localidades && data.localidades.length > 0) {
-            // Sort and filter top localities so badges don't overlap heavily
-            const sortedLocs = [...data.localidades].sort((a, b) => b.total - a.total);
-            const topLocalidades = sortedLocs.filter(loc => loc.total >= 2 || sortedLocs.indexOf(loc) < 10).slice(0, 15);
-
-            topLocalidades.forEach(loc => {
-                if (!loc.lat || !loc.lng) return;
+        const mapPoints = [];
+        if (data.cidadaos && data.cidadaos.length > 0) {
+            data.cidadaos.forEach(c => {
+                if (!c.lat || !c.lng) return;
                 
-                const iconHtml = `
-                    <div style="background: #10b981; color: white; font-weight: 700; border-radius: 20px; padding: 4px 10px; display: flex; align-items: center; justify-content: center; gap: 4px; border: 2px solid white; box-shadow: 0 3px 8px rgba(0,0,0,0.4); font-size: 0.8rem; white-space: nowrap;">
-                        <i class="fa-solid fa-users"></i> <span>${loc.name}: <b>${loc.total}</b></span>
+                const popupContent = `
+                    <div style="padding: 6px; font-family: 'Inter', sans-serif; min-width: 220px; color: #1e293b;">
+                        <div style="font-weight: 700; font-size: 0.95rem; color: #10b981; margin-bottom: 6px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px;">
+                            <i class="fa-solid fa-user"></i> ${c.nome || 'Cidadão'}
+                        </div>
+                        <div style="font-size: 0.82rem; line-height: 1.6;">
+                            <div><b>🪪 CPF:</b> ${c.cpf || 'Não informado'}</div>
+                            <div><b>✉️ E-mail:</b> ${c.email || 'Não informado'}</div>
+                            <div><b>📞 Telefone:</b> ${c.telefone || 'Não informado'}</div>
+                            <div><b>💬 WhatsApp:</b> ${c.whatsapp || 'Não informado'}</div>
+                            <div><b>📍 Endereço:</b> ${c.endereco || 'Não informado'}</div>
+                            <div><b>⚧️ Gênero:</b> ${c.genero || 'Não informado'}</div>
+                        </div>
                     </div>
                 `;
                 
-                const customIcon = L.divIcon({
-                    className: 'custom-user-locality-badge',
-                    html: iconHtml,
-                    iconSize: [120, 30],
-                    iconAnchor: [60, 15]
-                });
+                const circle = L.circleMarker([c.lat, c.lng], {
+                    radius: 7,
+                    fillColor: '#10b981',
+                    color: '#ffffff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.95
+                }).addTo(userHeatmap);
                 
-                const marker = L.marker([loc.lat, loc.lng], { icon: customIcon }).addTo(userHeatmap);
-                marker.bindPopup(`
-                    <div style="text-align: center; padding: 4px;">
-                        <h4 style="margin: 0 0 6px 0; color: #10b981;"><i class="fa-solid fa-location-dot"></i> ${loc.name}</h4>
-                        <p style="margin: 0; font-size: 0.9rem;">👥 <b>${loc.total}</b> pessoa(s) cadastrada(s)</p>
-                    </div>
-                `);
-                markers.push(marker);
+                circle.bindPopup(popupContent);
+                circle.on('mouseover', function() { this.openPopup(); });
+                mapPoints.push(circle);
             });
             
-            if (markers.length > 0) {
-                const group = new L.featureGroup(markers);
+            if (mapPoints.length > 0) {
+                const group = new L.featureGroup(mapPoints);
                 userHeatmap.fitBounds(group.getBounds(), { padding: [40, 40] });
             }
         }
