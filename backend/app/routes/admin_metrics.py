@@ -374,69 +374,52 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
             user_coords[str(oc.usuario_id)] = (oc.latitude, oc.longitude)
             
     base_coords = {
-        # Centro / General
-        "Centro": (-8.9095, -35.7255),
-        
-        # Northern Streets / Bairros
-        "Boa Vista": (-8.9070, -35.7258),
-        "Vila Nova": (-8.9075, -35.7260),
-        "Artur Ferreira": (-8.9078, -35.7252),
-        "16 de Julho": (-8.9080, -35.7260),
-        "Padre Cícero": (-8.9082, -35.7262),
-        "Padre Cicero": (-8.9082, -35.7262),
-        "Pedro II": (-8.9082, -35.7258),
-        "Gustavo Fitipaldi": (-8.9075, -35.7255),
-        "Padre Francisco": (-8.9085, -35.7252),
-        
-        # Central Streets
-        "Genival Rodrigues": (-8.9092, -35.7258),
-        "Teódulo Augusto": (-8.9090, -35.7258),
-        "Teodulo Augusto": (-8.9090, -35.7258),
-        "Teofilo Augusto": (-8.9090, -35.7258),
-        "Durval Gonçalves": (-8.9098, -35.7256),
-        "Durval Goncalves": (-8.9098, -35.7256),
-        "Severino Ferreira": (-8.9095, -35.7248),
-        "Clodoaldo da Fonseca": (-8.9098, -35.7252),
-        "Mário Lima": (-8.9098, -35.7254),
-        "Mario Lima": (-8.9098, -35.7254),
-        "7 de Setembro": (-8.9102, -35.7252),
-        "Setembro": (-8.9102, -35.7252),
-        "Legarião Freire": (-8.9104, -35.7250),
-        "Adalgiso Borges": (-8.9106, -35.7248),
-        "Adalgisio Borges": (-8.9106, -35.7248),
-        "Manoel Ataíde": (-8.9108, -35.7250),
-        "Manoel Ataide": (-8.9108, -35.7250),
-        "Manoel Lino": (-8.9102, -35.7255),
-        "José Inácio": (-8.9105, -35.7255),
-        "Jose Inacio": (-8.9105, -35.7255),
-        "Maria Loureiro": (-8.9110, -35.7252),
-        "Filadelfo José": (-8.9100, -35.7248),
-        "Filadelfio": (-8.9100, -35.7248),
-        
-        # Southern Streets
-        "Mário de Gusmão": (-8.9118, -35.7255),
-        "Mario de Gusmao": (-8.9118, -35.7255),
-        "Santa Luzia": (-8.9125, -35.7245),
-        
-        # Eastern Streets / Bairros
-        "Belo Jardim": (-8.9080, -35.7242),
-        "Loteamento Belo Jardim": (-8.9080, -35.7242),
-        "Joaquim Monteiro": (-8.9090, -35.7238),
-        "Filomena Freitas": (-8.9095, -35.7233),
-        "José Maria Ramos": (-8.9085, -35.7230),
-        "José Maria Quirino": (-8.9095, -35.7228),
-        "Maria Quirino": (-8.9095, -35.7228),
-        "Quirino": (-8.9095, -35.7228),
-        "José Gomes": (-8.9100, -35.7225),
-        "Genildo Loureiro": (-8.9100, -35.7225),
-        "José Francisco Xavier": (-8.9100, -35.7225),
+        # Real OpenStreetMap Nominatim Street Coordinates for Colônia Leopoldina - AL
+        "Padre Francisco": (-8.9101631, -35.7196767),
+        "Severino Ferreira": (-8.9119878, -35.7183578),
+        "Genival Rodrigues": (-8.9116736, -35.7226213),
+        "Mário Lima": (-8.9121909, -35.7221742),
+        "Mario Lima": (-8.9121909, -35.7221742),
+        "7 de Setembro": (-8.9129721, -35.7229025),
+        "Setembro": (-8.9129721, -35.7229025),
+        "Manoel Ataíde": (-8.9134105, -35.7222470),
+        "Manoel Ataide": (-8.9134105, -35.7222470),
+        "Mário de Gusmão": (-8.9139014, -35.7209606),
+        "Mario de Gusmao": (-8.9139014, -35.7209606),
+        "Artur Ferreira": (-8.9091807, -35.7177514),
+        "Filomena Freitas": (-8.9116689, -35.7156993),
+        "José Francisco Xavier": (-8.9118923, -35.7140726),
+        "José Gomes": (-8.9121455, -35.7148886),
+        "Genildo Loureiro": (-8.9118782, -35.7143524),
+        "José Maria Ramos": (-8.9106410, -35.7156470),
+        "José Maria Quirino": (-8.9115000, -35.7155000),
+        "Maria Quirino": (-8.9115000, -35.7155000),
+        "Quirino": (-8.9115000, -35.7155000),
+        "Teódulo Augusto": (-8.9118238, -35.7257887),
+        "Teodulo Augusto": (-8.9118238, -35.7257887),
+        "Teofilo Augusto": (-8.9118238, -35.7257887),
+        "Durval Gonçalves": (-8.9116432, -35.7252109),
+        "Durval Goncalves": (-8.9116432, -35.7252109),
+        "Manoel Lino": (-8.9121762, -35.7243278),
+        "José Inácio": (-8.9114035, -35.7178309),
+        "Jose Inacio": (-8.9114035, -35.7178309),
+        "Pedro II": (-8.9107666, -35.7240646),
+        "16 de Julho": (-8.9109060, -35.7249840),
+        "Padre Cícero": (-8.9111747, -35.7266912),
+        "Padre Cicero": (-8.9111747, -35.7266912),
+        "Gustavo Fitipaldi": (-8.9102588, -35.7251056),
+        "Boa Vista": (-8.9125343, -35.7253001),
+        "Vila Nova": (-8.9069634, -35.7247413),
+        "Belo Jardim": (-8.9106093, -35.7201824),
+        "Loteamento Belo Jardim": (-8.9106093, -35.7201824),
+        "Centro": (-8.9113702, -35.7208226),
     }
     
-    city_center_lat, city_center_lng = -8.9095, -35.7252
+    city_center_lat, city_center_lng = -8.9113702, -35.7208226
     
     def _clamp(lat, lng):
-        c_lat = max(-8.9115, min(-8.9072, lat))
-        c_lng = max(-35.7260, min(-35.7225, lng))
+        c_lat = max(-8.9150, min(-8.9065, lat))
+        c_lng = max(-35.7270, min(-35.7135, lng))
         return c_lat, c_lng
 
     localidades_map = {}
