@@ -396,11 +396,14 @@ async function loadUserHeatmap() {
                 const totalSum = list.reduce((acc, item) => acc + (item.total || 0), 0);
                 
                 const base_coords = {
-                    // Bairro Vila Nova & West Street Grid (Matching exact screenshot area)
-                    "Vila Nova": [-8.9118000, -35.7255000],
-                    "Bairro Vila Nova": [-8.9118000, -35.7255000],
-                    "Conjunto Vila Nova": [-8.9118000, -35.7255000],
-                    "Loteamento Vila Nova": [-8.9118000, -35.7255000],
+                    // Bairro Vila Nova (Rua Antônio de Barros Pereira area)
+                    "Vila Nova": [-8.9145991, -35.7265750],
+                    "Bairro Vila Nova": [-8.9145991, -35.7265750],
+                    "Conjunto Vila Nova": [-8.9145991, -35.7265750],
+                    "Loteamento Vila Nova": [-8.9145991, -35.7265750],
+                    "Antônio de Barros": [-8.9145991, -35.7265750],
+                    "Antonio de Barros": [-8.9145991, -35.7265750],
+                    "Barros Pereira": [-8.9145991, -35.7265750],
                     "Teódulo Augusto": [-8.9118238, -35.7257887],
                     "Teodulo Augusto": [-8.9118238, -35.7257887],
                     "Teofilo Augusto": [-8.9118238, -35.7257887],
