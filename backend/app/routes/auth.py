@@ -262,20 +262,35 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
     sucesso_envio = False
     metodo_envio = "sms" # Forçar sempre SMS
 
-    phone = getattr(user, 'telefone', '')
+    phone = (getattr(user, 'telefone', '') or getattr(user, 'whatsapp', '') or '').strip()
+    
+    # Fallback to Firestore if phone not in SQL model
+    if not phone and DB_MODE == "firestore" and db is not None:
+        try:
+            user_docs = db.collection("usuarios").where("email", "==", clean_id).limit(1).get()
+            if not user_docs:
+                user_docs = db.collection("usuarios").where("cpf", "==", clean_id).limit(1).get()
+            if user_docs:
+                f_data = user_docs[0].to_dict()
+                phone = (f_data.get("telefone") or f_data.get("whatsapp") or "").strip()
+        except Exception as e:
+            print("Error looking up Firestore phone:", e)
+
     if not phone:
-        raise HTTPException(status_code=400, detail="Número de telefone não cadastrado no seu perfil.")
+        raise HTTPException(status_code=400, detail="Número de telefone/WhatsApp não cadastrado no seu perfil.")
     
     # Format for SMS and masking
     clean_phone = re.sub(r'\D', '', phone)
     if len(clean_phone) < 10:
         raise HTTPException(status_code=400, detail="Número de telefone inválido no seu perfil.")
         
-    masked_dest = f"({clean_phone[:2]}) *****-{clean_phone[-4:]}"
+    masked_dest = f"({clean_phone[-11:-9] if len(clean_phone) >= 11 else clean_phone[:2]}) *****-{clean_phone[-4:]}"
     
-    # Enviar SMS sempre
+    # Enviar SMS via Twilio
     sucesso_envio = send_password_sms(phone, new_pw)
-
+    
+    if not sucesso_envio:
+        raise HTTPException(status_code=500, detail="Falha ao disparar SMS de recuperação. Verifique se o número possui DDD e WhatsApp/SMS ativo.")
     
     # 6. Log the attempt
     from ..models.schema import LogRecuperacaoSenha
@@ -289,7 +304,7 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
     db_sql.add(novo_log)
     db_sql.commit()
     
-    return {"message": f"Uma nova senha foi gerada e enviada para {masked_dest} via {data.method.upper()}."}
+    return {"message": f"Uma nova senha foi gerada e enviada via SMS para {masked_dest} com sucesso!"}
 
 @router.get("/password-resets")
 def get_password_resets(current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
