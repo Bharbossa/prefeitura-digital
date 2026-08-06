@@ -396,6 +396,25 @@ async function loadUserHeatmap() {
                 const totalSum = list.reduce((acc, item) => acc + (item.total || 0), 0);
                 
                 const base_coords = {
+                    // Left Side (West/Northwest) - Vila Nova & West Streets
+                    "Vila Nova": [-8.9085000, -35.7258000],
+                    "Bairro Vila Nova": [-8.9085000, -35.7258000],
+                    "Conjunto Vila Nova": [-8.9085000, -35.7258000],
+                    "Loteamento Vila Nova": [-8.9085000, -35.7258000],
+                    "Teódulo Augusto": [-8.9090000, -35.7258000],
+                    "Teodulo Augusto": [-8.9090000, -35.7258000],
+                    "Teofilo Augusto": [-8.9090000, -35.7258000],
+                    "Durval Gonçalves": [-8.9095000, -35.7256000],
+                    "Durval Goncalves": [-8.9095000, -35.7256000],
+                    "Padre Cícero": [-8.9085000, -35.7265000],
+                    "Padre Cicero": [-8.9085000, -35.7265000],
+                    "16 de Julho": [-8.9088000, -35.7255000],
+                    "Gustavo Fitipaldi": [-8.9080000, -35.7252000],
+                    "Pedro II": [-8.9082000, -35.7250000],
+                    "Boa Vista": [-8.9075000, -35.7253000],
+
+                    // Center - Town Center & Central Streets
+                    "Centro": [-8.9113702, -35.7208226],
                     "Padre Francisco": [-8.9101631, -35.7196767],
                     "Severino Ferreira": [-8.9119878, -35.7183578],
                     "Genival Rodrigues": [-8.9116736, -35.7226213],
@@ -408,32 +427,21 @@ async function loadUserHeatmap() {
                     "Mário de Gusmão": [-8.9139014, -35.7209606],
                     "Mario de Gusmao": [-8.9139014, -35.7209606],
                     "Artur Ferreira": [-8.9091807, -35.7177514],
+                    "Belo Jardim": [-8.9106093, -35.7201824],
+                    "Loteamento Belo Jardim": [-8.9106093, -35.7201824],
+                    "Manoel Lino": [-8.9121762, -35.7243278],
+                    "José Inácio": [-8.9114035, -35.7178309],
+                    "Jose Inacio": [-8.9114035, -35.7178309],
+
+                    // Right Side (East) - Bairro José Maria Quirino & East Streets
+                    "José Maria Quirino": [-8.9115000, -35.7155000],
+                    "Maria Quirino": [-8.9115000, -35.7155000],
+                    "Quirino": [-8.9115000, -35.7155000],
                     "Filomena Freitas": [-8.9116689, -35.7156993],
                     "José Francisco Xavier": [-8.9118923, -35.7140726],
                     "José Gomes": [-8.9121455, -35.7148886],
                     "Genildo Loureiro": [-8.9118782, -35.7143524],
-                    "José Maria Ramos": [-8.9106410, -35.7156470],
-                    "José Maria Quirino": [-8.9115000, -35.7155000],
-                    "Maria Quirino": [-8.9115000, -35.7155000],
-                    "Quirino": [-8.9115000, -35.7155000],
-                    "Teódulo Augusto": [-8.9118238, -35.7257887],
-                    "Teodulo Augusto": [-8.9118238, -35.7257887],
-                    "Teofilo Augusto": [-8.9118238, -35.7257887],
-                    "Durval Gonçalves": [-8.9116432, -35.7252109],
-                    "Durval Goncalves": [-8.9116432, -35.7252109],
-                    "Manoel Lino": [-8.9121762, -35.7243278],
-                    "José Inácio": [-8.9114035, -35.7178309],
-                    "Jose Inacio": [-8.9114035, -35.7178309],
-                    "Pedro II": [-8.9107666, -35.7240646],
-                    "16 de Julho": [-8.9109060, -35.7249840],
-                    "Padre Cícero": [-8.9111747, -35.7266912],
-                    "Padre Cicero": [-8.9111747, -35.7266912],
-                    "Gustavo Fitipaldi": [-8.9102588, -35.7251056],
-                    "Boa Vista": [-8.9125343, -35.7253001],
-                    "Vila Nova": [-8.9069634, -35.7247413],
-                    "Belo Jardim": [-8.9106093, -35.7201824],
-                    "Loteamento Belo Jardim": [-8.9106093, -35.7201824],
-                    "Centro": [-8.9113702, -35.7208226],
+                    "José Maria Ramos": [-8.9106410, -35.7156470]
                 };
                 
                 const clamp = (lt, lg) => [
