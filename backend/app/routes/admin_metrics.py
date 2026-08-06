@@ -374,22 +374,22 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
             user_coords[str(oc.usuario_id)] = (oc.latitude, oc.longitude)
             
     base_coords = {
-        # Left Side (West/Northwest) - Vila Nova & West Streets
-        "Vila Nova": (-8.9085000, -35.7258000),
-        "Bairro Vila Nova": (-8.9085000, -35.7258000),
-        "Conjunto Vila Nova": (-8.9085000, -35.7258000),
-        "Loteamento Vila Nova": (-8.9085000, -35.7258000),
-        "Teódulo Augusto": (-8.9090000, -35.7258000),
-        "Teodulo Augusto": (-8.9090000, -35.7258000),
-        "Teofilo Augusto": (-8.9090000, -35.7258000),
-        "Durval Gonçalves": (-8.9095000, -35.7256000),
-        "Durval Goncalves": (-8.9095000, -35.7256000),
-        "Padre Cícero": (-8.9085000, -35.7265000),
-        "Padre Cicero": (-8.9085000, -35.7265000),
-        "16 de Julho": (-8.9088000, -35.7255000),
-        "Gustavo Fitipaldi": (-8.9080000, -35.7252000),
-        "Pedro II": (-8.9082000, -35.7250000),
-        "Boa Vista": (-8.9075000, -35.7253000),
+        # Bairro Vila Nova & West Street Grid (Matching exact screenshot area)
+        "Vila Nova": (-8.9118000, -35.7255000),
+        "Bairro Vila Nova": (-8.9118000, -35.7255000),
+        "Conjunto Vila Nova": (-8.9118000, -35.7255000),
+        "Loteamento Vila Nova": (-8.9118000, -35.7255000),
+        "Teódulo Augusto": (-8.9118238, -35.7257887),
+        "Teodulo Augusto": (-8.9118238, -35.7257887),
+        "Teofilo Augusto": (-8.9118238, -35.7257887),
+        "Durval Gonçalves": (-8.9116432, -35.7252109),
+        "Durval Goncalves": (-8.9116432, -35.7252109),
+        "Padre Cícero": (-8.9111747, -35.7266912),
+        "Padre Cicero": (-8.9111747, -35.7266912),
+        "16 de Julho": (-8.9109060, -35.7249840),
+        "Gustavo Fitipaldi": (-8.9102588, -35.7251056),
+        "Pedro II": (-8.9107666, -35.7240646),
+        "Boa Vista": (-8.9125343, -35.7253001),
 
         # Center - Town Center & Central Streets
         "Centro": (-8.9113702, -35.7208226),
