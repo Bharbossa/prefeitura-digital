@@ -225,37 +225,142 @@ def delete_secretaria_admin(admin_id: int, current_admin = Depends(get_general_a
     db_sql.commit()
     return {"message": "Administrador excluído com sucesso."}
 
+class PhoneUpdateData(BaseModel):
+    novo_telefone: str
+    source: str = "usuario"
+
+@router.patch("/{user_id}/phone")
+def update_user_phone(
+    user_id: str,
+    data: PhoneUpdateData,
+    current_admin = Depends(get_general_admin),
+    db_sql: Session = Depends(get_db)
+):
+    """Atualiza o número de telefone/WhatsApp de cidadãos ou sub-administradores."""
+    from ..core.firebase_config import db
+    
+    target_source = data.source.strip().lower() if data.source else "usuario"
+    novo_tel = data.novo_telefone.strip()
+    
+    if not novo_tel:
+        raise HTTPException(status_code=400, detail="Número de telefone não pode ser vazio.")
+        
+    if target_source == "usuario":
+        # 1. Update in SQL if present
+        try:
+            u_id_num = int(user_id)
+            user_sql = db_sql.query(Usuario).filter(Usuario.id == u_id_num).first()
+            if user_sql:
+                user_sql.telefone = novo_tel
+                user_sql.whatsapp = novo_tel
+                db_sql.commit()
+        except ValueError:
+            pass
+            
+        # 2. Update in Firestore if present
+        if db is not None:
+            try:
+                doc_ref = db.collection("usuarios").document(user_id)
+                doc = doc_ref.get()
+                if doc.exists:
+                    doc_ref.update({"telefone": novo_tel, "whatsapp": novo_tel})
+                else:
+                    docs = db.collection("usuarios").where("id", "==", user_id).limit(1).get()
+                    if docs:
+                        docs[0].reference.update({"telefone": novo_tel, "whatsapp": novo_tel})
+            except Exception as e:
+                print("Error updating Firestore user phone:", e)
+                
+    elif target_source == "subadmin":
+        try:
+            s_id_num = int(user_id)
+            sadmin = db_sql.query(AdminSecretaria).filter(AdminSecretaria.id == s_id_num).first()
+            if sadmin:
+                sadmin.telefone = novo_tel
+                db_sql.commit()
+        except ValueError:
+            pass
+            
+    # Audit log
+    log = LogAuditoria(
+        usuario_id=current_admin.id,
+        usuario_tipo=current_admin.tipo_usuario_verificado,
+        acao="update_phone",
+        detalhes=f"Atualizou telefone de {target_source} ID {user_id} para {novo_tel}"
+    )
+    db_sql.add(log)
+    db_sql.commit()
+    
+    return {"message": "Telefone atualizado com sucesso!", "telefone": novo_tel}
+
 @router.get("/all-combined")
 def get_all_combined_users(current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
-    # 1. Get Citizens and Admins from Usuario table
-    usuarios = db_sql.query(Usuario).all()
+    from ..core.firebase_config import db
     
-    # 2. Get Sub-Admins from AdminSecretaria table
-    subadmins = db_sql.query(AdminSecretaria).all()
-    
-    # Combined list
     combined = []
+    seen_emails = set()
     
-    for u in usuarios:
-        combined.append({
-            "id": u.id,
-            "nome": u.nome,
-            "email": u.email,
-            "tipo": "admin" if str(u.tipo_usuario).split('.')[-1] == "admin" else "cidadao",
-            "status": u.status,
-            "source": "usuario",
-            "botao_panico_autorizado": u.botao_panico_autorizado
-        })
+    # 1. Fetch Firestore users if available
+    if db is not None:
+        try:
+            docs = db.collection("usuarios").stream()
+            for doc in docs:
+                data = doc.to_dict()
+                u_id = doc.id
+                email = data.get("email", "")
+                if email:
+                    seen_emails.add(email.lower())
+                combined.append({
+                    "id": str(u_id),
+                    "nome": data.get("nome", "Não informado"),
+                    "email": email or "Não informado",
+                    "telefone": data.get("telefone") or data.get("whatsapp") or "Não informado",
+                    "whatsapp": data.get("whatsapp") or data.get("telefone") or "Não informado",
+                    "tipo": "admin" if data.get("tipo_usuario") == "admin" else "cidadao",
+                    "status": data.get("status", "Ativo"),
+                    "source": "usuario",
+                    "botao_panico_autorizado": data.get("botao_panico_autorizado", 0)
+                })
+        except Exception as e:
+            print("Error fetching Firestore users in all-combined:", e)
+            
+    # 2. Get Citizens from SQL table
+    try:
+        usuarios = db_sql.query(Usuario).all()
+        for u in usuarios:
+            if u.email and u.email.lower() in seen_emails:
+                continue
+            combined.append({
+                "id": str(u.id),
+                "nome": u.nome or "Não informado",
+                "email": u.email or "Não informado",
+                "telefone": u.telefone or u.whatsapp or "Não informado",
+                "whatsapp": u.whatsapp or u.telefone or "Não informado",
+                "tipo": "admin" if str(u.tipo_usuario).split('.')[-1] == "admin" else "cidadao",
+                "status": u.status or "Ativo",
+                "source": "usuario",
+                "botao_panico_autorizado": u.botao_panico_autorizado or 0
+            })
+    except Exception as e:
+        print("Error fetching SQL users in all-combined:", e)
         
-    for s in subadmins:
-        combined.append({
-            "id": s.id,
-            "nome": s.nome,
-            "email": s.email,
-            "tipo": "subadmin",
-            "status": "Ativo", # AdminSecretaria doesn't have a status field in schema? Check it.
-            "source": "subadmin"
-        })
+    # 3. Get Sub-Admins from AdminSecretaria table
+    try:
+        subadmins = db_sql.query(AdminSecretaria).all()
+        for s in subadmins:
+            combined.append({
+                "id": str(s.id),
+                "nome": s.nome or "Não informado",
+                "email": s.email or "Não informado",
+                "telefone": s.telefone or "Não informado",
+                "whatsapp": s.telefone or "Não informado",
+                "tipo": "subadmin",
+                "status": "Ativo",
+                "source": "subadmin",
+                "botao_panico_autorizado": 0
+            })
+    except Exception as e:
+        print("Error fetching subadmins in all-combined:", e)
         
     return combined
     

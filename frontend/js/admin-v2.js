@@ -1871,10 +1871,13 @@ async function loadAllCombinedUsers() {
             const counter = document.getElementById('totalUsersCounter');
             if (counter) counter.innerText = list.length;
             
-            let html = `<table class="data-table"><thead><tr><th>Nome</th><th>E-mail</th><th>Tipo</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
+            let html = `<table class="data-table"><thead><tr><th>Nome</th><th>E-mail</th><th>Telefone / Contato</th><th>Tipo</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(u => {
                 const color = u.tipo === 'admin' ? '#ef4444' : (u.tipo === 'subadmin' ? '#f59e0b' : '#22c55e');
-                const s = u.status.toLowerCase();
+                const s = (u.status || 'ativo').toLowerCase();
+                const telDisplay = u.telefone || u.whatsapp || 'Não informado';
+                const escNome = (u.nome || '').replace(/'/g, "\\'");
+                const escTel = telDisplay.replace(/'/g, "\\'");
                 
                 let panicoBtn = '';
                 if (u.source === 'usuario') {
@@ -1888,13 +1891,14 @@ async function loadAllCombinedUsers() {
                     <tr>
                         <td><strong>${u.nome}</strong></td>
                         <td>${u.email}</td>
+                        <td><span style="font-family: monospace; font-size: 0.85rem;"><i class="fa-solid fa-phone" style="color: #3b82f6; margin-right: 4px;"></i> ${telDisplay}</span></td>
                         <td><span style="padding: 2px 8px; border-radius: 4px; font-size: 0.75rem; background: ${color}20; color: ${color}; font-weight: 600;">${u.tipo.toUpperCase()}</span></td>
-                        <td><span class="badge badge-${s === 'ativo' ? 'done' : 'pending'}">${u.status}</span></td>
+                        <td><span class="badge badge-${s === 'ativo' ? 'done' : 'pending'}">${u.status || 'Ativo'}</span></td>
                         <td>
-                            <div style="display: flex; gap: 0.5rem;">
+                            <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
                                 ${panicoBtn}
-                                <button class="btn btn-primary" style="font-size: 0.7rem; padding: 4px 10px;" onclick="openPasswordModal('${u.id}', '${u.source}', '${u.nome}')"><i class="fa-solid fa-key"></i> Trocar Senha</button>
-                                ${u.source === 'subadmin' && currentRole === 'admin' ? `<button class="btn btn-primary" style="background-color: #10b981; border: none; font-size: 0.7rem; padding: 4px 10px;" onclick="changeSubAdminPhone('${u.id}', '')"><i class="fa-solid fa-phone"></i> Trocar Telefone</button>` : ''}
+                                <button class="btn btn-outline" style="border-color: #3b82f6; color: #3b82f6; font-size: 0.7rem; padding: 4px 10px;" onclick="openEditPhoneModal('${u.id}', '${u.source}', '${escNome}', '${escTel}')"><i class="fa-solid fa-pen-to-square"></i> Editar Telefone</button>
+                                <button class="btn btn-primary" style="font-size: 0.7rem; padding: 4px 10px;" onclick="openPasswordModal('${u.id}', '${u.source}', '${escNome}')"><i class="fa-solid fa-key"></i> Trocar Senha</button>
                                 <button class="btn btn-outline" style="color: var(--danger); font-size: 0.7rem; padding: 4px 10px;" onclick="deleteCombinedUser('${u.id}', '${u.source}')"><i class="fa-solid fa-trash"></i></button>
                             </div>
                         </td>
@@ -1904,7 +1908,58 @@ async function loadAllCombinedUsers() {
             html += '</tbody></table>';
             container.innerHTML = html;
         }
-    } catch(e) {}
+    } catch(e) {
+        console.error("Error loading all combined users:", e);
+    }
+}
+
+async function openEditPhoneModal(userId, source, userName, currentPhone) {
+    const { value: newPhone } = await Swal.fire({
+        title: `Editar Telefone de ${userName}`,
+        html: `<p style="font-size: 0.9rem; color: #64748b; margin-bottom: 1rem;">Digite o novo número de telefone/WhatsApp:</p>`,
+        input: 'text',
+        inputValue: currentPhone && currentPhone !== 'Não informado' ? currentPhone : '',
+        inputPlaceholder: '(82) 99999-9999',
+        showCancelButton: true,
+        confirmButtonText: '<i class="fa-solid fa-floppy-disk"></i> Salvar Telefone',
+        cancelButtonText: 'Cancelar',
+        confirmButtonColor: '#3b82f6',
+        inputValidator: (val) => {
+            if (!val || val.trim().length < 8) {
+                return 'Por favor, insira um número de telefone válido com DD!';
+            }
+        }
+    });
+
+    if (newPhone) {
+        try {
+            const res = await fetch(`${ADMIN_API}/users/${userId}/phone`, {
+                method: 'PATCH',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${getToken()}` 
+                },
+                body: JSON.stringify({ novo_telefone: newPhone.trim(), source: source })
+            });
+
+            if (res.ok) {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Telefone Atualizado!',
+                    text: `O número de telefone foi atualizado com sucesso.`,
+                    timer: 1800,
+                    showConfirmButton: false
+                });
+                loadAllCombinedUsers();
+            } else {
+                const err = await res.json();
+                Swal.fire({ icon: 'error', title: 'Erro', text: err.detail || 'Não foi possível atualizar o telefone.' });
+            }
+        } catch (e) {
+            console.error(e);
+            Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro de conexão com o servidor.' });
+        }
+    }
 }
 
 async function togglePanicoAuth(userId) {
