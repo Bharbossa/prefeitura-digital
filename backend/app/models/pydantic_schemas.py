@@ -56,6 +56,40 @@ class RespostaResponse(BaseModel):
     admin_id: Optional[int] = None
     model_config = ConfigDict(from_attributes=True)
 
+class FichaPolicialResponse(BaseModel):
+    id: int
+    ocorrencia_id: int
+    data_fato: Optional[str] = None
+    hora_fato: Optional[str] = None
+    hora_registro: Optional[str] = None
+    tipo_ocorrencia: Optional[str] = None
+    tipo_ocorrencia_outro: Optional[str] = None
+    vitima_nome: Optional[str] = None
+    vitima_cpf_rg: Optional[str] = None
+    vitima_data_nascimento: Optional[str] = None
+    vitima_endereco: Optional[str] = None
+    vitima_telefone: Optional[str] = None
+    suspeito_nome: Optional[str] = None
+    suspeito_apelido: Optional[str] = None
+    suspeito_cpf_rg: Optional[str] = None
+    suspeito_data_nascimento: Optional[str] = None
+    suspeito_endereco: Optional[str] = None
+    suspeito_caracteristicas: Optional[str] = None
+    objetos_envolvidos: Optional[str] = None
+    descricao_detalhada: Optional[str] = None
+    uso_algemas: Optional[str] = None
+    uso_algemas_justificativa: Optional[str] = None
+    emprego_forca: Optional[str] = None
+    emprego_forca_tipo: Optional[str] = None
+    emprego_forca_justificativa: Optional[str] = None
+    providencias_gcm: Optional[str] = None
+    agentes_envolvidos: Optional[str] = None
+    viatura: Optional[str] = None
+    encaminhamento: Optional[str] = None
+    agente_responsavel: Optional[str] = None
+    comandante_geral: Optional[str] = None
+    model_config = ConfigDict(from_attributes=True)
+
 class OcorrenciaResponse(OcorrenciaBase):
     id: Optional[int] = None
     protocolo: Optional[str] = None
@@ -71,6 +105,7 @@ class OcorrenciaResponse(OcorrenciaBase):
     usuario_nome: Optional[str] = None
     secretaria_nome: Optional[str] = None
     respostas: Optional[List[RespostaResponse]] = []
+    ficha_policial: Optional[FichaPolicialResponse] = None
     model_config = ConfigDict(from_attributes=True)
 
 class LogAuditoriaBase(BaseModel):

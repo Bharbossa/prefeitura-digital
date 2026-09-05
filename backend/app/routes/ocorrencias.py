@@ -27,12 +27,37 @@ def get_current_ocorrencias(
         
         if role in ["admin", "subadmin"]:
             sec_id = getattr(current_user, "secretaria_id", None)
-            query = db_sql.query(Ocorrencia).options(joinedload(Ocorrencia.usuario), joinedload(Ocorrencia.secretaria))
+            sec_nome = (getattr(current_user, "secretaria_nome", "") or "").strip().lower()
+            admin_email = (getattr(current_user, "email", "") or "").strip().lower()
+            
+            is_sec_mulher = sec_id in [16] or "mulher" in sec_nome or "patrulha" in sec_nome or "patrulhamariadapenha" in admin_email
+            
+            query = db_sql.query(Ocorrencia).options(
+                joinedload(Ocorrencia.usuario),
+                joinedload(Ocorrencia.secretaria),
+                joinedload(Ocorrencia.ficha_policial)
+            )
+            
             if sec_id:
-                query = query.filter(Ocorrencia.secretaria_id == sec_id)
+                if is_sec_mulher:
+                    from sqlalchemy import or_
+                    query = query.filter(
+                        or_(
+                            Ocorrencia.secretaria_id == sec_id,
+                            Ocorrencia.secretaria_id == 17,
+                            Ocorrencia.titulo.ilike("%pânico%"),
+                            Ocorrencia.titulo.ilike("%panico%")
+                        )
+                    )
+                else:
+                    query = query.filter(Ocorrencia.secretaria_id == sec_id)
             # Administrador global (sem sec_id) vai ver TODAS a partir daqui
         else:
-            query = db_sql.query(Ocorrencia).options(joinedload(Ocorrencia.usuario), joinedload(Ocorrencia.secretaria)).filter(Ocorrencia.usuario_id == current_user.id)
+            query = db_sql.query(Ocorrencia).options(
+                joinedload(Ocorrencia.usuario),
+                joinedload(Ocorrencia.secretaria),
+                joinedload(Ocorrencia.ficha_policial)
+            ).filter(Ocorrencia.usuario_id == current_user.id)
         
         ocorrencias = query.order_by(Ocorrencia.data.desc()).all()
         
@@ -63,6 +88,7 @@ async def create_ocorrencia(
     longitude: Optional[float] = Form(None),
     anonima: Optional[bool] = Form(False),
     current_user = Depends(get_current_user),
+    db_sql: Session = Depends(get_db),
 ):
     print(f"DEBUG: Recebendo ocorrência - Lat: {latitude}, Lng: {longitude}")
     UPLOAD_DIR = "uploads"
@@ -157,7 +183,11 @@ async def update_status(
         if not ocorrencia: raise HTTPException(status_code=404, detail="Ocorrencia não encontrada")
         
         if current_user.tipo_usuario_verificado == "subadmin":
-            if ocorrencia.secretaria_id != current_user.secretaria_id:
+            sec_nome = (getattr(current_user, "secretaria_nome", "") or "").strip().lower()
+            admin_email = (getattr(current_user, "email", "") or "").strip().lower()
+            is_sec_mulher = current_user.secretaria_id in [16] or "mulher" in sec_nome or "patrulha" in sec_nome or "patrulhamariadapenha" in admin_email
+            
+            if not is_sec_mulher and ocorrencia.secretaria_id != current_user.secretaria_id:
                 raise HTTPException(status_code=403, detail="Sem permissão")
         
         ocorrencia.status = status.lower().strip()
@@ -213,6 +243,12 @@ async def update_status(
         has_ficha = form_data.get('has_ficha') == 'true'
         
         if has_ficha:
+            ocorrencia.status = "resolvido"
+            status_limpo = "resolvido"
+            if ocorrencia.usuario:
+                phone_to_send = ocorrencia.usuario.whatsapp or ocorrencia.usuario.telefone
+                should_send = True
+            
             from ..models.schema import FichaPolicial
             ficha = db_sql.query(FichaPolicial).filter(FichaPolicial.ocorrencia_id == id).first()
             if not ficha:
@@ -256,6 +292,14 @@ async def update_status(
             ficha.comandante_geral = form_data.get('fp_comandante_geral')
 
         db_sql.commit()
+        
+        # Se for ocorrência do Pânico/Guarda e tiver sido finalizada ou com ficha preenchida, notificar Secretaria da Mulher (sec 16)
+        if (ocorrencia.secretaria_id == 17 or "pânico" in ocorrencia.titulo.lower() or "panico" in ocorrencia.titulo.lower()) and (status_limpo == "resolvido" or has_ficha):
+            try:
+                from ..utils.notification_helper import notify_admins_of_new_record
+                notify_admins_of_new_record(db_sql, 16, f"COLÔNIA DIGITAL: Ocorrência do Botão do Pânico #{ocorrencia.protocolo} foi finalizada e o relatório está disponível para a Secretaria da Mulher!")
+            except Exception as e_notif:
+                print(f"Erro ao notificar Secretaria da Mulher: {e_notif}")
         
         # Envia a mensagem após salvar o status com sucesso
         if should_send and phone_to_send:

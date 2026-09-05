@@ -596,7 +596,10 @@
                 <input type="text" id="newAdminTel" placeholder="Telefone do WhatsApp (Obrigatório)"
                     class="btn btn-outline" style="width:100%; margin-bottom:1rem;" required>
                 <input type="password" id="newAdminPass" placeholder="Senha" class="btn btn-outline"
-                    style="width:100%; margin-bottom:1rem;" required minlength="6">
+                    style="width:100%; margin-bottom:0.4rem;" required minlength="8">
+                <small style="display:block; color:var(--text-muted); font-size:0.75rem; margin-bottom:1rem;">
+                    🔒 Mínimo 8 dígitos, 1 maiúscula, 1 número e 1 caractere especial (!*#$).
+                </small>
                 <select id="newAdminSec" class="btn btn-outline" style="width:100%; margin-bottom:1.5rem;" required>
                     <!-- Populated via JS -->
                 </select>

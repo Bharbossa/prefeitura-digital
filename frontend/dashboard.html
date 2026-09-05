@@ -1729,11 +1729,19 @@
                     return;
                 }
 
+                const secVal = document.getElementById('oc_secretaria').value;
+                if (!secVal) {
+                    alert("Por favor, selecione a secretaria responsável.");
+                    btn.disabled = false;
+                    btn.innerText = originalText;
+                    return;
+                }
+
                 formData.append('titulo', tituloFinal);
-                formData.append('descricao', document.getElementById('oc_descricao').value);
-                formData.append('rua', document.getElementById('oc_rua').value);
-                formData.append('ponto_referencia', document.getElementById('oc_ponto_referencia').value);
-                formData.append('secretaria_id', document.getElementById('oc_secretaria').value);
+                formData.append('descricao', document.getElementById('oc_descricao').value || '');
+                formData.append('rua', document.getElementById('oc_rua').value || '');
+                formData.append('ponto_referencia', document.getElementById('oc_ponto_referencia').value || '');
+                formData.append('secretaria_id', secVal);
 
                 const isAnonima = document.getElementById('is_anonima');
                 if (isAnonima && isAnonima.checked) {
@@ -1773,7 +1781,13 @@
                     loadOcorrencias();
                 } else {
                     const errorData = await res.json().catch(() => ({}));
-                    alert('Erro ao registrar: ' + (errorData.detail || 'Verifique os campos.'));
+                    let detailMsg = errorData.detail;
+                    if (Array.isArray(detailMsg)) {
+                        detailMsg = detailMsg.map(d => d.msg || JSON.stringify(d)).join(', ');
+                    } else if (typeof detailMsg === 'object') {
+                        detailMsg = JSON.stringify(detailMsg);
+                    }
+                    alert('Erro ao registrar: ' + (detailMsg || 'Verifique os campos.'));
                 }
             } catch (err) {
                 console.error('Erro na submissão:', err);

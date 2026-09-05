@@ -118,25 +118,9 @@
                     </div>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 2rem;">
-                    <label style="font-weight: 600; color: #333; margin-bottom: 1rem; display: block;">Como deseja
-                        receber a nova senha?</label>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                        <label
-                            style="border: 2px solid var(--primary-color); background-color: #e0f2f1; color: var(--primary-color); border-radius: 12px; padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.2s;"
-                            class="method-card">
-                            <input type="radio" name="recoveryMethod" value="whatsapp" checked style="display: none;">
-                            <i class="fa-brands fa-whatsapp" style="font-size: 1.5rem;"></i>
-                            <span style="font-weight: 600; text-align: center;">Receber via WhatsApp</span>
-                        </label>
-                        <label
-                            style="border: 2px solid #edf2f7; background-color: white; color: #4a5568; border-radius: 12px; padding: 15px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; transition: all 0.2s;"
-                            class="method-card">
-                            <input type="radio" name="recoveryMethod" value="sms" style="display: none;">
-                            <i class="fa-solid fa-comment-sms" style="font-size: 1.5rem;"></i>
-                            <span style="font-weight: 600; text-align: center;">Receber via SMS Normal</span>
-                        </label>
-                    </div>
+                <div style="background-color: #e0f2f1; color: var(--primary-dark); padding: 14px 16px; border-radius: 12px; display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; border: 1px solid #b2dfdb;">
+                    <i class="fa-solid fa-comment-sms" style="font-size: 1.5rem; color: var(--primary-color);"></i>
+                    <span style="font-size: 0.95rem; font-weight: 600;">A nova senha será enviada por SMS para o seu telefone cadastrado.</span>
                 </div>
 
                 <div style="margin-top: 2.5rem;">
@@ -198,8 +182,15 @@
 
         document.getElementById('forgotPasswordForm').addEventListener('submit', async function (e) {
             e.preventDefault();
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn.disabled) return;
+
+            submitBtn.disabled = true;
+            const origHtml = submitBtn.innerHTML;
+            submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+
             const identifier = document.getElementById('forgotIdentifier').value.trim();
-            const method = document.querySelector('input[name="recoveryMethod"]:checked').value;
+            const method = 'sms';
             const statusMsg = document.getElementById('forgotStatusMsg');
 
             statusMsg.innerText = "Processando solicitação...";
@@ -234,6 +225,9 @@
                 statusMsg.innerText = "⚠ Erro de conexão com o servidor.";
                 statusMsg.style.backgroundColor = "#fff3e0";
                 statusMsg.style.color = "#e65100";
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = origHtml;
             }
         });
 

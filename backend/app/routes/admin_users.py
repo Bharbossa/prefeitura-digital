@@ -11,7 +11,7 @@ from ..models.pydantic_schemas import (
     AdminPasswordUpdate
 )
 from ..core.auth_deps import get_current_user, get_current_admin, get_general_admin
-from ..core.security import get_password_hash, verify_password
+from ..core.security import get_password_hash, verify_password, validate_password_complexity
 from ..utils.sms_service import send_status_sms
 
 router = APIRouter()
@@ -170,6 +170,7 @@ def get_secretaria_admins(current_admin = Depends(get_current_admin), db_sql: Se
 
 @router.post("/secretaria-admins", response_model=AdminSecretariaResponse)
 def create_secretaria_admin(admin_in: AdminSecretariaCreate, current_admin = Depends(get_current_admin), db_sql: Session = Depends(get_db)):
+    validate_password_complexity(admin_in.senha)
     # Admin Geral ou Subadmin (como o gestor de saúde) pode criar sub-admins
     if current_admin.tipo_usuario_verificado != "admin" and getattr(current_admin, 'email', '') != 'denilmalucass@gmail.com' and getattr(current_admin, 'secretaria_id', None) != admin_in.secretaria_id:
         raise HTTPException(status_code=403, detail="Acesso restrito ao Administrador Geral ou ao Administrador da Secretaria.")

@@ -10,13 +10,15 @@ from ..models.schema import Usuario, AdminSecretaria, StatusUsuario
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..models.pydantic_schemas import UsuarioCreate, UsuarioResponse, Token, ForgotPasswordRequest, ChangePasswordRequest, UpdateNameRequest, UpdateAddressRequest, UpdatePhoneRequest
-from ..core.security import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
+from ..core.security import get_password_hash, verify_password, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES, validate_password_complexity
 from ..core.auth_deps import get_current_user
 
 router = APIRouter()
 
 @router.post("/register", response_model=UsuarioResponse)
 def register(user_in: UsuarioCreate, db_sql: Session = Depends(get_db)) -> Any:
+    validate_password_complexity(user_in.senha)
+    
     if DB_MODE == "firestore":
         # Check if user exists in Firestore
         email_exists = db.collection("usuarios").where("email", "==", user_in.email).limit(1).get()
@@ -226,6 +228,27 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
     if not user_cidadao and not user_subadmin:
         raise HTTPException(status_code=404, detail="Usuário não encontrado com os dados informados.")
     
+    # Choose primary user record for notification & rate limiting
+    user = user_subadmin if user_subadmin else user_cidadao
+    tipo_usu = "subadmin" if user_subadmin else "cidadao"
+
+    # Rate limiting: impedir múltiplos disparos em curto intervalo (cooldown de 2 minutos)
+    from datetime import timedelta
+    from ..models.schema import LogRecuperacaoSenha, get_brasilia_time
+    agora = get_brasilia_time()
+    limite_tempo = agora - timedelta(minutes=2)
+    
+    log_recente = db_sql.query(LogRecuperacaoSenha).filter(
+        LogRecuperacaoSenha.usuario_nome == user.nome,
+        LogRecuperacaoSenha.data_solicitacao >= limite_tempo
+    ).first()
+    
+    if log_recente:
+        raise HTTPException(
+            status_code=429, 
+            detail="Uma nova senha já foi enviada recentemente por SMS. Por favor, aguarde 2 minutos antes de solicitar novamente."
+        )
+
     # 3. Generate random password (8 chars)
     alphabet = string.ascii_letters + string.digits
     new_pw = ''.join(secrets.choice(alphabet) for _ in range(8))
@@ -294,7 +317,7 @@ def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_d
     
     # 6. Log the attempt
     from ..models.schema import LogRecuperacaoSenha
-    tipo_usu = "cidadao" if user_cidadao else "subadmin"
+    tipo_usu = "subadmin" if user_subadmin else "cidadao"
     novo_log = LogRecuperacaoSenha(
         usuario_nome=user.nome,
         usuario_tipo=tipo_usu,
@@ -318,6 +341,7 @@ def get_password_resets(current_user = Depends(get_current_user), db_sql: Sessio
 
 @router.patch("/change-password")
 def change_password(data: ChangePasswordRequest, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
+    validate_password_complexity(data.nova_senha)
     from ..models.schema import Usuario, AdminSecretaria
     
     if current_user.tipo_usuario_verificado == "subadmin":

@@ -32,3 +32,33 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
+
+import re
+from fastapi import HTTPException, status
+
+def validate_password_complexity(password: str) -> None:
+    """
+    Valida se a senha possui no mínimo 8 caracteres,
+    pelo menos 1 letra maiúscula, 1 número e 1 caractere especial (!*#$).
+    """
+    if not password or len(password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A senha deve ter no mínimo 8 dígitos."
+        )
+    if not re.search(r'[A-Z]', password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A senha deve conter pelo menos uma letra maiúscula."
+        )
+    if not re.search(r'[0-9]', password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A senha deve conter pelo menos um número."
+        )
+    if not re.search(r'[!*#$@%^&+=?_\-\W]', password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="A senha deve conter pelo menos um caractere especial (!*#$)."
+        )
+

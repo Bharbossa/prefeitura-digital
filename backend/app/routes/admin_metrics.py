@@ -240,6 +240,12 @@ def _parse_address(raw_address: str):
         return "Não Informado", "Não Informado"
     
     clean = raw_address.strip()
+    
+    # Normalização para Belo Jardim / Bela Jardim / Loteamento Belo Jardim
+    clean_low = clean.lower()
+    if ("belo" in clean_low or "bela" in clean_low) and ("jardim" in clean_low or "jadim" in clean_low or "jadin" in clean_low):
+        clean = re.sub(r'(belo|bela)\s+jadi[mn]', 'Loteamento Belo Jardim', clean, flags=re.IGNORECASE)
+    
     parts = [p.strip() for p in re.split(r'[,/\-–—]', clean) if p.strip()]
     
     street_prefixes = (
@@ -259,9 +265,16 @@ def _parse_address(raw_address: str):
         else:
             rua = _title_case(p0)
             bairro = _title_case(p1)
+            
+        if ("belo" in bairro.lower() or "bela" in bairro.lower()) and ("jardim" in bairro.lower() or "jadim" in bairro.lower() or "jadin" in bairro.lower()):
+            bairro = "Loteamento Belo Jardim"
+            
         return bairro, rua
     
     single = _title_case(clean)
+    if ("belo" in single.lower() or "bela" in single.lower()) and ("jardim" in single.lower() or "jadim" in single.lower() or "jadin" in single.lower()):
+        return "Loteamento Belo Jardim", single
+        
     if any(single.lower().startswith(pref) for pref in street_prefixes):
         return "Não Informado", single
     else:
@@ -408,8 +421,16 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
         "Mário de Gusmão": (-8.9139014, -35.7209606),
         "Mario de Gusmao": (-8.9139014, -35.7209606),
         "Artur Ferreira": (-8.9091807, -35.7177514),
-        "Belo Jardim": (-8.9106093, -35.7201824),
-        "Loteamento Belo Jardim": (-8.9106093, -35.7201824),
+        "Belo Jardim": (-8.9148500, -35.7196500),
+        "Belo Jadim": (-8.9148500, -35.7196500),
+        "Belo Jadin": (-8.9148500, -35.7196500),
+        "Bela Jardim": (-8.9148500, -35.7196500),
+        "Bela Jadim": (-8.9148500, -35.7196500),
+        "Bela Jadin": (-8.9148500, -35.7196500),
+        "Loteamento Belo Jardim": (-8.9148500, -35.7196500),
+        "Loteamento Belo Jadim": (-8.9148500, -35.7196500),
+        "Loteamento Bela Jardim": (-8.9148500, -35.7196500),
+        "Loteamento Bela Jadim": (-8.9148500, -35.7196500),
         "Manoel Lino": (-8.9121762, -35.7243278),
         "José Inácio": (-8.9114035, -35.7178309),
         "Jose Inacio": (-8.9114035, -35.7178309),
@@ -428,7 +449,7 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
     city_center_lat, city_center_lng = -8.9113702, -35.7208226
     
     def _clamp(lat, lng):
-        c_lat = max(-8.9150, min(-8.9065, lat))
+        c_lat = max(-8.9160, min(-8.9065, lat))
         c_lng = max(-35.7270, min(-35.7135, lng))
         return c_lat, c_lng
 
@@ -441,11 +462,24 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
         bairro, rua = _parse_address(full_addr)
         
         matched_coord = None
-        for key, coord in base_coords.items():
-            k_low = key.lower()
-            if k_low in full_addr.lower() or k_low in rua.lower() or k_low in bairro.lower():
-                matched_coord = coord
-                break
+        addr_low = full_addr.lower()
+        bairro_low = bairro.lower()
+        is_belo_jardim = (
+            ("belo" in addr_low or "bela" in addr_low) and 
+            ("jardim" in addr_low or "jadim" in addr_low or "jadin" in addr_low)
+        ) or (
+            ("belo" in bairro_low or "bela" in bairro_low) and 
+            ("jardim" in bairro_low or "jadim" in bairro_low or "jadin" in bairro_low)
+        )
+        
+        if is_belo_jardim:
+            matched_coord = (-8.9148500, -35.7196500)
+        else:
+            for key, coord in base_coords.items():
+                k_low = key.lower()
+                if k_low in full_addr.lower() or k_low in rua.lower() or k_low in bairro.lower():
+                    matched_coord = coord
+                    break
                 
         if not matched_coord:
             h = int(hashlib.md5(full_addr.encode('utf-8')).hexdigest(), 16)
@@ -454,7 +488,7 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
             matched_coord = (city_center_lat + lat_offset, city_center_lng + lng_offset)
             
         m_lat, m_lng = _clamp(matched_coord[0], matched_coord[1])
-        loc_name = bairro if (bairro != "Não Informado" and not bairro.isdigit() and not bairro.startswith("N")) else (rua if rua != "Não Informado" else "Centro")
+        loc_name = "Loteamento Belo Jardim" if is_belo_jardim else (bairro if (bairro != "Não Informado" and not bairro.isdigit() and not bairro.startswith("N")) else (rua if rua != "Não Informado" else "Centro"))
         
         if loc_name not in localidades_map:
             localidades_map[loc_name] = {
@@ -467,12 +501,17 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
         localidades_map[loc_name]["total"] += 1
         
         u_id_str = str(u["id"])
-        if u_id_str in user_coords:
+        if is_belo_jardim:
+            h_u = int(hashlib.md5(f"{u_id_str}_{full_addr}".encode('utf-8')).hexdigest(), 16)
+            j_lat = (((h_u % 100) - 50) / 50.0) * 0.0006
+            j_lng = (((((h_u // 100) % 100) - 50)) / 50.0) * 0.0010
+            u_lat, u_lng = _clamp(m_lat + j_lat, m_lng + j_lng)
+        elif u_id_str in user_coords:
             u_lat, u_lng = _clamp(user_coords[u_id_str][0], user_coords[u_id_str][1])
         else:
             h_u = int(hashlib.md5(f"{u_id_str}_{full_addr}".encode('utf-8')).hexdigest(), 16)
-            j_lat = ((h_u % 50) - 25) * 0.000008
-            j_lng = (((h_u // 50) % 50) - 25) * 0.000008
+            j_lat = (((h_u % 50) - 25) / 25.0) * 0.0003
+            j_lng = (((((h_u // 50) % 50) - 25)) / 25.0) * 0.0004
             u_lat, u_lng = _clamp(m_lat + j_lat, m_lng + j_lng)
             
         heat_points.append({"lat": u_lat, "lng": u_lng, "weight": 1})

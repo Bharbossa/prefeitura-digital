@@ -5,6 +5,7 @@ let currentRole = "";
 let currentSecId = null;
 let statusChart = null;
 let adminMap, adminMarker;
+let currentLoadedOcorrencias = [];
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!checkAuth(true)) {
@@ -386,6 +387,29 @@ async function loadUserHeatmap() {
         let data = null;
         if (res.ok) {
             data = await res.json();
+            
+            // Garantir que cadastros do Belo Jardim/Bela Jardim/Loteamento Belo Jardim fiquem posicionados corretamente no Bairro Belo Jardim
+            if (data && data.cidadaos && data.cidadaos.length > 0) {
+                const newHeatPoints = [];
+                data.cidadaos.forEach((c) => {
+                    const addrLow = (c.endereco || '').toLowerCase();
+                    const isBeloJardim = (addrLow.includes('belo') || addrLow.includes('bela')) && (addrLow.includes('jardim') || addrLow.includes('jadim') || addrLow.includes('jadin'));
+                    if (isBeloJardim) {
+                        const cidInt = typeof c.id === 'number' ? c.id : (parseInt(c.id) || 1);
+                        const h = (cidInt * 2654435761) % 1000000;
+                        const jLat = (((h % 100) - 50) / 50.0) * 0.0006;
+                        const jLng = (((Math.floor(h / 100) % 100) - 50) / 50.0) * 0.0010;
+                        c.lat = -8.9148500 + jLat;
+                        c.lng = -35.7196500 + jLng;
+                    }
+                    if (c.lat && c.lng) {
+                        newHeatPoints.push({ lat: c.lat, lng: c.lng, weight: 1 });
+                    }
+                });
+                if (newHeatPoints.length > 0) {
+                    data.heat_points = newHeatPoints;
+                }
+            }
         } else {
             const resBairro = await fetch(`${ADMIN_API}/metrics/users-bairro`, {
                 headers: { 'Authorization': `Bearer ${getToken()}` }
@@ -430,8 +454,16 @@ async function loadUserHeatmap() {
                     "Mário de Gusmão": [-8.9139014, -35.7209606],
                     "Mario de Gusmao": [-8.9139014, -35.7209606],
                     "Artur Ferreira": [-8.9091807, -35.7177514],
-                    "Belo Jardim": [-8.9106093, -35.7201824],
-                    "Loteamento Belo Jardim": [-8.9106093, -35.7201824],
+                    "Belo Jardim": [-8.9148500, -35.7196500],
+                    "Belo Jadim": [-8.9148500, -35.7196500],
+                    "Belo Jadin": [-8.9148500, -35.7196500],
+                    "Bela Jardim": [-8.9148500, -35.7196500],
+                    "Bela Jadim": [-8.9148500, -35.7196500],
+                    "Bela Jadin": [-8.9148500, -35.7196500],
+                    "Loteamento Belo Jardim": [-8.9148500, -35.7196500],
+                    "Loteamento Belo Jadim": [-8.9148500, -35.7196500],
+                    "Loteamento Bela Jardim": [-8.9148500, -35.7196500],
+                    "Loteamento Bela Jadim": [-8.9148500, -35.7196500],
                     "Manoel Lino": [-8.9121762, -35.7243278],
                     "José Inácio": [-8.9114035, -35.7178309],
                     "Jose Inacio": [-8.9114035, -35.7178309],
@@ -448,7 +480,7 @@ async function loadUserHeatmap() {
                 };
                 
                 const clamp = (lt, lg) => [
-                    Math.max(-8.9150, Math.min(-8.9065, lt)),
+                    Math.max(-8.9160, Math.min(-8.9065, lt)),
                     Math.max(-35.7270, Math.min(-35.7135, lg))
                 ];
                 
@@ -456,17 +488,25 @@ async function loadUserHeatmap() {
                 const heat_points = [];
                 
                 list.forEach((item, idx) => {
-                    const name = item.endereco || 'Desconhecido';
+                    const name = item.endereco || item.bairro || item.rua || item.name || 'Desconhecido';
+                    const nameLow = name.toLowerCase();
                     let lat = -8.9113702;
                     let lng = -35.7208226;
                     let found = false;
                     
-                    for (let k in base_coords) {
-                        if (name.toLowerCase().includes(k.toLowerCase()) || k.toLowerCase().includes(name.toLowerCase())) {
-                            lat = base_coords[k][0];
-                            lng = base_coords[k][1];
-                            found = true;
-                            break;
+                    const isBelo = (nameLow.includes('belo') || nameLow.includes('bela')) && (nameLow.includes('jardim') || nameLow.includes('jadim') || nameLow.includes('jadin'));
+                    if (isBelo) {
+                        lat = -8.9148500;
+                        lng = -35.7196500;
+                        found = true;
+                    } else {
+                        for (let k in base_coords) {
+                            if (nameLow.includes(k.toLowerCase()) || k.toLowerCase().includes(nameLow)) {
+                                lat = base_coords[k][0];
+                                lng = base_coords[k][1];
+                                found = true;
+                                break;
+                            }
                         }
                     }
                     
@@ -477,8 +517,11 @@ async function loadUserHeatmap() {
                     
                     const [cLat, cLng] = clamp(lat, lng);
                     localidades.push({ name, lat: cLat, lng: cLng, total: item.total });
+                    const spreadLat = isBelo ? 0.0006 : 0.0003;
+                    const spreadLng = isBelo ? 0.0010 : 0.0004;
+                    
                     for (let i = 0; i < item.total; i++) {
-                        const [hLat, hLng] = clamp(cLat + ((Math.random() - 0.5) * 0.0001), cLng + ((Math.random() - 0.5) * 0.0001));
+                        const [hLat, hLng] = clamp(cLat + ((Math.random() - 0.5) * 2 * spreadLat), cLng + ((Math.random() - 0.5) * 2 * spreadLng));
                         heat_points.push({ lat: hLat, lng: hLng, weight: 1 });
                     }
                 });
@@ -858,7 +901,20 @@ async function loadOcorrencias() {
         const res = await fetch(url, { headers: { 'Authorization': `Bearer ${getToken()}` } });
         if (res.ok) {
             let list = await res.json();
-            if (currentSecId) list = list.filter(o => parseInt(o.secretaria_id) === parseInt(currentSecId));
+            currentLoadedOcorrencias = list;
+            
+            const user = getUserInfo();
+            const userSecName = (user && user.secretaria_nome ? user.secretaria_nome : '').toLowerCase();
+            const userEmail = (user && user.email ? user.email : '').toLowerCase();
+            const isSecMulher = currentSecId === 16 || userSecName.includes('mulher') || userSecName.includes('patrulha') || userEmail.includes('patrulhamariadapenha');
+
+            if (currentSecId) {
+                if (isSecMulher) {
+                    list = list.filter(o => parseInt(o.secretaria_id) === parseInt(currentSecId) || parseInt(o.secretaria_id) === 17 || (o.titulo && (o.titulo.toLowerCase().includes('pânico') || o.titulo.toLowerCase().includes('panico'))));
+                } else {
+                    list = list.filter(o => parseInt(o.secretaria_id) === parseInt(currentSecId));
+                }
+            }
             
             const container = document.getElementById('ocorrenciasTableContainer');
             if (list.length === 0) {
@@ -885,9 +941,22 @@ async function loadOcorrencias() {
 
             list.forEach(o => {
                 const s = o.status.toLowerCase();
-                const isGCM = o.secretaria_nome && (o.secretaria_nome.toLowerCase().includes('guarda') || o.secretaria_nome.toLowerCase().includes('gcm') || o.secretaria_nome.toLowerCase().includes('segurança') || o.secretaria_nome.toLowerCase().includes('seguranca'));
+                const isPanic = o.titulo && (o.titulo.toLowerCase().includes('pânico') || o.titulo.toLowerCase().includes('panico'));
+                const isGCM = isPanic || (o.secretaria_nome && (o.secretaria_nome.toLowerCase().includes('guarda') || o.secretaria_nome.toLowerCase().includes('gcm') || o.secretaria_nome.toLowerCase().includes('segurança') || o.secretaria_nome.toLowerCase().includes('seguranca')));
+                const hasFichaData = o.ficha_policial && (o.ficha_policial.vitima_nome || o.ficha_policial.descricao_detalhada || o.ficha_policial.agentes_envolvidos);
+
+                const user = getUserInfo();
+                const userSecName = (user && user.secretaria_nome ? user.secretaria_nome : '').toLowerCase();
+                const userEmail = (user && user.email ? user.email : '').toLowerCase();
+                const isSecMulher = currentSecId === 16 || userSecName.includes('mulher') || userSecName.includes('patrulha') || userEmail.includes('patrulhamariadapenha');
+
                 const printBtn = `<button class="btn btn-outline" title="Imprimir" onclick="imprimirProtocolo('${o.id}')"><i class="fa-solid fa-print"></i></button>`;
-                const updateBtn = (s === 'resolvido' && !isGCM) ? '' : `<button class="btn btn-primary" onclick="openResponseModal('${o.id}', '${encodeURIComponent(o.titulo)}', '${encodeURIComponent(o.secretaria_nome || '')}')">${s === 'resolvido' ? 'Preencher Ficha' : 'Atualizar'}</button>`;
+                
+                let updateBtnText = 'Atualizar';
+                if (s === 'resolvido') updateBtnText = 'Ver/Editar Ficha';
+                else if (isGCM || isSecMulher) updateBtnText = 'Preencher Ficha';
+                
+                const updateBtn = (s === 'resolvido' && !isGCM && !isSecMulher && !hasFichaData) ? '' : `<button class="btn btn-primary" onclick="openResponseModal('${o.id}', '${encodeURIComponent(o.titulo)}', '${encodeURIComponent(o.secretaria_nome || '')}')">${updateBtnText}</button>`;
                 const statusBtn = `<div style="display: flex; gap: 5px;">${printBtn}${updateBtn}</div>`;
 
                 html += `
@@ -933,13 +1002,22 @@ function openResponseModal(id, title, secNome = '') {
     document.getElementById('modalResponseSubtitle').innerText = title;
     document.getElementById('respText').value = "";
     
+    const oc = (currentLoadedOcorrencias || []).find(item => item.id == id);
+    const user = getUserInfo();
+    const userSecName = (user && user.secretaria_nome ? user.secretaria_nome : '').toLowerCase();
+    const userEmail = (user && user.email ? user.email : '').toLowerCase();
+    const isSecMulherUser = currentSecId === 16 || userSecName.includes('mulher') || userSecName.includes('patrulha') || userEmail.includes('patrulhamariadapenha');
+    const isPanicTitle = title.toLowerCase().includes('pânico') || title.toLowerCase().includes('panico');
+    const isGCM = isPanicTitle || secNome.toLowerCase().includes('guarda') || secNome.toLowerCase().includes('gcm') || secNome.toLowerCase().includes('segurança') || secNome.toLowerCase().includes('seguranca');
+    
     const fichaContainer = document.getElementById('fichaPolicialContainer');
     const printBtn = document.getElementById('btnPrintFicha');
     
     if (fichaContainer) {
-        if (secNome.toLowerCase().includes('guarda') || secNome.toLowerCase().includes('gcm') || secNome.toLowerCase().includes('segurança') || secNome.toLowerCase().includes('seguranca')) {
+        if (isGCM || isSecMulherUser) {
             fichaContainer.style.display = 'block';
             fichaContainer.dataset.hasFicha = 'true';
+            if (document.getElementById('respStatus')) document.getElementById('respStatus').value = 'resolvido';
             const modalBox = document.getElementById('modalResponseCard');
             if (modalBox) {
                 modalBox.style.maxWidth = window.innerWidth > 768 ? 'calc(100% - 300px)' : '95%';
@@ -948,6 +1026,55 @@ function openResponseModal(id, title, secNome = '') {
             if (printBtn) {
                 printBtn.style.display = 'block';
                 printBtn.onclick = () => imprimirFichaPolicial(id);
+            }
+
+            // Pre-fill existing ficha fields if available
+            if (oc && oc.ficha_policial) {
+                const fp = oc.ficha_policial;
+                const setVal = (fieldId, val) => {
+                    const el = document.getElementById(fieldId);
+                    if (el && val !== undefined && val !== null) el.value = val;
+                };
+                setVal('fp_data_fato', fp.data_fato);
+                setVal('fp_hora_fato', fp.hora_fato);
+                setVal('fp_hora_registro', fp.hora_registro);
+                setVal('fp_tipo_ocorrencia_outro', fp.tipo_ocorrencia_outro);
+                setVal('fp_vitima_nome', fp.vitima_nome || (oc.usuario_nome || ''));
+                setVal('fp_vitima_cpf_rg', fp.vitima_cpf_rg);
+                setVal('fp_vitima_data_nascimento', fp.vitima_data_nascimento);
+                setVal('fp_vitima_endereco', fp.vitima_endereco || (oc.rua || ''));
+                setVal('fp_vitima_telefone', fp.vitima_telefone);
+                setVal('fp_suspeito_nome', fp.suspeito_nome);
+                setVal('fp_suspeito_apelido', fp.suspeito_apelido);
+                setVal('fp_suspeito_cpf_rg', fp.suspeito_cpf_rg);
+                setVal('fp_suspeito_data_nascimento', fp.suspeito_data_nascimento);
+                setVal('fp_suspeito_endereco', fp.suspeito_endereco);
+                setVal('fp_suspeito_caracteristicas', fp.suspeito_caracteristicas);
+                setVal('fp_objetos_envolvidos', fp.objetos_envolvidos);
+                setVal('fp_descricao_detalhada', fp.descricao_detalhada || (oc.descricao || ''));
+                setVal('fp_uso_algemas', fp.uso_algemas);
+                setVal('fp_uso_algemas_justificativa', fp.uso_algemas_justificativa);
+                setVal('fp_emprego_forca', fp.emprego_forca);
+                setVal('fp_emprego_forca_tipo', fp.emprego_forca_tipo);
+                setVal('fp_emprego_forca_justificativa', fp.emprego_forca_justificativa);
+                setVal('fp_providencias_gcm', fp.providencias_gcm);
+                setVal('fp_agentes_envolvidos', fp.agentes_envolvidos);
+                setVal('fp_viatura', fp.viatura);
+                setVal('fp_encaminhamento', fp.encaminhamento);
+                setVal('fp_agente_responsavel', fp.agente_responsavel);
+                setVal('fp_comandante_geral', fp.comandante_geral);
+                if (fp.tipo_ocorrencia) {
+                    const radio = document.querySelector(`input[name="fp_tipo_ocorrencia"][value="${fp.tipo_ocorrencia}"]`);
+                    if (radio) radio.checked = true;
+                }
+            } else if (oc) {
+                const setVal = (fieldId, val) => {
+                    const el = document.getElementById(fieldId);
+                    if (el && val !== undefined && val !== null) el.value = val;
+                };
+                setVal('fp_vitima_nome', oc.usuario_nome || '');
+                setVal('fp_vitima_endereco', oc.rua || '');
+                setVal('fp_descricao_detalhada', oc.descricao || '');
             }
         } else {
             fichaContainer.style.display = 'none';
@@ -967,8 +1094,17 @@ function openResponseModal(id, title, secNome = '') {
 }
 
 async function confirmResolution(id) {
-    const resp = document.getElementById('respText').value;
-    if (!resp) return alert("Por favor, digite uma resposta para o cidadão.");
+    const fichaContainer = document.getElementById('fichaPolicialContainer');
+    const isFichaActive = fichaContainer && fichaContainer.dataset.hasFicha === 'true';
+
+    let resp = document.getElementById('respText') ? document.getElementById('respText').value : '';
+    if (!resp) {
+        if (isFichaActive) {
+            resp = "Ficha de Ocorrência Policial (GCM) preenchida e finalizada.";
+        } else {
+            return alert("Por favor, digite uma resposta para o cidadão.");
+        }
+    }
     
     const formData = new FormData();
     formData.append('resposta', resp);
@@ -977,10 +1113,9 @@ async function confirmResolution(id) {
     if (fotoInput && fotoInput.files.length > 0) {
         formData.append('foto_resolucao', fotoInput.files[0]);
     }
-    const selStatus = document.getElementById('respStatus') ? document.getElementById('respStatus').value : 'resolvido';
+    const selStatus = isFichaActive ? 'resolvido' : (document.getElementById('respStatus') ? document.getElementById('respStatus').value : 'resolvido');
     
-    const fichaContainer = document.getElementById('fichaPolicialContainer');
-    if (fichaContainer && fichaContainer.dataset.hasFicha === 'true') {
+    if (isFichaActive) {
         formData.append('has_ficha', 'true');
         
         const textFields = ['fp_data_fato', 'fp_hora_fato', 'fp_hora_registro', 'fp_tipo_ocorrencia_outro', 'fp_vitima_nome', 'fp_vitima_cpf_rg', 'fp_vitima_data_nascimento', 'fp_vitima_endereco', 'fp_vitima_telefone', 'fp_suspeito_nome', 'fp_suspeito_apelido', 'fp_suspeito_cpf_rg', 'fp_suspeito_data_nascimento', 'fp_suspeito_endereco', 'fp_suspeito_caracteristicas', 'fp_objetos_envolvidos', 'fp_descricao_detalhada', 'fp_uso_algemas', 'fp_uso_algemas_justificativa', 'fp_emprego_forca', 'fp_emprego_forca_tipo', 'fp_emprego_forca_justificativa', 'fp_providencias_gcm', 'fp_agentes_envolvidos', 'fp_viatura', 'fp_encaminhamento', 'fp_agente_responsavel', 'fp_comandante_geral'];
@@ -1814,12 +1949,18 @@ async function loadAdmins() {
 
 async function createSubAdmin(e) {
     e.preventDefault();
+    const senha = document.getElementById('newAdminPass').value;
+    if (senha.length < 8) return alert('A senha deve ter no mínimo 8 dígitos.');
+    if (!/[A-Z]/.test(senha)) return alert('A senha deve conter pelo menos uma letra maiúscula.');
+    if (!/[0-9]/.test(senha)) return alert('A senha deve conter pelo menos um número.');
+    if (!/[!*#$@%^&+=?_\-\W]/.test(senha)) return alert('A senha deve conter pelo menos um caractere especial (!*#$).');
+
     const data = {
         nome: document.getElementById('newAdminName').value,
         cpf: document.getElementById('newAdminCPF').value,
         email: document.getElementById('newAdminEmail').value,
         telefone: document.getElementById('newAdminTel').value,
-        senha: document.getElementById('newAdminPass').value,
+        senha: senha,
         secretaria_id: parseInt(document.getElementById('newAdminSec').value)
     };
     try {
