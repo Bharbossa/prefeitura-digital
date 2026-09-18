@@ -166,6 +166,21 @@ def startup_db_init():
                 """))
                 conn.commit()
             except Exception as e: print(f"Error creating avisos table: {e}")
+
+            try:
+                conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS logs_invasao_seguranca (
+                    id SERIAL PRIMARY KEY,
+                    tipo_ataque VARCHAR(100) NOT NULL,
+                    ip_origem VARCHAR(50),
+                    detalhes TEXT,
+                    bloqueado INTEGER DEFAULT 1,
+                    alerta_sms_enviado INTEGER DEFAULT 0,
+                    data_hora TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """))
+                conn.commit()
+            except Exception as e: print(f"Error creating logs_invasao_seguranca table: {e}")
             
     except Exception as e: print(f"DB Init Error: {e}")
 

@@ -4471,10 +4471,13 @@ let securityMarkersGroup = null;
 let securityAttackPoints = [];
 
 async function loadSecurityDashboardData(isBackground = false) {
-    if (currentRole !== 'admin') return;
+    const role = (currentRole || '').toLowerCase().trim();
+    if (role && role !== 'admin') return;
     
     try {
         const token = getToken();
+        if (!token) return;
+        
         const res = await fetch(`${ADMIN_API}/metrics/security-dashboard`, {
             headers: { 'Authorization': `Bearer ${token}` }
         });
