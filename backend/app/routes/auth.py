@@ -176,6 +176,20 @@ def login(
         target_user.senha_hash = get_password_hash(nova_senha)
         target_user.bloqueado_ate = datetime.utcnow() + timedelta(minutes=15)
         target_user.tentativas_login_falhas = 0
+        
+        # Registrar no Log de Segurança para monitoramento em tempo real
+        try:
+            from ..models.schema import LogInvasaoSeguranca
+            log_sec = LogInvasaoSeguranca(
+                tipo_ataque="Bloqueio de Conta (3 Erros de Senha)",
+                ip_origem="Detectado no Login",
+                detalhes=f"Conta {target_user.email} ({getattr(target_user, 'nome', '')}) bloqueada. Nova senha gerada e enviada via SMS.",
+                bloqueado=1
+            )
+            db_sql.add(log_sec)
+        except Exception:
+            pass
+
         db_sql.commit()
 
         # Send new password via SMS in background

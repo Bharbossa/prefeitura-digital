@@ -543,6 +543,127 @@
             <div id="passwordResetsTableContainer"></div>
         </section>
 
+        <!-- SEGURANÇA & ATAQUES EM TEMPO REAL SECTION -->
+        <section id="seguranca" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <h3 style="margin: 0; color: #ef4444;"><i class="fa-solid fa-shield-halved"></i> Monitor de Segurança & Ataques</h3>
+                        <span id="securityLiveBadge" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.3); padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px;">
+                            <span style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #ef4444; animation: pulse 1.5s infinite;"></span> AO VIVO
+                        </span>
+                    </div>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">
+                        Monitoramento contínuo de tentativas de invasão, ataques de força bruta, SQLi/XSS e IPs bloqueados.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <button class="btn btn-outline" id="btnToggleRealtime" onclick="toggleSecurityRealtime()" style="font-size: 0.85rem;">
+                        <i class="fa-solid fa-pause"></i> Pausar Tempo Real
+                    </button>
+                    <button class="btn btn-primary" onclick="testarAlertaSegurancaSMS()" style="background: #ef4444; border-color: #ef4444; font-size: 0.85rem;">
+                        <i class="fa-solid fa-bell"></i> Simular Invasão (Teste SMS)
+                    </button>
+                    <button class="btn btn-outline" onclick="loadSecurityDashboardData()" style="font-size: 0.85rem;">
+                        <i class="fa-solid fa-rotate"></i> Atualizar Agora
+                    </button>
+                </div>
+            </div>
+
+            <!-- CARDS DE MÉTRICAS DE SEGURANÇA -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-bottom: 1.5rem;">
+                <div class="stat-card" style="border-left: 4px solid #ef4444;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Total de Ataques Bloqueados</h4>
+                        <i class="fa-solid fa-ban" style="color: #ef4444; font-size: 1.2rem;"></i>
+                    </div>
+                    <h2 style="font-size: 2.2rem; color: #ef4444; margin: 0.5rem 0;" id="secTotalBloqueios">0</h2>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Eventos de segurança interceptados</div>
+                </div>
+
+                <div class="stat-card" style="border-left: 4px solid #f59e0b;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">IPs Únicos de Origem</h4>
+                        <i class="fa-solid fa-network-wired" style="color: #f59e0b; font-size: 1.2rem;"></i>
+                    </div>
+                    <h2 style="font-size: 2.2rem; color: #f59e0b; margin: 0.5rem 0;" id="secTotalIPs">0</h2>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Origens rastreadas pelo Firewall</div>
+                </div>
+
+                <div class="stat-card" style="border-left: 4px solid #8b5cf6;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Contas Bloqueadas (3 Erros)</h4>
+                        <i class="fa-solid fa-user-lock" style="color: #8b5cf6; font-size: 1.2rem;"></i>
+                    </div>
+                    <h2 style="font-size: 2.2rem; color: #8b5cf6; margin: 0.5rem 0;" id="secContasBloqueadas">0</h2>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Com novas senhas enviadas por SMS</div>
+                </div>
+
+                <div class="stat-card" style="border-left: 4px solid #10b981;">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h4 style="color: var(--text-muted); font-size: 0.85rem; margin: 0;">Firewall de Aplicação</h4>
+                        <i class="fa-solid fa-shield-check" style="color: #10b981; font-size: 1.2rem;"></i>
+                    </div>
+                    <h2 style="font-size: 1.6rem; color: #10b981; margin: 0.8rem 0; font-weight: 700;" id="secStatusFirewall">ATIVO 🟢</h2>
+                    <div style="font-size: 0.75rem; color: #10b981; font-weight: 600;" id="secUltimaVerificacao">Atualizando...</div>
+                </div>
+            </div>
+
+            <!-- CONTAS BLOQUEADAS ATIVAS (SE HOUVER) -->
+            <div id="secContasBloqueadasContainer" style="display: none; margin-bottom: 1.5rem;">
+                <div class="stat-card" style="border: 2px solid #8b5cf6; background: rgba(139, 92, 246, 0.04);">
+                    <h4 style="margin: 0 0 1rem 0; color: #8b5cf6; display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-user-shield"></i> Contas em Bloqueio Temporário (3 Falhas de Senha)
+                    </h4>
+                    <div class="table-responsive">
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>Cidadão / Administrador</th>
+                                    <th>E-mail</th>
+                                    <th>Telefone (SMS)</th>
+                                    <th>Tipo</th>
+                                    <th>Bloqueado Até</th>
+                                    <th>Tempo Restante</th>
+                                </tr>
+                            </thead>
+                            <tbody id="secContasBloqueadasBody">
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- TABELA DE LOGS DE ATAQUES & IPs -->
+            <div class="stat-card" style="padding: 0;">
+                <div style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <h4 style="margin: 0; color: var(--text-primary); display: flex; align-items: center; gap: 8px;">
+                        <i class="fa-solid fa-list-check" style="color: #ef4444;"></i> Histórico de Tentativas de Invasão & IPs
+                    </h4>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <input type="text" id="searchSecurityLogs" class="btn btn-outline" placeholder="Filtrar por IP ou tipo de ataque..." onkeyup="filterTable('securityLogsTableBody', this.value)" style="min-width: 250px; font-size: 0.85rem;">
+                    </div>
+                </div>
+                <div class="table-responsive">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th>Data e Hora</th>
+                                <th>Tipo de Ataque / Evento</th>
+                                <th>IP de Origem</th>
+                                <th>Detalhes da Interceptação</th>
+                                <th>Alerta SMS</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="securityLogsTableBody">
+                            <tr><td colspan="6" style="text-align: center; padding: 2rem;">Carregando logs de segurança...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
         <!-- CONFIG SECTION -->
         <section id="config" class="section">
             <h3>Minha Conta</h3>
@@ -980,7 +1101,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
     <script src="js/main.js?v=1.0.10"></script>
-    <script src="js/admin-v2.js?v=2.1.9"></script>
+    <script src="js/admin-v2.js?v=2.2.0"></script>
     <!-- VLibras Widget -->
     <div vw class="enabled">
         <div vw-access-button class="active"></div>

@@ -137,10 +137,87 @@ def get_audit_logs(limit: int = 50, current_user = Depends(get_general_admin), d
     return logs
 
 @router.get("/security-logs")
-def get_security_invasion_logs(limit: int = 50, current_user = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+def get_security_invasion_logs(limit: int = 100, current_user = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
     from ..models.schema import LogInvasaoSeguranca
     logs = db_sql.query(LogInvasaoSeguranca).order_by(LogInvasaoSeguranca.data_hora.desc()).limit(limit).all()
     return logs
+
+@router.get("/security-dashboard")
+def get_security_dashboard(current_user = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+    from ..models.schema import LogInvasaoSeguranca, Usuario, AdminSecretaria
+    from ..core.utils import get_brasilia_time
+    from datetime import datetime
+    import time
+    
+    # 1. Logs de Invasão
+    logs = db_sql.query(LogInvasaoSeguranca).order_by(LogInvasaoSeguranca.data_hora.desc()).limit(100).all()
+    
+    total_bloqueios = db_sql.query(LogInvasaoSeguranca).count()
+    unique_ips = db_sql.query(LogInvasaoSeguranca.ip_origem).distinct().all()
+    total_ips_unicos = len([ip[0] for ip in unique_ips if ip[0]])
+    
+    # 2. Contas bloqueadas no momento
+    agora_utc = datetime.utcnow()
+    usuarios_bloqueados = db_sql.query(Usuario).filter(Usuario.bloqueado_ate > agora_utc).all()
+    admins_bloqueados = db_sql.query(AdminSecretaria).filter(AdminSecretaria.bloqueado_ate > agora_utc).all()
+    
+    contas_bloqueadas_list = []
+    for u in usuarios_bloqueados:
+        minutos = max(1, int((u.bloqueado_ate - agora_utc).total_seconds() // 60))
+        contas_bloqueadas_list.append({
+            "id": u.id,
+            "nome": u.nome,
+            "email": u.email,
+            "telefone": u.telefone,
+            "tipo": "Cidadão",
+            "bloqueado_ate": u.bloqueado_ate.strftime("%d/%m/%Y %H:%M:%S") if u.bloqueado_ate else "",
+            "minutos_restantes": minutos
+        })
+    for a in admins_bloqueados:
+        minutos = max(1, int((a.bloqueado_ate - agora_utc).total_seconds() // 60))
+        contas_bloqueadas_list.append({
+            "id": a.id,
+            "nome": a.nome,
+            "email": a.email,
+            "telefone": a.telefone,
+            "tipo": "Subadmin",
+            "bloqueado_ate": a.bloqueado_ate.strftime("%d/%m/%Y %H:%M:%S") if a.bloqueado_ate else "",
+            "minutos_restantes": minutos
+        })
+
+    # 3. IPs temporariamente bloqueados na memória do firewall
+    try:
+        from ..main import IP_BLOCKED_UNTIL
+        agora_ts = time.time()
+        ips_bloqueados_memoria = [
+            {"ip": ip, "segundos_restantes": int(exp - agora_ts)}
+            for ip, exp in IP_BLOCKED_UNTIL.items() if exp > agora_ts
+        ]
+    except Exception:
+        ips_bloqueados_memoria = []
+
+    logs_formatados = []
+    for l in logs:
+        logs_formatados.append({
+            "id": l.id,
+            "tipo_ataque": l.tipo_ataque,
+            "ip_origem": l.ip_origem or "Desconhecido",
+            "detalhes": l.detalhes or "",
+            "bloqueado": l.bloqueado,
+            "alerta_sms_enviado": l.alerta_sms_enviado,
+            "data_hora": l.data_hora.strftime("%d/%m/%Y %H:%M:%S") if l.data_hora else ""
+        })
+
+    return {
+        "status_firewall": "Ativo e Protegido",
+        "total_bloqueios": total_bloqueios,
+        "total_ips_unicos": total_ips_unicos,
+        "contas_bloqueadas_count": len(contas_bloqueadas_list),
+        "contas_bloqueadas": contas_bloqueadas_list,
+        "ips_bloqueados_ativos": ips_bloqueados_memoria,
+        "logs": logs_formatados,
+        "atualizado_em": get_brasilia_time().strftime("%d/%m/%Y %H:%M:%S")
+    }
 
 @router.post("/test-security-alert")
 def test_security_alert(background_tasks: BackgroundTasks, current_user = Depends(get_general_admin)):
@@ -149,7 +226,7 @@ def test_security_alert(background_tasks: BackgroundTasks, current_user = Depend
         notify_admin_security_alert_background,
         "TESTE DE INVASÃO (Simulado)",
         "127.0.0.1 (Teste)",
-        "Simulação solicitada pelo Administrador Geral no painel."
+        "Simulação solicitada pelo Administrador Geral no painel de segurança."
     )
     return {"status": "ok", "message": "Disparo de alerta de segurança enviado com sucesso exclusivamente para os Administradores Gerais!"}
 

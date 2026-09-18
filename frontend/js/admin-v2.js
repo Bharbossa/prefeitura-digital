@@ -130,6 +130,9 @@ function setupSidebar() {
             <div class="nav-item" onclick="showSection('pwa-stats', this)">
                 <i class="fa-solid fa-mobile-screen-button"></i><span>Instalações do App</span>
             </div>
+            <div class="nav-item" onclick="showSection('seguranca', this)">
+                <i class="fa-solid fa-shield-halved" style="color: #ef4444;"></i><span>Monitor de Segurança</span>
+            </div>
             <div class="nav-item" onclick="showSection('avisos', this)">
                 <i class="fa-solid fa-bullhorn"></i><span>Mural de Avisos</span>
             </div>
@@ -183,7 +186,7 @@ function setupSidebar() {
 
 function showSection(sectionId, element) {
     // Role check for specific sections
-    let restricted = ['usuarios', 'auditoria', 'usuarios-todos', 'contabilidade', 'mapas', 'avisos'];
+    let restricted = ['usuarios', 'auditoria', 'usuarios-todos', 'contabilidade', 'mapas', 'avisos', 'seguranca'];
     
     const user = getUserInfo();
     const isInfra = user && user.secretaria_nome && user.secretaria_nome.toLowerCase().includes('infraestrutura');
@@ -207,6 +210,11 @@ function showSection(sectionId, element) {
         }
     }
 
+    // Stop real-time security loop if leaving security section
+    if (sectionId !== 'seguranca') {
+        stopSecurityRealtime();
+    }
+
     document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
 
     document.getElementById(sectionId).classList.add('active');
@@ -228,6 +236,7 @@ function showSection(sectionId, element) {
         'mapas': 'Inteligência Geográfica',
         'config': 'Minha Conta',
         'pwa-stats': 'Mural de Instalações do App',
+        'seguranca': 'Monitor de Segurança & Ataques em Tempo Real',
         'avisos': 'Mural de Avisos',
         'password-resets': 'Senhas Solicitadas',
         'gestao-panico': 'Gestão do Botão de Pânico'
@@ -246,6 +255,7 @@ function showSection(sectionId, element) {
     if (sectionId === 'usuarios-todos') loadAllCombinedUsers();
     if (sectionId === 'contabilidade') loadPerformance();
     if (sectionId === 'pwa-stats') loadPWAStatsAdmin();
+    if (sectionId === 'seguranca') startSecurityRealtime();
     if (sectionId === 'mapas') {
         loadHeatmap();
         loadBairrosChart();
@@ -4380,4 +4390,226 @@ async function testarAlertaSegurancaSMS() {
         });
     }
 }
+
+// ==========================================
+// MONITOR DE SEGURANÇA & ATAQUES EM TEMPO REAL
+// ==========================================
+
+let securityRealtimeInterval = null;
+let securityRealtimePaused = false;
+let cachedSecurityLogs = [];
+
+function startSecurityRealtime() {
+    if (securityRealtimeInterval) clearInterval(securityRealtimeInterval);
+    securityRealtimePaused = false;
+    updateSecurityRealtimeButtonUI();
+    
+    // Initial fetch
+    loadSecurityDashboardData();
+    
+    // Poll every 4 seconds
+    securityRealtimeInterval = setInterval(() => {
+        if (!securityRealtimePaused) {
+            loadSecurityDashboardData(true);
+        }
+    }, 4000);
+}
+
+function stopSecurityRealtime() {
+    if (securityRealtimeInterval) {
+        clearInterval(securityRealtimeInterval);
+        securityRealtimeInterval = null;
+    }
+}
+
+function toggleSecurityRealtime() {
+    securityRealtimePaused = !securityRealtimePaused;
+    updateSecurityRealtimeButtonUI();
+    
+    if (!securityRealtimePaused) {
+        loadSecurityDashboardData();
+    }
+}
+
+function updateSecurityRealtimeButtonUI() {
+    const btn = document.getElementById('btnToggleRealtime');
+    const badge = document.getElementById('securityLiveBadge');
+    
+    if (!btn) return;
+    
+    if (securityRealtimePaused) {
+        btn.innerHTML = '<i class="fa-solid fa-play"></i> Retomar Tempo Real';
+        btn.classList.add('btn-primary');
+        btn.classList.remove('btn-outline');
+        if (badge) {
+            badge.style.background = 'rgba(100, 116, 139, 0.15)';
+            badge.style.color = '#64748b';
+            badge.style.borderColor = 'rgba(100, 116, 139, 0.3)';
+            badge.innerHTML = '<span style="width: 8px; height: 8px; background: #64748b; border-radius: 50%; display: inline-block;"></span> PAUSADO';
+        }
+    } else {
+        btn.innerHTML = '<i class="fa-solid fa-pause"></i> Pausar Tempo Real';
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-outline');
+        if (badge) {
+            badge.style.background = 'rgba(239, 68, 68, 0.15)';
+            badge.style.color = '#ef4444';
+            badge.style.borderColor = 'rgba(239, 68, 68, 0.3)';
+            badge.innerHTML = '<span style="width: 8px; height: 8px; background: #ef4444; border-radius: 50%; display: inline-block; box-shadow: 0 0 8px #ef4444; animation: pulse 1.5s infinite;"></span> AO VIVO';
+        }
+    }
+}
+
+async function loadSecurityDashboardData(isBackground = false) {
+    if (currentRole !== 'admin') return;
+    
+    try {
+        const token = getToken();
+        const res = await fetch(`${ADMIN_API}/metrics/security-dashboard`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (!res.ok) {
+            if (!isBackground) {
+                console.error("Falha ao carregar métricas de segurança:", res.status);
+            }
+            return;
+        }
+        
+        const data = await res.json();
+        
+        // Atualiza os Cards Principais
+        const elTotalBloqueios = document.getElementById('secTotalBloqueios');
+        const elTotalIPs = document.getElementById('secTotalIPs');
+        const elContasBloqueadas = document.getElementById('secContasBloqueadas');
+        const elStatusFirewall = document.getElementById('secStatusFirewall');
+        const elUltimaVerificacao = document.getElementById('secUltimaVerificacao');
+        
+        if (elTotalBloqueios) elTotalBloqueios.innerText = data.total_bloqueios || 0;
+        if (elTotalIPs) elTotalIPs.innerText = data.total_ips_unicos || 0;
+        if (elContasBloqueadas) elContasBloqueadas.innerText = data.contas_bloqueadas_count || 0;
+        if (elStatusFirewall) elStatusFirewall.innerText = data.status_firewall || 'ATIVO 🟢';
+        if (elUltimaVerificacao) elUltimaVerificacao.innerText = `Atualizado: ${data.atualizado_em || new Date().toLocaleTimeString()}`;
+        
+        // Atualiza Tabela de Contas Bloqueadas
+        const secContasContainer = document.getElementById('secContasBloqueadasContainer');
+        const secContasBody = document.getElementById('secContasBloqueadasBody');
+        
+        if (secContasContainer && secContasBody) {
+            if (data.contas_bloqueadas && data.contas_bloqueadas.length > 0) {
+                secContasContainer.style.display = 'block';
+                secContasBody.innerHTML = data.contas_bloqueadas.map(c => `
+                    <tr>
+                        <td><strong>${escapeHtml(c.nome || 'Não informado')}</strong></td>
+                        <td>${escapeHtml(c.email || '-')}</td>
+                        <td>${escapeHtml(c.telefone || '-')}</td>
+                        <td><span class="badge" style="background:#8b5cf6; color:white;">${c.tipo}</span></td>
+                        <td>${c.bloqueado_ate}</td>
+                        <td><span style="color:#ef4444; font-weight:700;">${c.minutos_restantes} min</span></td>
+                    </tr>
+                `).join('');
+            } else {
+                secContasContainer.style.display = 'none';
+                secContasBody.innerHTML = '';
+            }
+        }
+        
+        // Cacheia e renderiza a tabela de logs
+        cachedSecurityLogs = data.logs || [];
+        renderSecurityLogsTable(cachedSecurityLogs);
+        
+    } catch (err) {
+        console.error("Erro ao carregar dados do painel de segurança:", err);
+    }
+}
+
+function renderSecurityLogsTable(logs) {
+    const tbody = document.getElementById('securityLogsTableBody');
+    if (!tbody) return;
+    
+    if (!logs || logs.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="6" style="text-align:center; padding: 2.5rem; color: var(--text-muted);">
+                    <i class="fa-solid fa-shield-check fa-2x" style="color: #10b981; margin-bottom: 0.5rem; display:block;"></i>
+                    Nenhuma tentativa de invasão registrada recentemente. O sistema está protegido.
+                </td>
+            </tr>
+        `;
+        return;
+    }
+    
+    tbody.innerHTML = logs.map(log => {
+        let badgeColor = '#ef4444';
+        let badgeBg = 'rgba(239, 68, 68, 0.1)';
+        let attackIcon = 'fa-ban';
+        
+        const tipoLower = (log.tipo_ataque || '').toLowerCase();
+        if (tipoLower.includes('sql') || tipoLower.includes('xss')) {
+            badgeColor = '#dc2626';
+            attackIcon = 'fa-bug';
+        } else if (tipoLower.includes('senha') || tipoLower.includes('força bruta') || tipoLower.includes('login')) {
+            badgeColor = '#ea580c';
+            attackIcon = 'fa-key';
+        } else if (tipoLower.includes('rate') || tipoLower.includes('dos') || tipoLower.includes('ddos')) {
+            badgeColor = '#b91c1c';
+            attackIcon = 'fa-bolt';
+        } else if (tipoLower.includes('teste')) {
+            badgeColor = '#3b82f6';
+            badgeBg = 'rgba(59, 130, 246, 0.1)';
+            attackIcon = 'fa-vial';
+        }
+        
+        const smsBadge = log.alerta_sms_enviado 
+            ? `<span class="badge" style="background:#10b981; color:white;"><i class="fa-solid fa-check"></i> Enviado</span>`
+            : `<span class="badge" style="background:var(--border); color:var(--text-muted);">Não disparado</span>`;
+            
+        return `
+            <tr>
+                <td style="white-space:nowrap; font-size: 0.85rem;">
+                    <i class="fa-regular fa-clock" style="color:var(--text-muted); margin-right:4px;"></i>${log.data_hora}
+                </td>
+                <td>
+                    <span style="display:inline-flex; align-items:center; gap:6px; font-weight:600; color:${badgeColor}; background:${badgeBg}; padding:4px 8px; border-radius:6px; font-size:0.85rem;">
+                        <i class="fa-solid ${attackIcon}"></i> ${escapeHtml(log.tipo_ataque)}
+                    </span>
+                </td>
+                <td style="white-space:nowrap;">
+                    <code style="background:rgba(0,0,0,0.06); padding:3px 6px; border-radius:4px; font-weight:700; color:var(--text-primary); font-size:0.9rem;">
+                        ${escapeHtml(log.ip_origem)}
+                    </code>
+                    <button onclick="copySecurityIP('${escapeHtml(log.ip_origem)}')" class="btn btn-sm btn-outline" title="Copiar IP" style="padding: 2px 6px; font-size: 0.75rem; margin-left: 4px;">
+                        <i class="fa-regular fa-copy"></i>
+                    </button>
+                </td>
+                <td style="max-width:350px; font-size:0.85rem; color:var(--text-secondary); word-break:break-word;">
+                    ${escapeHtml(log.detalhes || '-')}
+                </td>
+                <td>${smsBadge}</td>
+                <td>
+                    <span class="badge" style="background:#ef4444; color:white; font-size:0.75rem;">
+                        <i class="fa-solid fa-hand"></i> Interceptado
+                    </span>
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+function copySecurityIP(ip) {
+    if (!ip || ip === 'Desconhecido') return;
+    navigator.clipboard.writeText(ip).then(() => {
+        Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: `IP ${ip} copiado!`,
+            showConfirmButton: false,
+            timer: 2000
+        });
+    }).catch(() => {
+        prompt('Copie o endereço IP:', ip);
+    });
+}
+
 
