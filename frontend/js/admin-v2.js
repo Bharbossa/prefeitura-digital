@@ -255,7 +255,12 @@ function showSection(sectionId, element) {
     if (sectionId === 'usuarios-todos') loadAllCombinedUsers();
     if (sectionId === 'contabilidade') loadPerformance();
     if (sectionId === 'pwa-stats') loadPWAStatsAdmin();
-    if (sectionId === 'seguranca') startSecurityRealtime();
+    if (sectionId === 'seguranca') {
+        startSecurityRealtime();
+        setTimeout(() => {
+            if (securityAttackMap) securityAttackMap.invalidateSize();
+        }, 150);
+    }
     if (sectionId === 'mapas') {
         loadHeatmap();
         loadBairrosChart();
@@ -4460,6 +4465,11 @@ function updateSecurityRealtimeButtonUI() {
     }
 }
 
+let securityAttackMap = null;
+let securityHeatLayer = null;
+let securityMarkersGroup = null;
+let securityAttackPoints = [];
+
 async function loadSecurityDashboardData(isBackground = false) {
     if (currentRole !== 'admin') return;
     
@@ -4514,6 +4524,10 @@ async function loadSecurityDashboardData(isBackground = false) {
             }
         }
         
+        // Atualiza o Mapa de Calor de Ataques
+        securityAttackPoints = data.heatmap_points || [];
+        initOrUpdateSecurityAttackMap(securityAttackPoints);
+        
         // Cacheia e renderiza a tabela de logs
         cachedSecurityLogs = data.logs || [];
         renderSecurityLogsTable(cachedSecurityLogs);
@@ -4523,6 +4537,131 @@ async function loadSecurityDashboardData(isBackground = false) {
     }
 }
 
+function initOrUpdateSecurityAttackMap(points) {
+    const mapDiv = document.getElementById('securityAttackHeatmap');
+    if (!mapDiv) return;
+    
+    if (!securityAttackMap) {
+        securityAttackMap = L.map('securityAttackHeatmap').setView([-8.9167, -35.7167], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap | Firewall GeoIP'
+        }).addTo(securityAttackMap);
+        securityMarkersGroup = L.layerGroup().addTo(securityAttackMap);
+    }
+    
+    // Atualiza contador no topo do card
+    const pointsBadge = document.getElementById('secMapPointsCount');
+    if (pointsBadge) {
+        pointsBadge.innerText = `${points.length} Focos de Ataque Mapeados`;
+    }
+    
+    // Limpa camada de calor anterior e marcadores
+    if (securityHeatLayer) {
+        securityAttackMap.removeLayer(securityHeatLayer);
+        securityHeatLayer = null;
+    }
+    if (securityMarkersGroup) {
+        securityMarkersGroup.clearLayers();
+    }
+    
+    if (points && points.length > 0) {
+        // Camada de Calor (Heatmap)
+        const heatData = points.map(p => [p.lat, p.lng, (p.intensity || 1) * 2.5]);
+        securityHeatLayer = L.heatLayer(heatData, {
+            radius: 30,
+            blur: 20,
+            maxZoom: 16,
+            gradient: { 0.2: '#3b82f6', 0.5: '#f59e0b', 0.8: '#ef4444', 1.0: '#991b1b' }
+        }).addTo(securityAttackMap);
+        
+        // Marcadores pulsantes para cada foco de ataque
+        const markerBounds = [];
+        points.forEach((p, index) => {
+            if (p.lat && p.lng) {
+                markerBounds.push([p.lat, p.lng]);
+                
+                const marker = L.circleMarker([p.lat, p.lng], {
+                    radius: 7,
+                    fillColor: '#ef4444',
+                    color: '#ffffff',
+                    weight: 2,
+                    opacity: 1,
+                    fillOpacity: 0.85
+                });
+                
+                marker.bindPopup(`
+                    <div style="font-family: Inter, sans-serif; font-size: 0.85rem; min-width: 200px; padding: 4px;">
+                        <strong style="color: #ef4444; font-size: 0.95rem; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                            <i class="fa-solid fa-shield-virus"></i> ${escapeHtml(p.tipo_ataque || 'Ataque Detectado')}
+                        </strong>
+                        <div style="margin-bottom: 3px;"><b>IP:</b> <code style="background:rgba(0,0,0,0.06); padding:2px 4px; border-radius:4px; font-weight:700;">${escapeHtml(p.ip)}</code></div>
+                        <div style="margin-bottom: 3px;"><b>Origem:</b> ${escapeHtml(p.cidade || 'Não informada')}, ${escapeHtml(p.pais || 'Brasil')}</div>
+                        <div style="margin-bottom: 4px; font-size: 0.8rem; color: #475569;">
+                            <b>Latitude:</b> ${p.lat.toFixed(4)} &nbsp;|&nbsp; <b>Longitude:</b> ${p.lng.toFixed(4)}
+                        </div>
+                        <div style="color: #64748b; font-size: 0.75rem; border-top: 1px solid #e2e8f0; padding-top: 4px; margin-top: 4px;">
+                            <i class="fa-regular fa-clock"></i> ${p.data_hora || ''}
+                        </div>
+                    </div>
+                `);
+                
+                securityMarkersGroup.addLayer(marker);
+            }
+        });
+        
+        // Ajustar zoom inicial suave se for o primeiro carregamento
+        if (markerBounds.length > 0 && !securityAttackMap._hasInitialBounds) {
+            try {
+                const group = new L.featureGroup(points.map(p => L.marker([p.lat, p.lng])));
+                securityAttackMap.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 14 });
+                securityAttackMap._hasInitialBounds = true;
+            } catch(e) {}
+        }
+    }
+    
+    setTimeout(() => {
+        if (securityAttackMap) securityAttackMap.invalidateSize();
+    }, 200);
+}
+
+function centerSecurityAttackMap() {
+    if (!securityAttackMap) return;
+    if (securityAttackPoints && securityAttackPoints.length > 0) {
+        try {
+            const group = new L.featureGroup(securityAttackPoints.map(p => L.marker([p.lat, p.lng])));
+            securityAttackMap.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 14 });
+            return;
+        } catch(e) {}
+    }
+    securityAttackMap.setView([-8.9167, -35.7167], 7);
+}
+
+function focusSecurityAttackPoint(lat, lng, ip, attackType) {
+    if (!securityAttackMap) return;
+    
+    // Rola a tela até o mapa
+    const mapDiv = document.getElementById('securityAttackHeatmap');
+    if (mapDiv) {
+        mapDiv.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    
+    securityAttackMap.flyTo([lat, lng], 14, { duration: 1.2 });
+    
+    setTimeout(() => {
+        L.popup()
+            .setLatLng([lat, lng])
+            .setContent(`
+                <div style="font-family: Inter, sans-serif; font-size: 0.85rem; min-width: 190px;">
+                    <strong style="color: #ef4444; display:block; margin-bottom: 4px;"><i class="fa-solid fa-crosshairs"></i> ${escapeHtml(attackType || 'Origem do Ataque')}</strong>
+                    <div><b>IP:</b> <code>${escapeHtml(ip)}</code></div>
+                    <div><b>Latitude:</b> ${lat.toFixed(4)}</div>
+                    <div><b>Longitude:</b> ${lng.toFixed(4)}</div>
+                </div>
+            `)
+            .openOn(securityAttackMap);
+    }, 1300);
+}
+
 function renderSecurityLogsTable(logs) {
     const tbody = document.getElementById('securityLogsTableBody');
     if (!tbody) return;
@@ -4530,7 +4669,7 @@ function renderSecurityLogsTable(logs) {
     if (!logs || logs.length === 0) {
         tbody.innerHTML = `
             <tr>
-                <td colspan="6" style="text-align:center; padding: 2.5rem; color: var(--text-muted);">
+                <td colspan="7" style="text-align:center; padding: 2.5rem; color: var(--text-muted);">
                     <i class="fa-solid fa-shield-check fa-2x" style="color: #10b981; margin-bottom: 0.5rem; display:block;"></i>
                     Nenhuma tentativa de invasão registrada recentemente. O sistema está protegido.
                 </td>
@@ -4564,6 +4703,11 @@ function renderSecurityLogsTable(logs) {
             ? `<span class="badge" style="background:#10b981; color:white;"><i class="fa-solid fa-check"></i> Enviado</span>`
             : `<span class="badge" style="background:var(--border); color:var(--text-muted);">Não disparado</span>`;
             
+        const lat = log.lat || -8.9167;
+        const lng = log.lng || -35.7167;
+        const coordsText = `${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+        const locationText = log.localizacao || 'Brasil';
+        
         return `
             <tr>
                 <td style="white-space:nowrap; font-size: 0.85rem;">
@@ -4582,7 +4726,17 @@ function renderSecurityLogsTable(logs) {
                         <i class="fa-regular fa-copy"></i>
                     </button>
                 </td>
-                <td style="max-width:350px; font-size:0.85rem; color:var(--text-secondary); word-break:break-word;">
+                <td style="white-space:nowrap; font-size: 0.85rem;">
+                    <div style="font-weight:600; color:var(--text-primary);">${escapeHtml(locationText)}</div>
+                    <div style="color:var(--text-muted); font-size:0.75rem; display:flex; align-items:center; gap:4px; margin-top:2px;">
+                        <i class="fa-solid fa-location-dot" style="color:#ef4444;"></i>
+                        <span>${coordsText}</span>
+                        <button onclick="focusSecurityAttackPoint(${lat}, ${lng}, '${escapeHtml(log.ip_origem)}', '${escapeHtml(log.tipo_ataque)}')" class="btn btn-sm btn-outline" title="Ver no Mapa de Calor" style="padding: 1px 5px; font-size: 0.7rem; margin-left: 4px; border-radius: 4px;">
+                            <i class="fa-solid fa-crosshairs"></i>
+                        </button>
+                    </div>
+                </td>
+                <td style="max-width:300px; font-size:0.85rem; color:var(--text-secondary); word-break:break-word;">
                     ${escapeHtml(log.detalhes || '-')}
                 </td>
                 <td>${smsBadge}</td>

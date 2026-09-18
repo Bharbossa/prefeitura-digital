@@ -142,6 +142,73 @@ def get_security_invasion_logs(limit: int = 100, current_user = Depends(get_gene
     logs = db_sql.query(LogInvasaoSeguranca).order_by(LogInvasaoSeguranca.data_hora.desc()).limit(limit).all()
     return logs
 
+IP_GEO_CACHE = {}
+
+def get_ip_geolocation(ip_str: str) -> dict:
+    import urllib.request
+    import json
+    import hashlib
+    
+    clean_ip = (ip_str or "").strip()
+    if not clean_ip or clean_ip in ("Desconhecido", "127.0.0.1", "localhost", "::1", "test-ip") or clean_ip.startswith("127."):
+        h = int(hashlib.md5((clean_ip or "default").encode()).hexdigest()[:6], 16)
+        jitter_lat = ((h % 100) - 50) / 1200.0
+        jitter_lng = (((h // 100) % 100) - 50) / 1200.0
+        return {
+            "lat": round(-8.9167 + jitter_lat, 6),
+            "lng": round(-35.7167 + jitter_lng, 6),
+            "cidade": "Colônia Leopoldina (Local/Simulado)",
+            "pais": "Brasil"
+        }
+    
+    # Private / internal IP ranges
+    if clean_ip.startswith(("10.", "192.168.", "172.16.", "172.17.", "172.18.", "172.19.", "172.20.", "172.21.", "172.22.", "172.23.", "172.24.", "172.25.", "172.26.", "172.27.", "172.28.", "172.29.", "172.30.", "172.31.")):
+        h = int(hashlib.md5(clean_ip.encode()).hexdigest()[:6], 16)
+        jitter_lat = ((h % 100) - 50) / 1200.0
+        jitter_lng = (((h // 100) % 100) - 50) / 1200.0
+        return {
+            "lat": round(-8.9167 + jitter_lat, 6),
+            "lng": round(-35.7167 + jitter_lng, 6),
+            "cidade": "Rede Interna / Privada",
+            "pais": "Brasil"
+        }
+
+    if clean_ip in IP_GEO_CACHE:
+        return IP_GEO_CACHE[clean_ip]
+
+    try:
+        req = urllib.request.Request(
+            f"http://ip-api.com/json/{clean_ip}?fields=status,country,city,lat,lon",
+            headers={"User-Agent": "LeopoldinaDigital-WAF/1.0"}
+        )
+        with urllib.request.urlopen(req, timeout=1.5) as response:
+            data = json.loads(response.read().decode())
+            if data.get("status") == "success":
+                geo = {
+                    "lat": float(data.get("lat", -8.9167)),
+                    "lng": float(data.get("lon", -35.7167)),
+                    "cidade": data.get("city", "Não informada"),
+                    "pais": data.get("country", "Brasil")
+                }
+                IP_GEO_CACHE[clean_ip] = geo
+                return geo
+    except Exception:
+        pass
+
+    # Fallback deterministic coords
+    h = int(hashlib.md5(clean_ip.encode()).hexdigest()[:6], 16)
+    jitter_lat = ((h % 100) - 50) / 300.0
+    jitter_lng = (((h // 100) % 100) - 50) / 300.0
+    geo = {
+        "lat": round(-8.9167 + jitter_lat, 6),
+        "lng": round(-35.7167 + jitter_lng, 6),
+        "cidade": "Origem Externa",
+        "pais": "Internet"
+    }
+    IP_GEO_CACHE[clean_ip] = geo
+    return geo
+
+
 @router.get("/security-dashboard")
 def get_security_dashboard(current_user = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
     from ..models.schema import LogInvasaoSeguranca, Usuario, AdminSecretaria
@@ -150,7 +217,7 @@ def get_security_dashboard(current_user = Depends(get_general_admin), db_sql: Se
     import time
     
     # 1. Logs de Invasão
-    logs = db_sql.query(LogInvasaoSeguranca).order_by(LogInvasaoSeguranca.data_hora.desc()).limit(100).all()
+    logs = db_sql.query(LogInvasaoSeguranca).order_by(LogInvasaoSeguranca.data_hora.desc()).limit(150).all()
     
     total_bloqueios = db_sql.query(LogInvasaoSeguranca).count()
     unique_ips = db_sql.query(LogInvasaoSeguranca.ip_origem).distinct().all()
@@ -197,15 +264,41 @@ def get_security_dashboard(current_user = Depends(get_general_admin), db_sql: Se
         ips_bloqueados_memoria = []
 
     logs_formatados = []
+    heatmap_points = []
+    
     for l in logs:
+        ip_origem = (l.ip_origem or "Desconhecido").strip()
+        geo = get_ip_geolocation(ip_origem)
+        lat = geo["lat"]
+        lng = geo["lng"]
+        cidade = geo["cidade"]
+        pais = geo["pais"]
+        
+        # Ponto de calor com peso
+        heatmap_points.append({
+            "lat": lat,
+            "lng": lng,
+            "intensity": 1.0,
+            "ip": ip_origem,
+            "tipo_ataque": l.tipo_ataque,
+            "cidade": cidade,
+            "pais": pais,
+            "data_hora": l.data_hora.strftime("%d/%m/%Y %H:%M:%S") if l.data_hora else ""
+        })
+        
         logs_formatados.append({
             "id": l.id,
             "tipo_ataque": l.tipo_ataque,
-            "ip_origem": l.ip_origem or "Desconhecido",
+            "ip_origem": ip_origem,
             "detalhes": l.detalhes or "",
             "bloqueado": l.bloqueado,
             "alerta_sms_enviado": l.alerta_sms_enviado,
-            "data_hora": l.data_hora.strftime("%d/%m/%Y %H:%M:%S") if l.data_hora else ""
+            "data_hora": l.data_hora.strftime("%d/%m/%Y %H:%M:%S") if l.data_hora else "",
+            "lat": lat,
+            "lng": lng,
+            "cidade": cidade,
+            "pais": pais,
+            "localizacao": f"{cidade} ({pais})" if cidade else pais
         })
 
     return {
@@ -216,6 +309,7 @@ def get_security_dashboard(current_user = Depends(get_general_admin), db_sql: Se
         "contas_bloqueadas": contas_bloqueadas_list,
         "ips_bloqueados_ativos": ips_bloqueados_memoria,
         "logs": logs_formatados,
+        "heatmap_points": heatmap_points,
         "atualizado_em": get_brasilia_time().strftime("%d/%m/%Y %H:%M:%S")
     }
 

@@ -634,6 +634,29 @@
                 </div>
             </div>
 
+            <!-- MAPA DE CALOR GEOGRÁFICO DE ATAQUES & IPs -->
+            <div class="stat-card" style="margin-bottom: 1.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <h4 style="margin: 0; color: #ef4444; display: flex; align-items: center; gap: 8px;">
+                            <i class="fa-solid fa-earth-americas"></i> Mapa de Calor Geográfico de Ataques (Latitude / Longitude)
+                        </h4>
+                        <p style="color: var(--text-muted); font-size: 0.85rem; margin: 0.25rem 0 0 0;">
+                            Origem geoespacial das tentativas de invasão, ataques de força bruta e tráfego malicioso interceptado em tempo real.
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
+                        <span id="secMapPointsCount" style="background: rgba(239, 68, 68, 0.15); color: #ef4444; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;">
+                            0 Focos de Ataque
+                        </span>
+                        <button class="btn btn-sm btn-outline" onclick="centerSecurityAttackMap()" title="Centralizar Mapa" style="padding: 4px 8px; font-size: 0.75rem;">
+                            <i class="fa-solid fa-crosshairs"></i> Centralizar
+                        </button>
+                    </div>
+                </div>
+                <div id="securityAttackHeatmap" style="height: 440px; width: 100%; border-radius: 12px; border: 1px solid var(--border); z-index: 1;"></div>
+            </div>
+
             <!-- TABELA DE LOGS DE ATAQUES & IPs -->
             <div class="stat-card" style="padding: 0;">
                 <div style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -651,13 +674,14 @@
                                 <th>Data e Hora</th>
                                 <th>Tipo de Ataque / Evento</th>
                                 <th>IP de Origem</th>
+                                <th>Localização / Coords</th>
                                 <th>Detalhes da Interceptação</th>
                                 <th>Alerta SMS</th>
                                 <th>Ação</th>
                             </tr>
                         </thead>
                         <tbody id="securityLogsTableBody">
-                            <tr><td colspan="6" style="text-align: center; padding: 2rem;">Carregando logs de segurança...</td></tr>
+                            <tr><td colspan="7" style="text-align: center; padding: 2rem;">Carregando logs de segurança...</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -1101,7 +1125,7 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
     <script src="js/main.js?v=1.0.10"></script>
-    <script src="js/admin-v2.js?v=2.2.0"></script>
+    <script src="js/admin-v2.js?v=2.2.1"></script>
     <!-- VLibras Widget -->
     <div vw class="enabled">
         <div vw-access-button class="active"></div>
