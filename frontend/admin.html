@@ -112,6 +112,9 @@
             </div>
             <div style="display: flex; align-items: center; gap: 1rem;">
                 <div style="display: flex; gap: 0.5rem; align-items: center; border-right: 1px solid var(--border); padding-right: 15px;">
+                    <button onclick="testarAlertaSegurancaSMS()" title="Testar Disparo de SMS de Alerta" class="btn btn-sm btn-outline" style="border-color: #ef4444; color: #ef4444; font-size: 0.85rem; padding: 4px 10px; display: inline-flex; align-items: center; gap: 4px;">
+                        <i class="fa-solid fa-shield-halved"></i> Testar Alerta SMS
+                    </button>
                     <button onclick="changeFontSize(1)" title="Aumentar Fonte" style="background: transparent; border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; padding: 2px 8px; font-weight: bold; cursor: pointer; font-size: 0.9rem; transition: background 0.3s;">A+</button>
                     <button onclick="changeFontSize(-1)" title="Diminuir Fonte" style="background: transparent; border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; padding: 2px 8px; font-weight: bold; cursor: pointer; font-size: 0.8rem; transition: background 0.3s;">A-</button>
                 </div>
@@ -376,6 +379,49 @@
             <p style="color: var(--text-muted); margin-bottom: 1.5rem;">Acompanhamento em tempo real de todos os
                 serviços realizados por cada secretaria.</p>
             <div id="performanceContainer"></div>
+        </section>
+
+        <!-- PWA STATS SECTION -->
+        <section id="pwa-stats" class="section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h3><i class="fa-solid fa-mobile-screen-button" style="color: #2563eb;"></i> Mural de Instalações do Aplicativo</h3>
+                    <p style="color: var(--text-muted); font-size: 0.85rem; margin-top: 0.25rem;">Relatório de cliques no botão "Instalar App" e acessos mobile no sistema.</p>
+                </div>
+                <div>
+                    <button class="btn btn-primary" onclick="loadPWAStatsAdmin()">
+                        <i class="fa-solid fa-rotate-right"></i> Atualizar Dados
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cards resumidos PWA -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.2rem; margin-bottom: 1.5rem;">
+                <div class="stat-card" style="border-left: 4px solid #2563eb;">
+                    <h4 style="color: var(--text-muted); font-size: 0.85rem;">Total de Instalações / Cliques</h4>
+                    <h2 style="font-size: 2rem; color: #2563eb; margin: 0.5rem 0;" id="pwaTotalCount">0</h2>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Acumulado geral no sistema</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #0284c7;">
+                    <h4 style="color: var(--text-muted); font-size: 0.85rem;">Dispositivos iOS (iPhone/iPad)</h4>
+                    <h2 style="font-size: 2rem; color: #0284c7; margin: 0.5rem 0;" id="pwaIosCount">0</h2>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Com orientações de tela</div>
+                </div>
+                <div class="stat-card" style="border-left: 4px solid #16a34a;">
+                    <h4 style="color: var(--text-muted); font-size: 0.85rem;">Dispositivos Android / PC</h4>
+                    <h2 style="font-size: 2rem; color: #16a34a; margin: 0.5rem 0;" id="pwaAndroidCount">0</h2>
+                    <div style="font-size: 0.75rem; color: var(--text-muted);">Instalação direta PWA</div>
+                </div>
+            </div>
+
+            <div class="stat-card" style="padding: 0;">
+                <div style="padding: 1.2rem 1.5rem; border-bottom: 1px solid var(--border);">
+                    <h4 style="margin: 0; color: var(--text-primary);"><i class="fa-solid fa-list-ol"></i> Registros Recentes de Instalações</h4>
+                </div>
+                <div class="table-responsive" id="pwaTableContainer">
+                    <!-- Tabela via JS -->
+                </div>
+            </div>
         </section>
 
         <!-- AVISOS SECTION -->

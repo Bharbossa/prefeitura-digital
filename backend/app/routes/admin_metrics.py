@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from ..database import get_db
@@ -32,14 +32,15 @@ def get_admin_summary(current_user = Depends(get_current_admin), db_sql: Session
     confirmados_agendamentos = q_agendamentos.filter(Agendamento.status == "Confirmado").count()
     
     # User metrics (Admin only or limited for subadmin?)
-    # Requirement: General Admin has full dashboard, Subadmin has intermediate.
-    # We'll share some basic user counts if beneficial.
     users_stats = {}
+    total_pwa_installs = 0
     if role == "admin":
         users_stats = {
             "total_usuarios": db_sql.query(Usuario).count(),
             "usuarios_pendentes": db_sql.query(Usuario).filter(Usuario.status == StatusUsuario.pendente).count()
         }
+        from ..models.schema import LogInstalacaoPWA
+        total_pwa_installs = db_sql.query(LogInstalacaoPWA).count()
         
     # Ratings calculations
     # Avg from ocorrencias
@@ -69,7 +70,64 @@ def get_admin_summary(current_user = Depends(get_current_admin), db_sql: Session
         "usuarios": users_stats,
         "satisfacao": {
             "media_geral": round(total_avg, 1)
-        }
+        },
+        "pwa_instalações": total_pwa_installs
+    }
+
+@router.post("/pwa-install")
+def registrar_instalacao_pwa(
+    dispositivo: str = "desconhecido",
+    usuario_nome: str = None,
+    usuario_cpf: str = None,
+    usuario_id: int = None,
+    db_sql: Session = Depends(get_db)
+):
+    from ..models.schema import LogInstalacaoPWA, Base
+    try:
+        Base.metadata.create_all(bind=db_sql.get_bind())
+    except: pass
+
+    novo_log = LogInstalacaoPWA(
+        dispositivo=dispositivo,
+        usuario_id=usuario_id,
+        usuario_nome=usuario_nome,
+        usuario_cpf=usuario_cpf
+    )
+    db_sql.add(novo_log)
+    db_sql.commit()
+    return {"status": "ok", "message": "Instalação PWA registrada com sucesso."}
+
+@router.get("/pwa-stats")
+def obter_estatisticas_pwa(db_sql: Session = Depends(get_db)):
+    from ..models.schema import LogInstalacaoPWA, Base
+    try:
+        Base.metadata.create_all(bind=db_sql.get_bind())
+    except: pass
+
+    try:
+        logs = db_sql.query(LogInstalacaoPWA).order_by(LogInstalacaoPWA.criado_em.desc()).all()
+    except Exception as e:
+        return {"total": 0, "ios": 0, "android": 0, "registros": []}
+    
+    total = len(logs)
+    ios_count = sum(1 for l in logs if (l.dispositivo or "").lower() == "ios")
+    android_count = sum(1 for l in logs if (l.dispositivo or "").lower() in ["android", "desktop", "desconhecido"])
+    
+    lista = []
+    for l in logs[:100]:
+        lista.append({
+            "id": l.id,
+            "dispositivo": l.dispositivo,
+            "usuario_nome": l.usuario_nome or "Visitante / Anônimo",
+            "usuario_cpf": l.usuario_cpf or "Não informado",
+            "data": l.criado_em.isoformat() if l.criado_em else None
+        })
+        
+    return {
+        "total": total,
+        "ios": ios_count,
+        "android": android_count,
+        "registros": lista
     }
 
 @router.get("/logs")
@@ -77,6 +135,23 @@ def get_audit_logs(limit: int = 50, current_user = Depends(get_general_admin), d
     from ..models.schema import LogAuditoria
     logs = db_sql.query(LogAuditoria).order_by(LogAuditoria.data.desc()).limit(limit).all()
     return logs
+
+@router.get("/security-logs")
+def get_security_invasion_logs(limit: int = 50, current_user = Depends(get_general_admin), db_sql: Session = Depends(get_db)):
+    from ..models.schema import LogInvasaoSeguranca
+    logs = db_sql.query(LogInvasaoSeguranca).order_by(LogInvasaoSeguranca.data_hora.desc()).limit(limit).all()
+    return logs
+
+@router.post("/test-security-alert")
+def test_security_alert(background_tasks: BackgroundTasks, current_user = Depends(get_general_admin)):
+    from ..utils.sms_service import notify_admin_security_alert_background
+    background_tasks.add_task(
+        notify_admin_security_alert_background,
+        "TESTE DE INVASÃO (Simulado)",
+        "127.0.0.1 (Teste)",
+        "Simulação solicitada pelo Administrador Geral no painel."
+    )
+    return {"status": "ok", "message": "Disparo de alerta de segurança enviado com sucesso exclusivamente para os Administradores Gerais!"}
 
 
 @router.get("/secretaria-breakdown")
@@ -536,3 +611,26 @@ def get_users_heatmap(current_admin = Depends(get_general_admin), db_sql: Sessio
         "cidadaos": cidadaos,
         "total_cadastrados": len(usuarios)
     }
+
+@router.post("/test-security-alert")
+def testar_alerta_seguranca_admin(
+    bg_tasks: BackgroundTasks,
+    current_admin = Depends(get_general_admin),
+    db_sql: Session = Depends(get_db)
+):
+    """
+    Endpoint exclusivo do Administrador Geral para testar o envio de SMS de segurança.
+    """
+    from ..utils.sms_service import notify_admin_security_alert_background
+    bg_tasks.add_task(
+        notify_admin_security_alert_background,
+        "Teste de Alerta de Segurança (Simulação)",
+        "127.0.0.1 (Ambiente de Teste)",
+        f"Alerta de teste disparado pelo Administrador Geral ({current_admin.nome or current_admin.email})."
+    )
+    return {
+        "status": "ok",
+        "message": "Teste de alerta de segurança disparado com sucesso em segundo plano.",
+        "detail": "SMS enviado exclusivamente para Administrador Geral."
+    }
+

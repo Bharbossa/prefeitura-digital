@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile
+from fastapi import APIRouter, Depends, HTTPException, status, File, UploadFile, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
-from datetime import timedelta
+from datetime import datetime, timedelta
 from ..core.utils import get_brasilia_time
 from typing import Any
+
 
 from ..core.firebase_config import db, DB_MODE
 from ..database import get_db
@@ -73,134 +74,127 @@ def register(user_in: UsuarioCreate, db_sql: Session = Depends(get_db)) -> Any:
         return db_user
 
 @router.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db_sql: Session = Depends(get_db)) -> Any:
-    user_data = None
+def login(
+    bg_tasks: BackgroundTasks,
+    form_data: OAuth2PasswordRequestForm = Depends(), 
+    db_sql: Session = Depends(get_db)
+) -> Any:
+    clean_username = form_data.username.lower().strip()
+    
+    # Check if the username is a CPF
+    import re, secrets
+    is_cpf = False
+    clean_cpf = re.sub(r'\D', '', clean_username)
+    if len(clean_cpf) == 11 and re.match(r'^[0-9.\-\s]+$', form_data.username.strip()):
+        is_cpf = True
+
+    # 1. Look up user in SQL tables
+    user_cidadao = None
+    user_subadmin = None
+    
+    if is_cpf:
+        cpf_fmt = f"{clean_cpf[:3]}.{clean_cpf[3:6]}.{clean_cpf[6:9]}-{clean_cpf[9:]}"
+        user_cidadao = db_sql.query(Usuario).filter((Usuario.cpf == clean_cpf) | (Usuario.cpf == cpf_fmt) | (Usuario.cpf == form_data.username.strip())).first()
+        user_subadmin = db_sql.query(AdminSecretaria).filter((AdminSecretaria.cpf == clean_cpf) | (AdminSecretaria.cpf == cpf_fmt) | (AdminSecretaria.cpf == form_data.username.strip())).first()
+    else:
+        user_cidadao = db_sql.query(Usuario).filter(func.lower(Usuario.email) == clean_username).first()
+        user_subadmin = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == clean_username).first()
+
+    matched_user = None
     user_type = "cidadao"
 
-    if DB_MODE == "firestore":
-        user_docs = db.collection("usuarios").where("email", "==", form_data.username).limit(1).get()
-        admin_docs = db.collection("admin_secretarias").where("email", "==", form_data.username).limit(1).get()
-        
-        user_data = None
-        user_type = "cidadao"
-        
-        # 1. Try to match subadmin first if they exist and password matches
-        if admin_docs:
-            admin_data = admin_docs[0].to_dict()
-            admin_data["id"] = admin_docs[0].id
-            if verify_password(form_data.password, admin_data.get("senha_hash")):
-                user_data = admin_data
-                user_type = "subadmin"
-                
-        # 2. Try to match citizen / admin
-        if not user_data and user_docs:
-            cidadao_data = user_docs[0].to_dict()
-            cidadao_data["id"] = user_docs[0].id
-            if verify_password(form_data.password, cidadao_data.get("senha_hash")):
-                user_data = cidadao_data
-                user_type = cidadao_data.get("tipo_usuario", "cidadao")
-                
-        # 3. Fallback if password didn't match either but we found records (for standard failure path)
-        if not user_data:
-            if admin_docs:
-                user_data = admin_docs[0].to_dict()
-                user_data["id"] = admin_docs[0].id
-                user_type = "subadmin"
-            elif user_docs:
-                user_data = user_docs[0].to_dict()
-                user_data["id"] = user_docs[0].id
-                user_type = user_docs[0].to_dict().get("tipo_usuario", "cidadao")
-    else:
-        # SQLite / MySQL Fallback
-        clean_username = form_data.username.lower().strip()
-        
-        # Check if the username is a CPF
-        import re
-        is_cpf = False
-        clean_cpf = re.sub(r'\D', '', clean_username)
-        if len(clean_cpf) == 11 and re.match(r'^[0-9.\-\s]+$', form_data.username.strip()):
-            is_cpf = True
-
-        # Check both tables
-        user_cidadao = None
-        user_subadmin = None
-        
-        if is_cpf:
-            cpf_fmt = f"{clean_cpf[:3]}.{clean_cpf[3:6]}.{clean_cpf[6:9]}-{clean_cpf[9:]}"
-            user_cidadao = db_sql.query(Usuario).filter((Usuario.cpf == clean_cpf) | (Usuario.cpf == cpf_fmt) | (Usuario.cpf == form_data.username.strip())).first()
-            user_subadmin = db_sql.query(AdminSecretaria).filter((AdminSecretaria.cpf == clean_cpf) | (AdminSecretaria.cpf == cpf_fmt) | (AdminSecretaria.cpf == form_data.username.strip())).first()
+    # 2. Check if password matches subadmin first, then citizen
+    if user_subadmin and verify_password(form_data.password, user_subadmin.senha_hash):
+        matched_user = user_subadmin
+        user_type = "subadmin"
+    elif user_cidadao and verify_password(form_data.password, user_cidadao.senha_hash):
+        matched_user = user_cidadao
+        user_type = getattr(user_cidadao, "tipo_usuario", "cidadao")
+        if hasattr(user_type, "value"):
+            user_type = user_type.value
         else:
-            user_cidadao = db_sql.query(Usuario).filter(func.lower(Usuario.email) == clean_username).first()
-            user_subadmin = db_sql.query(AdminSecretaria).filter(func.lower(AdminSecretaria.email) == clean_username).first()
+            user_type = str(user_type)
+            if "." in user_type: user_type = user_type.split(".")[-1]
 
-        user = None
-        user_type = None
+    # 3. SUCCESSFUL LOGIN: reset lockout and attempts
+    if matched_user:
+        if (getattr(matched_user, 'tentativas_login_falhas', 0) or 0) > 0 or getattr(matched_user, 'bloqueado_ate', None):
+            matched_user.tentativas_login_falhas = 0
+            matched_user.bloqueado_ate = None
+            db_sql.commit()
 
-        # 1. Try to match subadmin first if password matches
-        if user_subadmin and verify_password(form_data.password, user_subadmin.senha_hash):
-            user = user_subadmin
-            user_type = "subadmin"
-        # 2. Try to match citizen / admin
-        elif user_cidadao and verify_password(form_data.password, user_cidadao.senha_hash):
-            user = user_cidadao
-            user_type = user_cidadao.tipo_usuario
-            if hasattr(user_type, "value"):
-                user_type = user_type.value
-            else:
-                user_type = str(user_type)
-                if "." in user_type: user_type = user_type.split(".")[-1]
-        # 3. Fallback if password didn't match either (so standard failure path works)
-        else:
-            if user_subadmin:
-                user = user_subadmin
-                user_type = "subadmin"
-            elif user_cidadao:
-                user = user_cidadao
-                user_type = user_cidadao.tipo_usuario
-                if hasattr(user_type, "value"):
-                    user_type = user_type.value
-                else:
-                    user_type = str(user_type)
-                    if "." in user_type: user_type = user_type.split(".")[-1]
+        # Check status
+        user_status = getattr(matched_user, "status", "Ativo")
+        if hasattr(user_status, "value"): user_status = user_status.value
+        
+        if user_type == "cidadao":
+            if str(user_status).lower() == "rejeitado" or user_status == StatusUsuario.rejeitado:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Sua solicitação de acesso foi rejeitada."
+                )
+        elif user_type == "subadmin":
+            if str(user_status).lower() != "ativo" and user_status != StatusUsuario.ativo:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Sua conta de administrador está aguardando ativação ou foi suspensa."
+                )
 
-        if user:
-            user_data = {
-                "email": user.email, 
-                "senha_hash": user.senha_hash, 
-                "id": user.id, 
-                "status": getattr(user, "status", "Ativo") if user_type == "subadmin" else user.status
-            }
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": matched_user.email, "type": user_type, "id": str(matched_user.id)}, 
+            expires_delta=access_token_expires
+        )
+        return {"access_token": access_token, "token_type": "bearer"}
 
-    if not user_data or not verify_password(form_data.password, user_data.get("senha_hash")):
+    # 4. FAILED LOGIN: user not found or password incorrect
+    target_user = user_cidadao if user_cidadao else user_subadmin
+    is_admin_target = (target_user == user_subadmin) if target_user else False
+
+    if not target_user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect email or password",
+            detail="E-mail ou CPF não cadastrado.",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    # Check if user is active (Subadmins need approval, Citizens are auto-active except if rejected)
-    user_status = user_data.get("status")
-    if hasattr(user_status, "value"): user_status = user_status.value
-    
-    if user_type == "cidadao":
-        if str(user_status).lower() == "rejeitado" or user_status == StatusUsuario.rejeitado:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Sua solicitação de acesso foi rejeitada."
-            )
-    elif user_type == "subadmin":
-        if str(user_status).lower() != "ativo" and user_status != StatusUsuario.ativo:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Sua conta de administrador está aguardando ativação ou foi suspensa."
-            )
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user_data["email"], "type": user_type, "id": str(user_data["id"])}, 
-        expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+
+    # Check if account is currently blocked
+    now_dt = datetime.utcnow()
+    if target_user.bloqueado_ate and target_user.bloqueado_ate > now_dt:
+        minutos_restantes = max(1, int((target_user.bloqueado_ate - now_dt).total_seconds() // 60))
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Sua conta está bloqueada por errar a senha 3 vezes. Uma nova senha temporária foi enviada por SMS para o seu celular. Utilize a nova senha ou aguarde {minutos_restantes} minuto(s)."
+        )
+
+    # Increment failed attempts
+    target_user.tentativas_login_falhas = (getattr(target_user, 'tentativas_login_falhas', 0) or 0) + 1
+
+    if target_user.tentativas_login_falhas >= 3:
+        # Generate new random password and lock account
+        nova_senha = f"Colonia@{secrets.randbelow(8999) + 1000}"
+        target_user.senha_hash = get_password_hash(nova_senha)
+        target_user.bloqueado_ate = datetime.utcnow() + timedelta(minutes=15)
+        target_user.tentativas_login_falhas = 0
+        db_sql.commit()
+
+        # Send new password via SMS in background
+        from ..utils.sms_service import notify_user_account_blocked_reset_password_background
+        bg_tasks.add_task(notify_user_account_blocked_reset_password_background, target_user.id, nova_senha, is_admin=is_admin_target)
+
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Sua conta foi bloqueada por errar a senha 3 vezes. Enviamos uma nova senha temporária via SMS para o seu celular! Acesse utilizando a nova senha recebida."
+        )
+    else:
+        db_sql.commit()
+        tentativas_restantes = 3 - target_user.tentativas_login_falhas
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"E-mail ou senha incorretos. Você tem mais {tentativas_restantes} tentativa(s) antes do bloqueio da conta.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
 
 @router.post("/forgot-password")
 def forgot_password(data: ForgotPasswordRequest, db_sql: Session = Depends(get_db)):

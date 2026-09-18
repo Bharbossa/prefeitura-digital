@@ -101,12 +101,12 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
     elif is_solicitacao_maquina:
         data_escolhida = agend.data_hora.date()
 
-        # Trava do mês de Agosto (todas as datas de Agosto lotadas)
+        # Trava dos meses de Setembro e Outubro (todas as datas preenchidas)
         from datetime import date
-        if data_escolhida < date(2026, 9, 1):
+        if data_escolhida < date(2026, 11, 1):
             raise HTTPException(
                 status_code=400,
-                detail="Todas as datas para o mês de Agosto já foram preenchidas. O agendamento de máquinas agrícolas está liberado apenas a partir de 01/09/2026."
+                detail="Todas as datas para os meses de Setembro e Outubro já foram preenchidas. O agendamento de máquinas agrícolas está liberado apenas a partir de 01/11/2026."
             )
         
         # 1. Trava de 1 agendamento por dia no sistema para a máquina (limite da frota/dia)

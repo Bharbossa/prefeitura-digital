@@ -11,9 +11,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <!-- PWA -->
+
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e3a8a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Leopoldina Digital">
+    <link rel="apple-touch-icon" href="images/logo.png">
 </head>
 
 <body style="display: flex; flex-direction: column; min-height: 100vh; position: relative; overflow-x: hidden;">
@@ -163,7 +171,7 @@
         }
     </style>
 
-    <script src="js/main.js?v=1.0.7"></script>
+    <script src="js/main.js?v=1.0.8"></script>
     <script>
         // Check for session errors
         window.addEventListener('DOMContentLoaded', () => {
@@ -235,9 +243,19 @@
 
         document.getElementById('loginForm').addEventListener('submit', async function (e) {
             e.preventDefault();
-            const email = document.getElementById('email').value.toLowerCase().trim();
-            const password = document.getElementById('password').value;
+            const submitBtn = this.querySelector('button[type="submit"]');
+            if (submitBtn.disabled) return;
+
+            submitBtn.disabled = true;
+            const origText = submitBtn.innerText;
+            submitBtn.innerText = "Entrando...";
+
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const email = emailInput.value.toLowerCase().trim();
+            const password = passwordInput.value;
             const errorMsg = document.getElementById('errorMsg');
+            errorMsg.style.display = "none";
 
             try {
                 const formData = new URLSearchParams();
@@ -277,20 +295,47 @@
                             window.location.href = 'dashboard.html';
                         }
                     }
-                } else if (response.status === 401) {
-                    errorMsg.innerText = "E-mail ou senha incorretos.";
-                    errorMsg.style.display = "block";
                 } else {
-                    const errorData = await response.json().catch(() => ({ detail: "Erro de servidor" }));
-                    errorMsg.innerText = errorData.detail || "Erro ao fazer login.";
+                    passwordInput.value = ''; // Limpar campo de senha em caso de erro
+                    passwordInput.focus();
+                    const errorData = await response.json().catch(() => ({ detail: "E-mail ou senha incorretos." }));
+                    
+                    let msg = errorData.detail || "E-mail ou senha incorretos.";
+                    if (msg === "Incorrect email or password") {
+                        msg = "E-mail ou senha incorretos.";
+                    }
+
+                    // Se a mensagem for de bloqueio (3erros ou bloqueio temporário), exibe modal Popup (SweetAlert)
+                    if (msg.includes("bloqueada") || msg.includes("bloqueado")) {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: '🔒 Acesso Bloqueado!',
+                            html: `<p style="font-size: 1.05rem; line-height: 1.5; color: #2d3748;">${msg}</p>`,
+                            confirmButtonText: 'Entendido',
+                            confirmButtonColor: '#1e3a8a',
+                            customClass: {
+                                popup: 'animated fadeInDown'
+                            }
+                        });
+                    }
+
+                    errorMsg.innerText = msg;
                     errorMsg.style.display = "block";
+                    errorMsg.style.fontWeight = "bold";
                 }
+
             } catch (err) {
+                passwordInput.value = '';
                 errorMsg.innerText = `Erro de Conexão. Verifique sua internet.`;
                 errorMsg.style.display = "block";
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerText = origText;
             }
         });
     </script>
+
+
 
     <footer class="footer">
         <p>Desenvolvido por Barbosa Nunes</p>

@@ -8,10 +8,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Colônia Digital</title>
+    <!-- PWA & Mobile App Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1e3a8a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Leopoldina Digital">
+    <link rel="apple-touch-icon" href="images/logo.png">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
     <!-- FontAwesome for Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
     <!-- AOS CSS for Animations -->
     <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <style>
@@ -72,16 +83,38 @@
         }
 
         .hero-content h1 {
-            font-size: 3.5rem;
+            font-size: 3.8rem;
+            font-weight: 800;
+            margin-bottom: 0.5rem;
+            text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.7);
+            line-height: 1.1;
+        }
+
+        .hero-title-sub {
+            display: block;
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: #38bdf8;
+            margin-top: 0.5rem;
             margin-bottom: 1rem;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-            /* Slide animation done via slide-in-left class */
+            text-shadow: 1px 1px 4px rgba(0, 0, 0, 0.6);
         }
 
         .hero-content p {
             font-size: 1.2rem;
             margin-bottom: 2rem;
-            /* Slide animation done via slide-in-left class */
+        }
+
+        @media (max-width: 768px) {
+            .hero-content h1 {
+                font-size: 2.4rem;
+            }
+            .hero-title-sub {
+                font-size: 1.25rem;
+            }
+            .hero-content p {
+                font-size: 1rem;
+            }
         }
     </style>
     <!-- PWA -->
@@ -103,6 +136,9 @@
         </div>
         <div class="nav-links" id="nav-links">
             <div style="display: flex; gap: 0.5rem; align-items: center; margin-right: 15px;">
+                <button id="pwa-install-btn" onclick="promptPWAInstall()" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background: #2563eb; color: #fff; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                    <i class="fa-solid fa-mobile-screen-button"></i> Instalar App
+                </button>
                 <button onclick="changeFontSize(1)" title="Aumentar Fonte" style="background: transparent; border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; padding: 4px 10px; font-weight: bold; cursor: pointer; font-size: 1rem; transition: background 0.3s;">A+</button>
                 <button onclick="changeFontSize(-1)" title="Diminuir Fonte" style="background: transparent; border: 1px solid var(--border); color: var(--text-primary); border-radius: 4px; padding: 4px 10px; font-weight: bold; cursor: pointer; font-size: 0.9rem; transition: background 0.3s;">A-</button>
             </div>
@@ -125,7 +161,9 @@
         </div>
 
         <div class="hero-content">
-            <h1 class="slide-in-left" style="animation-delay: 0.2s;">Colônia Digital. Sua voz transforma o município
+            <h1 class="slide-in-left" style="animation-delay: 0.2s;">
+                Colônia Digital
+                <span class="hero-title-sub">Sua voz transforma o município</span>
             </h1>
             <p class="slide-in-left" style="animation-delay: 0.5s;">Plataforma digital para registro de problemas
                 urbanos e comunicação direta com a prefeitura.</p>
@@ -232,6 +270,78 @@
                 <h3 style="margin-bottom: 1rem; font-size: 1.3rem;">Concursos Culturais/Esportivos</h3>
                 <p style="font-size: 0.95rem; line-height: 1.6;">Faça inscrições online para eventos, corridas e concursos promovidos pela Prefeitura.</p>
             </div> -->
+
+        </div>
+    </section>
+
+    <!-- SEÇÃO COMO BAIXAR E INSTALAR O APP -->
+    <section style="padding: 4rem 5%; background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(10px); color: white; border-top: 1px solid rgba(255,255,255,0.1); border-bottom: 1px solid rgba(255,255,255,0.1);">
+        <div style="max-width: 1100px; margin: 0 auto; text-align: center;">
+            <span style="background: rgba(37, 99, 235, 0.2); color: #38bdf8; font-weight: 700; padding: 6px 16px; border-radius: 20px; font-size: 0.9rem; text-transform: uppercase; letter-spacing: 1px;">
+                <i class="fa-solid fa-mobile-screen-button"></i> Aplicativo no Celular
+            </span>
+            <h2 style="font-size: 2.5rem; font-weight: 800; margin: 1rem 0 0.5rem 0; color: #ffffff;">
+                Como Baixar e Instalar o App
+            </h2>
+            <p style="color: #94a3b8; max-width: 700px; margin: 0 auto 3rem auto; font-size: 1.05rem;">
+                Instalação ultrarrápida em menos de 3 segundos! Não ocupa espaço na memória do seu celular.
+            </p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 2rem; text-align: left;">
+                
+                <!-- PASSOS ANDROID -->
+                <div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 16px; padding: 2rem; position: relative; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem;">
+                        <i class="fa-brands fa-android fa-2x" style="color: #22c55e;"></i>
+                        <div>
+                            <h3 style="font-size: 1.3rem; color: #ffffff; margin: 0;">No Android (Google Chrome)</h3>
+                            <span style="font-size: 0.8rem; color: #a7f3d0;">Instalação Direta e Rápida</span>
+                        </div>
+                    </div>
+                    <ol style="margin: 0; padding-left: 1.2rem; line-height: 1.8; color: #cbd5e1; font-size: 0.95rem;">
+                        <li style="margin-bottom: 1rem;">
+                            Abra o site no navegador <b>Chrome</b> e faça login com sua conta.
+                        </li>
+                        <li style="margin-bottom: 1rem;">
+                            Clique no botão azul <span style="background: #2563eb; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: 600;"><i class="fa-solid fa-mobile-screen-button"></i> Instalar App</span> no topo da tela.
+                        </li>
+                        <li>
+                            Confirme em <b>"Instalar"</b> na mensagem que aparecerá na tela. O ícone surgirá na sua tela inicial!
+                        </li>
+                    </ol>
+                </div>
+
+                <!-- PASSOS IPHONE (IOS) -->
+                <div style="background: rgba(30, 41, 59, 0.8); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 16px; padding: 2rem; position: relative; overflow: hidden; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3);">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 1rem;">
+                        <i class="fa-brands fa-apple fa-2x" style="color: #38bdf8;"></i>
+                        <div>
+                            <h3 style="font-size: 1.3rem; color: #ffffff; margin: 0;">No iPhone / iPad (Safari)</h3>
+                            <span style="font-size: 0.8rem; color: #bae6fd;">Adicionar à Tela de Início</span>
+                        </div>
+                    </div>
+                    <ol style="margin: 0; padding-left: 1.2rem; line-height: 1.8; color: #cbd5e1; font-size: 0.95rem;">
+                        <li style="margin-bottom: 1rem;">
+                            Abra o site no navegador <b>Safari</b> no seu iPhone.
+                        </li>
+                        <li style="margin-bottom: 1rem;">
+                            Toque no ícone de <b>Compartilhar</b> <i class="fa-solid fa-share-from-square" style="color: #38bdf8;"></i> (o quadradinho com a seta no rodapé da tela).
+                        </li>
+                        <li>
+                            Role para baixo e selecione <b>"Adicionar à Tela de Início"</b> <i class="fa-solid fa-plus-square" style="color: #22c55e;"></i> e toque em <b>Adicionar</b>.
+                        </li>
+                    </ol>
+                </div>
+
+            </div>
+
+            <!-- DICA IMPORTANTE -->
+            <div style="margin-top: 2.5rem; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 12px; padding: 1rem 1.5rem; display: inline-flex; align-items: center; gap: 12px; text-align: left; max-width: 800px;">
+                <i class="fa-solid fa-lightbulb fa-2x" style="color: #f59e0b; flex-shrink: 0;"></i>
+                <div style="font-size: 0.9rem; color: #fef3c7;">
+                    <b>Lembre-se:</b> É necessário ter um <b>cadastro ativo com CPF</b> para baixar e utilizar o app. Se ainda não tem conta, <a href="register.html" style="color: #38bdf8; font-weight: bold; text-decoration: underline;">clique aqui para se cadastrar</a>.
+                </div>
+            </div>
 
         </div>
     </section>

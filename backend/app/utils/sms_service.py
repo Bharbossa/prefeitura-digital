@@ -2,6 +2,9 @@
 import logging
 import os
 import time
+from dotenv import load_dotenv
+load_dotenv()
+
 # Configure logging to see SMS simulation in terminal
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SMS_SERVICE")
@@ -279,3 +282,113 @@ def notify_custom_message_background(message: str):
         logger.error(f"Erro em notify_custom_message_background: {e}")
     finally:
         db.close()
+
+def notify_admin_security_alert_background(tipo_ataque: str, ip_origem: str, detalhes: str):
+    """
+    Envia SMS de ALERTA DE INVASÃO imediato aos Administradores Gerais do sistema.
+    """
+    from app.database import SessionLocal, Base
+    from app.models.schema import Usuario, LogInvasaoSeguranca
+    db = SessionLocal()
+    try:
+        try:
+            Base.metadata.create_all(bind=db.get_bind())
+        except Exception: pass
+
+        # Registrar no banco de dados primeiro
+        try:
+            log_seg = LogInvasaoSeguranca(
+                tipo_ataque=tipo_ataque,
+                ip_origem=ip_origem,
+                detalhes=detalhes,
+                bloqueado=1
+            )
+            db.add(log_seg)
+            db.commit()
+        except Exception as e_log:
+            db.rollback()
+            logger.error(f"Erro ao salvar log de invasao: {e_log}")
+
+        # Buscar todos os usuários e filtrar Administradores Gerais (suportando Enum ou String)
+        all_users = db.query(Usuario).all()
+        admins = [
+            u for u in all_users 
+            if str(getattr(u, 'tipo_usuario', '')).split('.')[-1].lower() == 'admin'
+        ]
+        
+        admin_phones = set()
+        for a in admins:
+            tel = getattr(a, 'telefone', None)
+            wsp = getattr(a, 'whatsapp', None)
+            if tel:
+                admin_phones.add(tel)
+            if wsp:
+                admin_phones.add(wsp)
+                
+        sms_body = f"⚠️ ALERTA DE SEGURANÇA - COLÔNIA DIGITAL: Tentativa de invasão bloqueada! Tipo: {tipo_ataque} | IP: {ip_origem}. Verifique o painel!"
+        
+        for phone in admin_phones:
+            if phone and len("".join(filter(str.isdigit, phone))) >= 8:
+                send_status_sms(phone, sms_body)
+            
+        logger.warning(f"🚨 ALERTA DE SEGURANÇA REGISTRADO E NOTIFICADO VIA SMS ({len(admin_phones)} telefones): {tipo_ataque} a partir do IP {ip_origem}")
+    except Exception as e:
+        logger.error(f"Erro ao notificar invasão por SMS: {e}")
+    finally:
+        db.close()
+
+def notify_user_account_blocked_reset_password_background(user_id: int, nova_senha: str, is_admin: bool = False):
+    """
+    Envia SMS ao usuário avisando que a conta foi bloqueada por 3 tentativas falhas de login
+    e fornece uma nova senha gerada automaticamente pelo sistema.
+    """
+    from app.database import SessionLocal
+    from app.models.schema import Usuario, AdminSecretaria, LogRecuperacaoSenha
+    db = SessionLocal()
+    try:
+        if is_admin:
+            usuario = db.query(AdminSecretaria).filter(AdminSecretaria.id == user_id).first()
+            user_type = "subadmin"
+        else:
+            usuario = db.query(Usuario).filter(Usuario.id == user_id).first()
+            user_type = "cidadao"
+
+        if not usuario:
+            return
+
+        phone = getattr(usuario, 'telefone', None) or getattr(usuario, 'whatsapp', None)
+        if not phone:
+            logger.warning(f"Usuário {usuario.email} não possui telefone cadastrado para aviso de bloqueio.")
+            return
+
+        sms_body = (
+            f"COLÔNIA DIGITAL: Sua conta foi bloqueada apos 3 erros de senha. "
+            f"Sua nova senha temporaria e: {nova_senha}"
+        )
+        success = send_status_sms(phone, sms_body)
+        
+        # Registrar no Log de Recuperação
+        try:
+            novo_log = LogRecuperacaoSenha(
+                usuario_nome=usuario.nome,
+                usuario_tipo=user_type,
+                metodo="sms",
+                sucesso=1 if success else 0
+            )
+            db.add(novo_log)
+            db.commit()
+        except Exception as e_log:
+            logger.error(f"Erro ao salvar log de recuperacao: {e_log}")
+
+        if success:
+            logger.info(f"SMS de bloqueio e redefinição de senha enviado para {usuario.email} ({phone})")
+        else:
+            logger.error(f"Falha ao enviar SMS de redefinição de senha para {usuario.email}")
+    except Exception as e:
+        logger.error(f"Erro em notify_user_account_blocked_reset_password_background: {e}")
+    finally:
+        db.close()
+
+
+
+

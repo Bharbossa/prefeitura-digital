@@ -38,6 +38,9 @@ class Usuario(Base):
     foto_perfil = Column(Text, nullable=True)
     botao_panico_autorizado = Column(Integer, default=0) # 1=Autorizado, 0=Não Autorizado
     genero = Column(String(50), nullable=True)
+    tentativas_login_falhas = Column(Integer, default=0)
+    bloqueado_ate = Column(DateTime, nullable=True)
+
 
     ocorrencias = relationship("Ocorrencia", back_populates="usuario")
     agendamentos = relationship("Agendamento", back_populates="usuario")
@@ -65,6 +68,8 @@ class AdminSecretaria(Base):
     secretaria_id = Column(Integer, ForeignKey("secretarias.id"))
     tipo_usuario = Column(String(50), default="subadmin") # Helper to distinguish in auth
     foto_perfil = Column(Text, nullable=True)
+    tentativas_login_falhas = Column(Integer, default=0)
+    bloqueado_ate = Column(DateTime, nullable=True)
 
     secretaria = relationship("Secretaria", back_populates="admins")
     respostas = relationship("Resposta", back_populates="admin")
@@ -197,6 +202,29 @@ class LogAuditoria(Base):
     acao = Column(String(100), nullable=False)
     detalhes = Column(Text, nullable=True)
     data = Column(DateTime, default=get_brasilia_time)
+
+class LogInstalacaoPWA(Base):
+    __tablename__ = "logs_instalacao_pwa"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_id = Column(Integer, nullable=True)
+    usuario_nome = Column(String(150), nullable=True)
+    usuario_cpf = Column(String(20), nullable=True)
+    dispositivo = Column(String(50), nullable=False) # ios, android, desktop, etc.
+    user_agent = Column(Text, nullable=True)
+    ip_address = Column(String(45), nullable=True)
+    criado_em = Column(DateTime, default=get_brasilia_time)
+
+class LogInvasaoSeguranca(Base):
+    __tablename__ = "logs_invasao_seguranca"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tipo_ataque = Column(String(100), nullable=False) # ex: BruteForce, SQLInjection, RateLimitExceeded
+    ip_origem = Column(String(50), nullable=True)
+    detalhes = Column(Text, nullable=True)
+    bloqueado = Column(Integer, default=1)
+    alerta_sms_enviado = Column(Integer, default=0)
+    data_hora = Column(DateTime, default=get_brasilia_time)
 
 class LogRecuperacaoSenha(Base):
     __tablename__ = "logs_recuperacao_senha"

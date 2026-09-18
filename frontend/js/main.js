@@ -75,7 +75,8 @@ const originalFetch = window.fetch;
 window.fetch = async (...args) => {
     try {
         const response = await originalFetch(...args);
-        if (response.status === 401) {
+        const urlStr = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
+        if (response.status === 401 && !urlStr.includes('/auth/login')) {
             console.warn("Unauthorized! Logging out...");
             localStorage.removeItem('access_token');
             localStorage.removeItem('user_info');
@@ -96,6 +97,7 @@ window.fetch = async (...args) => {
         throw err;
     }
 };
+
 
 function checkAuth(requireAdmin = false) {
     const token = getToken();
@@ -138,6 +140,9 @@ document.addEventListener('DOMContentLoaded', () => {
             <a href="index.html">Início</a>
             <a href="${dashboardLink}">Meu Painel</a>
             <span style="display: block; color: var(--text-secondary)">Olá, ${user.nome.split(' ')[0]}</span>
+            <button id="pwa-install-btn" onclick="promptPWAInstall()" class="btn btn-primary" style="padding: 0.4rem 0.8rem; font-size: 0.85rem; background: #2563eb; color: #fff; border-radius: 6px; border: none; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem;">
+                <i class="fa-solid fa-mobile-screen-button"></i> Instalar App
+            </button>
             <div class="theme-switch-wrapper" style="margin: 0 0.5rem; display: flex; align-items: center;">
                 <label class="theme-switch" for="checkbox-theme-nav" style="margin: 0;">
                     <input type="checkbox" id="checkbox-theme-nav" />
@@ -326,7 +331,10 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchAvisos();
 });
 
-// PWA Service Worker Registration
+// PWA Service Worker Registration & Install Prompt
+// PWA Service Worker Registration & Install Prompt
+let deferredPrompt;
+
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
         navigator.serviceWorker.register('./sw.js')
@@ -338,3 +346,190 @@ if ('serviceWorker' in navigator) {
             });
     });
 }
+
+// Garante o funcionamento do botão em qualquer momento (Android / iOS / PC)
+document.addEventListener('DOMContentLoaded', () => {
+    // Garante que a função promptPWAInstall esteja acessível no escopo global window
+    window.promptPWAInstall = promptPWAInstall;
+});
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+
+    const pwaInstallBtn = document.getElementById('pwa-install-btn');
+    if (pwaInstallBtn) {
+        pwaInstallBtn.style.display = 'inline-flex';
+    }
+});
+
+// Função para disparar a instalação (suporte completo a iOS e Android com estimativa)
+function promptPWAInstall() {
+    const user = getUserInfo();
+    const token = getToken();
+
+    // Bloqueia a instalação para usuários não cadastrados/não logados (proíbe anônimos)
+    if (!user || !token) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Cadastro Necessário!',
+                html: `
+                    <div style="font-size: 1.05rem; line-height: 1.6; color: #334155; padding: 10px 0;">
+                        Para baixar o aplicativo <b>Colônia Digital</b>, é necessário fazer login ou criar seu cadastro de cidadão primeiro.
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fa-solid fa-user-plus"></i> Criar Cadastro',
+                cancelButtonText: '<i class="fa-solid fa-right-to-bracket"></i> Fazer Login',
+                confirmButtonColor: '#2563eb',
+                cancelButtonColor: '#004D40'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'register.html';
+                } else if (result.dismiss === Swal.DismissReason.cancel) {
+                    window.location.href = 'login.html';
+                }
+            });
+        } else {
+            alert("Cadastro Necessário!\nPara baixar o aplicativo Colônia Digital, é necessário fazer login ou criar seu cadastro de cidadão primeiro.");
+            window.location.href = 'register.html';
+        }
+        return;
+    }
+
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const isIOS = /iphone|ipad|ipod/.test(userAgent);
+    const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;
+
+    // Envia registro estatístico com dados do usuário cadastrado para o painel do administrador
+    const deviceType = isIOS ? "ios" : (userAgent.includes("android") ? "android" : "desktop");
+    let url = `${API_URL}/admin/metrics/pwa-install?dispositivo=${deviceType}`;
+    if (user.nome) url += `&usuario_nome=${encodeURIComponent(user.nome)}`;
+    if (user.cpf) url += `&usuario_cpf=${encodeURIComponent(user.cpf)}`;
+    if (user.id) url += `&usuario_id=${user.id}`;
+    
+    try {
+        fetch(url, { method: 'POST' }).catch(() => {});
+    } catch(e) {}
+
+    if (isStandalone) {
+        Swal.fire({
+            title: 'Aplicativo Já Instalado! 🎉',
+            text: 'Você já está utilizando o Leopoldina Digital em modo aplicativo.',
+            icon: 'success',
+            confirmButtonText: 'Ótimo',
+            confirmButtonColor: '#1e3a8a'
+        });
+        return;
+    }
+
+    if (isIOS) {
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Instalar Aplicativo no iPhone/iPad 📲',
+                html: `
+                    <div style="text-align: left; font-size: 0.95rem; line-height: 1.6; color: #334155;">
+                        <div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 10px 14px; border-radius: 6px; margin-bottom: 15px;">
+                            <strong style="color: #1e3a8a;"><i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Instalação ultrarrápida:</strong> ~3 segundos (Sem ocupar memória).
+                        </div>
+                        <strong>Siga os passos abaixo:</strong>
+                        <ol style="margin-top: 8px; padding-left: 20px;">
+                            <li style="margin-bottom: 10px;">Toque no botão <b>Compartilhar</b> <i class="fa-solid fa-share-from-square" style="color: #2563eb; font-size: 1.1rem;"></i> (na barra inferior do Safari).</li>
+                            <li style="margin-bottom: 10px;">Role para baixo na lista de opções.</li>
+                            <li style="margin-bottom: 10px;">Selecione <b>"Adicionar à Tela de Início"</b> <i class="fa-solid fa-plus-square" style="color: #16a34a; font-size: 1.1rem;"></i>.</li>
+                            <li>Toque em <b>Adicionar</b> no canto superior direito.</li>
+                        </ol>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Entendi, vou adicionar',
+                confirmButtonColor: '#2563eb'
+            });
+        } else {
+            alert("Para instalar no seu iPhone/iPad (instalação em ~3 seg):\n\n1. Toque no ícone Compartilhar (barra inferior do Safari).\n2. Selecione 'Adicionar à Tela de Início'.\n3. Toque em 'Adicionar'.");
+        }
+        return;
+    }
+
+    if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then((choiceResult) => {
+            if (choiceResult.outcome === 'accepted') {
+                let progress = 0;
+                if (typeof Swal !== 'undefined') {
+                    Swal.fire({
+                        title: 'Baixando e Instalando... 🚀',
+                        html: `
+                            <div style="font-size: 0.95rem; color: #334155; margin-bottom: 12px;">Tempo estimado: <b>~3 segundos</b></div>
+                            <div style="width: 100%; background: #e2e8f0; border-radius: 10px; height: 16px; overflow: hidden; position: relative;">
+                                <div id="pwa-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #2563eb, #10b981); transition: width 0.1s linear;"></div>
+                            </div>
+                            <div id="pwa-progress-text" style="font-weight: 700; font-size: 1.1rem; color: #2563eb; margin-top: 10px;">0%</div>
+                        `,
+                        showConfirmButton: false,
+                        allowOutsideClick: false
+                    });
+
+                    const interval = setInterval(() => {
+                        progress += 10;
+                        const bar = document.getElementById('pwa-progress-bar');
+                        const text = document.getElementById('pwa-progress-text');
+                        if (bar) bar.style.width = progress + '%';
+                        if (text) text.innerText = progress + '%';
+
+                        if (progress >= 100) {
+                            clearInterval(interval);
+                            setTimeout(() => {
+                                Swal.fire({
+                                    title: '100% Instalado! 🎉',
+                                    text: 'O aplicativo Leopoldina Digital já está disponível na sua tela inicial.',
+                                    icon: 'success',
+                                    confirmButtonText: 'Abrir App',
+                                    confirmButtonColor: '#16a34a'
+                                });
+                            }, 400);
+                        }
+                    }, 250);
+                }
+            }
+            deferredPrompt = null;
+        });
+    } else {
+        // Fallback genérico (Chrome Android ou outros navegadores)
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Instalar Aplicativo 📲',
+                html: `
+                    <div style="text-align: left; font-size: 0.95rem; line-height: 1.6; color: #334155;">
+                        <div style="background: #eff6ff; border-left: 4px solid #2563eb; padding: 10px 14px; border-radius: 6px; margin-bottom: 15px;">
+                            <strong style="color: #1e3a8a;"><i class="fa-solid fa-bolt" style="color: #f59e0b;"></i> Instalação ultrarrápida:</strong> ~3 segundos.
+                        </div>
+                        <strong>Como instalar:</strong>
+                        <ol style="margin-top: 8px; padding-left: 20px;">
+                            <li style="margin-bottom: 10px;">Clique nos <b>3 pontinhos</b> <i class="fa-solid fa-ellipsis-vertical"></i> no canto superior do navegador.</li>
+                            <li>Selecione <b>"Instalar aplicativo"</b> ou <b>"Adicionar à Tela inicial"</b>.</li>
+                        </ol>
+                    </div>
+                `,
+                icon: 'info',
+                confirmButtonText: 'Entendi',
+                confirmButtonColor: '#2563eb'
+            });
+        }
+    }
+}
+
+// Evento nativo quando o app termina de ser instalado no sistema do celular/PC
+window.addEventListener('appinstalled', () => {
+    if (typeof Swal !== 'undefined') {
+        Swal.fire({
+            title: '100% Instalado com Sucesso! 🎉',
+            text: 'O ícone do Leopoldina Digital já foi adicionado à sua Tela Inicial.',
+            icon: 'success',
+            confirmButtonText: 'Excelente!',
+            confirmButtonColor: '#16a34a'
+        });
+    }
+});
+

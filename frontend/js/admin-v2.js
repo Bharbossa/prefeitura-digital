@@ -127,6 +127,9 @@ function setupSidebar() {
             <div class="nav-item" onclick="showSection('contabilidade', this)">
                 <i class="fa-solid fa-chart-bar"></i><span>Contabilidade</span>
             </div>
+            <div class="nav-item" onclick="showSection('pwa-stats', this)">
+                <i class="fa-solid fa-mobile-screen-button"></i><span>Instalações do App</span>
+            </div>
             <div class="nav-item" onclick="showSection('avisos', this)">
                 <i class="fa-solid fa-bullhorn"></i><span>Mural de Avisos</span>
             </div>
@@ -224,12 +227,13 @@ function showSection(sectionId, element) {
         'contabilidade': 'Contabilidade por Secretaria',
         'mapas': 'Inteligência Geográfica',
         'config': 'Minha Conta',
+        'pwa-stats': 'Mural de Instalações do App',
         'avisos': 'Mural de Avisos',
         'password-resets': 'Senhas Solicitadas',
         'gestao-panico': 'Gestão do Botão de Pânico'
     };
-    document.getElementById('pageTitle').innerText = titles[sectionId];
-    document.getElementById('breadcrumb').innerText = `Início / ${titles[sectionId]}`;
+    document.getElementById('pageTitle').innerText = titles[sectionId] || 'Painel Administrativo';
+    document.getElementById('breadcrumb').innerText = `Início / ${titles[sectionId] || 'Painel'}`;
 
     // Load data specific to section
     if (sectionId === 'dashboard') loadDashboard();
@@ -241,6 +245,7 @@ function showSection(sectionId, element) {
     if (sectionId === 'auditoria') loadAuditLogs();
     if (sectionId === 'usuarios-todos') loadAllCombinedUsers();
     if (sectionId === 'contabilidade') loadPerformance();
+    if (sectionId === 'pwa-stats') loadPWAStatsAdmin();
     if (sectionId === 'mapas') {
         loadHeatmap();
         loadBairrosChart();
@@ -729,6 +734,12 @@ function renderStats(data) {
                 <h4 style="color: var(--text-muted); font-size: 0.9rem;">Cidadãos Pendentes</h4>
                 <h2 style="margin: 0.5rem 0;">${data.usuarios.usuarios_pendentes}</h2>
                 <div style="font-size: 0.8rem; color: var(--text-muted);">Total: ${data.usuarios.total_usuarios}</div>
+            </div>
+            <div class="stat-card" style="border-left: 4px solid #2563eb;">
+                <div class="stat-icon" style="background: #eff6ff; color: #2563eb;"><i class="fa-solid fa-mobile-screen-button"></i></div>
+                <h4 style="color: var(--text-muted); font-size: 0.9rem;">Instalações do App</h4>
+                <h2 style="margin: 0.5rem 0; color: #2563eb;">${data.pwa_instalações || 0}</h2>
+                <div style="font-size: 0.8rem; color: var(--text-muted);">Usuários que baixaram/instalaram</div>
             </div>
         `;
     }
@@ -3420,6 +3431,96 @@ async function loadAvisosAdmin() {
     }
 }
 
+async function loadPWAStatsAdmin() {
+    const totalEl = document.getElementById('pwaTotalCount');
+    const iosEl = document.getElementById('pwaIosCount');
+    const androidEl = document.getElementById('pwaAndroidCount');
+    const container = document.getElementById('pwaTableContainer');
+
+    if (container) container.innerHTML = '<p style="padding: 1.5rem; color: var(--text-muted);"><i class="fa-solid fa-spinner fa-spin"></i> Carregando dados do servidor...</p>';
+
+    try {
+        const token = getToken();
+        let res = await fetch(`${ADMIN_API}/metrics/pwa-stats`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+
+        if (!res.ok) {
+            // Tentativa fallback endpoint alternativo
+            res = await fetch(`${API_URL}/admin/metrics/pwa-stats`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+        }
+
+        if (!res.ok) {
+            const errText = await res.text().catch(() => "");
+            throw new Error(`Erro na API (${res.status}): ${errText || 'Falha na resposta'}`);
+        }
+
+        const data = await res.json();
+
+        if (totalEl) totalEl.innerText = data.total || 0;
+        if (iosEl) iosEl.innerText = data.ios || 0;
+        if (androidEl) androidEl.innerText = data.android || 0;
+
+        if (!data.registros || data.registros.length === 0) {
+            if (container) container.innerHTML = '<div style="padding: 2rem; text-align: center; color: var(--text-muted);"><p><i class="fa-solid fa-inbox"></i> Nenhuma instalação registrada até o momento. Clique em "Instalar App" no celular/site para testar o envio em tempo real.</p></div>';
+            return;
+        }
+
+        let html = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th># ID</th>
+                        <th>Cidadão / Usuário</th>
+                        <th>CPF</th>
+                        <th>Dispositivo</th>
+                        <th>Data e Hora do Clique</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+
+        data.registros.forEach(r => {
+            const isIos = (r.dispositivo || '').toLowerCase() === 'ios';
+            const icon = isIos ? 'fa-apple' : 'fa-android';
+            const color = isIos ? '#0284c7' : '#16a34a';
+
+            html += `
+                <tr>
+                    <td>#${r.id}</td>
+                    <td><strong>${r.usuario_nome || 'Visitante / Anônimo'}</strong></td>
+                    <td><code>${r.usuario_cpf || 'Não informado'}</code></td>
+                    <td><span style="display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: ${color};"><i class="fa-brands ${icon}"></i> ${(r.dispositivo || 'Outro').toUpperCase()}</span></td>
+                    <td>${r.data ? new Date(r.data).toLocaleString('pt-BR') : '---'}</td>
+                    <td><span class="badge badge-done">Instalado / Solicitado</span></td>
+                </tr>
+            `;
+        });
+
+        html += `</tbody></table>`;
+        if (container) container.innerHTML = html;
+
+    } catch (e) {
+        console.error("Erro PWA Stats:", e);
+        if (totalEl) totalEl.innerText = "0";
+        if (iosEl) iosEl.innerText = "0";
+        if (androidEl) androidEl.innerText = "0";
+        if (container) {
+            container.innerHTML = `
+                <div style="padding: 2rem; text-align: center; color: var(--text-muted);">
+                    <i class="fa-solid fa-mobile-screen-button fa-2x" style="color: #3b82f6; margin-bottom: 10px; display: block;"></i>
+                    <p style="font-weight: 600; color: var(--text-primary);">Nenhuma instalação registrada ainda.</p>
+                    <p style="font-size: 0.85rem; margin-top: 4px;">Assim que os cidadãos cadastrados clicarem em <b>"Instalar App"</b> no celular ou computador, o Nome e CPF aparecerão aqui nesta lista.</p>
+                    <button class="btn btn-sm btn-primary" onclick="loadPWAStatsAdmin()" style="margin-top: 15px;"><i class="fa-solid fa-rotate-right"></i> Recarregar Dados</button>
+                </div>
+            `;
+        }
+    }
+}
+
 async function createAviso(e) {
     e.preventDefault();
     const titulo = document.getElementById('avisoTitulo').value;
@@ -4216,3 +4317,67 @@ function imprimirFichaPolicial(id) {
     win.focus();
     setTimeout(() => { win.print(); }, 500);
 }
+
+// Global handler for triggering security alert SMS test
+async function testarAlertaSegurancaSMS() {
+    if (currentRole !== 'admin') {
+        Swal.fire({
+            icon: 'error',
+            title: 'Acesso Negado',
+            text: 'Apenas o Administrador Geral pode disparar o teste de alerta de segurança.'
+        });
+        return;
+    }
+
+    const confirm = await Swal.fire({
+        title: 'Testar Alerta de Segurança via SMS',
+        text: 'Isso enviará um SMS de teste de intrusão simulada para os telefones cadastrados EXCLUSIVAMENTE de Administradores Gerais.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, disparar teste SMS',
+        cancelButtonText: 'Cancelar'
+    });
+
+    if (!confirm.isConfirmed) return;
+
+    Swal.fire({
+        title: 'Enviando alerta...',
+        text: 'Aguarde a transmissão do SMS de segurança.',
+        allowOutsideClick: false,
+        didOpen: () => { Swal.showLoading(); }
+    });
+
+    try {
+        const token = getToken();
+        const res = await fetch(`${ADMIN_API}/metrics/test-security-alert`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await res.json();
+        if (res.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Alerta SMS Disparado!',
+                html: `<b>Mensagem Backend:</b> ${data.detail || data.message || 'SMS disparado com sucesso.'}<br><br><small>Verifique os celulares cadastrados com perfil de Administrador Geral.</small>`
+            });
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Falha ao enviar SMS',
+                text: data.detail || 'Não foi possível disparar o SMS de teste.'
+            });
+        }
+    } catch (err) {
+        console.error('Erro ao testar alerta de segurança:', err);
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro de Conexão',
+            text: 'Erro ao se comunicar com o servidor.'
+        });
+    }
+}
+
