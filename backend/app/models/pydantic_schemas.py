@@ -157,9 +157,9 @@ class AdminSecretariaResponse(BaseModel):
 
 
 class AgendamentoBase(BaseModel):
-    secretaria_id: int
+    secretaria_id: Optional[int] = None
     tipo: str
-    assunto: str
+    assunto: Optional[str] = "Agendamento"
     motivo: Optional[str] = None
     acompanhante: Optional[str] = None
     cartao_sus: Optional[str] = None

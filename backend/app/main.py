@@ -60,10 +60,26 @@ async def security_firewall_middleware(request: Request, call_next):
     client_ip = request.client.host if request.client else "desconhecido"
     current_time = time.time()
 
+    # Resposta rápida para requisições de pre-flight CORS OPTIONS
+    if request.method == "OPTIONS":
+        return Response(
+            status_code=200,
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With",
+                "Access-Control-Max-Age": "86400"
+            }
+        )
+
     # 1. Verifica se IP está temporariamente banido
     if client_ip in IP_BLOCKED_UNTIL:
         if current_time < IP_BLOCKED_UNTIL[client_ip]:
-            return Response(content="Acesso bloqueado temporariamente por motivo de segurança.", status_code=403)
+            return Response(
+                content="Acesso bloqueado temporariamente por motivo de segurança.",
+                status_code=403,
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
         else:
             del IP_BLOCKED_UNTIL[client_ip]
 
@@ -75,7 +91,12 @@ async def security_firewall_middleware(request: Request, call_next):
         IP_BLOCKED_UNTIL[client_ip] = current_time + 1800 # Banir IP por 30 minutos
         bg = BackgroundTasks()
         bg.add_task(notify_admin_security_alert_background, "Ataque de Força Bruta / Rate Limit (DDoS)", client_ip, "Mais de 120 requisições/minuto bloqueadas.")
-        return Response(content="Taxa de requisições excedida. IP Bloqueado.", status_code=429, background=bg)
+        return Response(
+            content="Taxa de requisições excedida. IP Bloqueado.",
+            status_code=429,
+            background=bg,
+            headers={"Access-Control-Allow-Origin": "*"}
+        )
 
     # 3. Inspeção de payload da URL e Query Parameters (SQLi, XSS, Path Traversal)
     full_url = str(request.url)
@@ -84,9 +105,28 @@ async def security_firewall_middleware(request: Request, call_next):
             IP_BLOCKED_UNTIL[client_ip] = current_time + 3600 # Banir por 1 hora
             bg = BackgroundTasks()
             bg.add_task(notify_admin_security_alert_background, "Ataque de Injeção de Código (SQLi/XSS)", client_ip, f"Padrão detectado na URL: {pattern}")
-            return Response(content="Tentativa de vulnerabilidade detectada e bloqueada pelo Agente de Segurança.", status_code=400, background=bg)
+            return Response(
+                content="Tentativa de vulnerabilidade detectada e bloqueada pelo Agente de Segurança.",
+                status_code=400,
+                background=bg,
+                headers={"Access-Control-Allow-Origin": "*"}
+            )
 
-    response = await call_next(request)
+    try:
+        response = await call_next(request)
+    except Exception as exc:
+        import traceback
+        traceback.print_exc()
+        return Response(
+            content=f'{{"detail": "Erro interno do servidor: {str(exc)}"}}',
+            status_code=500,
+            media_type="application/json",
+            headers={
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, PATCH, OPTIONS",
+                "Access-Control-Allow-Headers": "Content-Type, Authorization, Accept, Origin, X-Requested-With"
+            }
+        )
 
     # 4. Monitoramento de tentativas falhas de login (Brute Force em senhas)
     if request.url.path.endswith("/auth/login") and response.status_code == 401:
@@ -99,7 +139,8 @@ async def security_firewall_middleware(request: Request, call_next):
             bg.add_task(notify_admin_security_alert_background, "Tentativa de Invasão de Conta (Força Bruta no Login)", client_ip, "5 logins falhos consecutivos a partir deste IP.")
             response.background = bg
 
-    # Headers de Segurança HTTP Fortalecidos
+    # Headers de Segurança e CORS Garantidos
+    response.headers["Access-Control-Allow-Origin"] = "*"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-XSS-Protection"] = "1; mode=block"

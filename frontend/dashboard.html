@@ -1196,13 +1196,17 @@
 
             const secSelect = document.getElementById('ag_secretaria');
             secSelect.disabled = false;
+            let foundSec = false;
             for (let i = 0; i < secSelect.options.length; i++) {
-                if (secSelect.options[i].text.toUpperCase().includes("ASSISTÊNCIA SOCIAL") || secSelect.options[i].text.toUpperCase().includes("BOLSA FAMÍLIA")) {
-                    secSelect.options[i].style.display = 'block';
+                const txt = secSelect.options[i].text.toUpperCase();
+                secSelect.options[i].style.display = 'block';
+                if (!foundSec && (txt.includes("ASSISTÊNCIA") || txt.includes("ASSISTENCIA") || txt.includes("SOCIAL") || txt.includes("BOLSA"))) {
                     secSelect.selectedIndex = i;
-                } else {
-                    secSelect.options[i].style.display = 'block';
+                    foundSec = true;
                 }
+            }
+            if (!foundSec && secSelect.options.length > 0) {
+                secSelect.selectedIndex = 0;
             }
 
             document.getElementById('ag_assunto_label').innerText = 'Motivo do Atendimento (Opcional)';
@@ -1830,12 +1834,13 @@
             const dataObjeto = (dataDate && dataTime) ? new Date(`${dataDate}T${dataTime}`) : null;
 
             let motivoFinal = null;
-            const assuntoOriginal = document.getElementById('ag_assunto').value.trim();
-            if (!assuntoOriginal) {
+            const assuntoOriginal = (document.getElementById('ag_assunto')?.value || '').trim();
+            
+            if (!assuntoOriginal && tipoAtend !== "Bolsa Família" && tipoAtend !== "Concurso") {
                 Swal.fire({icon: 'warning', title: 'Atenção', text: 'O campo Assunto é obrigatório.'});
                 return;
             }
-            let assuntoFinal = assuntoOriginal;
+            let assuntoFinal = assuntoOriginal || (tipoAtend === "Bolsa Família" ? "Atendimento Bolsa Família" : "");
             if (document.getElementById('group_profissional').style.display !== 'none') {
                 const prof = document.getElementById('ag_profissional').value;
                 if (!prof) {
@@ -2117,7 +2122,16 @@
                         body: JSON.stringify(data)
                     });
                     if (res.ok) {
-                        alert('Agendamento solicitado com sucesso! Aguarde a confirmação da secretaria.');
+                        const agData = await res.json().catch(() => ({}));
+                        const senhaMsg = agData.senha ? `<br><div style="font-size:1.3rem; font-weight:bold; color:#10b981; margin:10px 0; background:#f0fdf4; padding:8px; border-radius:8px; border:1px solid #bbf7d0;">Senha: ${agData.senha}</div>` : '';
+                        const protoMsg = agData.protocolo ? `<div style="font-size:0.9rem; color:#6b7280;">Protocolo: <b>${agData.protocolo}</b></div>` : '';
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Agendamento Confirmado!',
+                            html: `Sua solicitação foi registrada com sucesso!${senhaMsg}${protoMsg}<p style="margin-top:8px; font-size:0.85rem; color:#4b5563;">Compareça no dia e horário escolhidos munido dos seus documentos.</p>`,
+                            confirmButtonColor: '#10b981',
+                            confirmButtonText: 'OK, Entendido'
+                        });
                         document.getElementById('modalNovoAgendamento').style.display = 'none';
                         e.target.reset();
                         loadAgendamentos();

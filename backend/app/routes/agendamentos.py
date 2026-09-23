@@ -5,7 +5,7 @@ from typing import List, Optional
 import os
 import uuid
 import shutil
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time, date
 
 from ..database import get_db
 from ..models.schema import Usuario, AdminSecretaria, Agendamento, LogAuditoria, Secretaria, FileStorage
@@ -65,6 +65,18 @@ def save_upload_file(upload_file: UploadFile, db_sql: Session) -> str:
     # Return relative path for frontend
     return f"api/files/{file_id}"
 
+
+def is_maquina_agendamento(secretaria_id: Optional[int], tipo: Optional[str], assunto: Optional[str], db_sql: Session) -> bool:
+    texto = f"{tipo or ''} {assunto or ''}".lower()
+    if any(k in texto for k in ["máquina", "maquina", "trator", "retroescavadeira", "patrulha mecanizada", "grade aradora", "silagem"]):
+        return True
+    if secretaria_id:
+        sec = db_sql.query(Secretaria).filter(Secretaria.id == secretaria_id).first()
+        if sec and any(k in (sec.nome or '').lower() for k in ["agricultura", "máquina", "maquina"]):
+            if any(k in texto for k in ["máquina", "maquina", "serviço de trator", "corte de terra"]):
+                return True
+    return False
+
 @router.post("", response_model=AgendamentoResponse)
 def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
     if getattr(current_user, "tipo_usuario_verificado", "") != "cidadao":
@@ -76,20 +88,39 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
     is_solicitacao_maquina = is_maquina_agendamento(agend.secretaria_id, agend.tipo, agend.assunto, db_sql)
 
     if agend.tipo == "Bolsa Família":
+        # Resolve secretaria_id automaticamente para Assistência Social se omitida
+        if not agend.secretaria_id or agend.secretaria_id == 0:
+            sec_bf = db_sql.query(Secretaria).filter(
+                func.lower(Secretaria.nome).like("%assist%social%") |
+                func.lower(Secretaria.nome).like("%social%") |
+                func.lower(Secretaria.nome).like("%bolsa%")
+            ).first()
+            if sec_bf:
+                agend.secretaria_id = sec_bf.id
+            else:
+                primeira_sec = db_sql.query(Secretaria).first()
+                if primeira_sec:
+                    agend.secretaria_id = primeira_sec.id
+
         # Limite de 15 senhas por dia para o Bolsa Família
         data_escolhida = agend.data_hora.date()
+        inicio_dia = datetime.combine(data_escolhida, time.min)
+        fim_dia = datetime.combine(data_escolhida, time.max)
+        
         agendamentos_dia = db_sql.query(Agendamento).filter(
             Agendamento.tipo == "Bolsa Família",
-            func.date(Agendamento.data_hora) == data_escolhida
+            Agendamento.data_hora >= inicio_dia,
+            Agendamento.data_hora <= fim_dia
         ).all()
         
-        count = len(agendamentos_dia)
+        agendamentos_ativos = [a for a in agendamentos_dia if (a.status or "").lower() != "cancelado"]
+        count = len(agendamentos_ativos)
         if count >= 15:
             raise HTTPException(status_code=400, detail="Limite diário de 15 agendamentos para Bolsa Família atingido para esta data.")
             
         data_hora_nova = agend.data_hora.replace(tzinfo=None)
-        for a in agendamentos_dia:
-            if a.status != "Cancelado":
+        for a in agendamentos_ativos:
+            if a.data_hora:
                 diff_segundos = abs((a.data_hora - data_hora_nova).total_seconds())
                 if diff_segundos < 1800:
                     raise HTTPException(
