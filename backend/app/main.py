@@ -222,10 +222,38 @@ def startup_db_init():
                 """))
                 conn.commit()
             except Exception as e: print(f"Error creating logs_invasao_seguranca table: {e}")
+
+            try:
+                conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS backups_banco (
+                    id SERIAL PRIMARY KEY,
+                    arquivo_nome VARCHAR(255) NOT NULL,
+                    file_storage_id VARCHAR(36),
+                    status VARCHAR(50) DEFAULT 'concluido',
+                    total_registros INTEGER DEFAULT 0,
+                    tamanho_kb FLOAT DEFAULT 0.0,
+                    detalhes TEXT,
+                    sms_enviado INTEGER DEFAULT 0,
+                    sms_status VARCHAR(255),
+                    tipo_execucao VARCHAR(50) DEFAULT 'agendado_diario',
+                    criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+                """))
+                conn.commit()
+            except Exception as e: print(f"Error creating backups_banco table: {e}")
+
+        # Iniciar Agendador Automático de Backups Diários em background
+        try:
+            asyncio.create_task(agendador_backup_automatico_task())
+        except Exception as e_bg:
+            print(f"Error starting backup scheduler: {e_bg}")
+
             
     except Exception as e: print(f"DB Init Error: {e}")
 
-from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users, agendamentos, admin_metrics, avisos, files, panico
+from .routes import auth, ocorrencias, secretarias, chat_ia, admin_users, agendamentos, admin_metrics, avisos, files, panico, admin_backup
+from .services.backup_service import agendador_backup_automatico_task
+import asyncio
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(files.router, prefix="/api/files", tags=["files"])
 app.include_router(ocorrencias.router, prefix="/api/ocorrencias", tags=["ocorrencias"])
@@ -236,6 +264,7 @@ app.include_router(agendamentos.router, prefix="/api/agendamentos", tags=["agend
 app.include_router(admin_metrics.router, prefix="/api/admin/metrics", tags=["admin_metrics"])
 app.include_router(avisos.router, prefix="/api/avisos", tags=["avisos"])
 app.include_router(panico.router, prefix="/api/panico", tags=["panico"])
+app.include_router(admin_backup.router, prefix="/api", tags=["admin_backup"])
 
 @app.get("/api/health")
 def health():

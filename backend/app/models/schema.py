@@ -267,3 +267,19 @@ class FileStorage(Base):
     content_type = Column(String(100), nullable=False)
     data = Column(LargeBinary, nullable=False)
     criado_em = Column(DateTime, default=get_brasilia_time)
+
+class BackupBanco(Base):
+    __tablename__ = "backups_banco"
+
+    id = Column(Integer, primary_key=True, index=True)
+    arquivo_nome = Column(String(255), nullable=False)
+    file_storage_id = Column(String(36), nullable=True) # ID no FileStorage para download
+    status = Column(String(50), default="concluido") # concluido, erro
+    total_registros = Column(Integer, default=0)
+    tamanho_kb = Column(Float, default=0.0)
+    detalhes = Column(Text, nullable=True) # Resumo em JSON: { "usuarios": 150, "agendamentos": 32, ... }
+    sms_enviado = Column(Integer, default=0) # 1=sim, 0=nao
+    sms_status = Column(String(255), nullable=True)
+    tipo_execucao = Column(String(50), default="agendado_diario") # agendado_diario, manual
+    criado_em = Column(DateTime, default=get_brasilia_time)
+

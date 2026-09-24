@@ -133,6 +133,9 @@ function setupSidebar() {
             <div class="nav-item" onclick="showSection('seguranca', this)">
                 <i class="fa-solid fa-shield-halved" style="color: #ef4444;"></i><span>Monitor de Segurança</span>
             </div>
+            <div class="nav-item" onclick="showSection('backups', this)">
+                <i class="fa-solid fa-database" style="color: #10b981;"></i><span>Backups do Banco</span>
+            </div>
             <div class="nav-item" onclick="showSection('avisos', this)">
                 <i class="fa-solid fa-bullhorn"></i><span>Mural de Avisos</span>
             </div>
@@ -186,7 +189,7 @@ function setupSidebar() {
 
 function showSection(sectionId, element) {
     // Role check for specific sections
-    let restricted = ['usuarios', 'auditoria', 'usuarios-todos', 'contabilidade', 'mapas', 'avisos', 'seguranca'];
+    let restricted = ['usuarios', 'auditoria', 'usuarios-todos', 'contabilidade', 'mapas', 'avisos', 'seguranca', 'backups'];
     
     const user = getUserInfo();
     const isInfra = user && user.secretaria_nome && user.secretaria_nome.toLowerCase().includes('infraestrutura');
@@ -239,6 +242,7 @@ function showSection(sectionId, element) {
         'seguranca': 'Monitor de Segurança & Ataques em Tempo Real',
         'avisos': 'Mural de Avisos',
         'password-resets': 'Senhas Solicitadas',
+        'backups': 'Relatório Diário & Backups do Banco',
         'gestao-panico': 'Gestão do Botão de Pânico'
     };
     document.getElementById('pageTitle').innerText = titles[sectionId] || 'Painel Administrativo';
@@ -273,6 +277,7 @@ function showSection(sectionId, element) {
     }
     if (sectionId === 'avisos') loadAvisosAdmin();
     if (sectionId === 'password-resets') loadPasswordResets();
+    if (sectionId === 'backups') loadBackupsData();
     if (sectionId === 'config') { refreshConfigUI(); toggleResetCard(); }
 
     // Close sidebar on mobile after selection
@@ -4770,3 +4775,291 @@ function copySecurityIP(ip) {
 }
 
 
+// =========================================================================
+// MÓDULO DE BACKUPS AUTOMÁTICOS & RELATÓRIO DIÁRIO DO BANCO DE DADOS
+// =========================================================================
+
+let currentBackupsList = [];
+
+async function loadBackupsData() {
+    const tableBody = document.getElementById('backupsTableBody');
+    if (tableBody) {
+        tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 2rem;"><i class="fa-solid fa-spinner fa-spin"></i> Carregando histórico de backups...</td></tr>';
+    }
+
+    try {
+        // 1. Carregar Estatísticas Resumidas
+        const resStats = await fetch(`${API_URL}/admin/backups/estatisticas`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (resStats.ok) {
+            const stats = await resStats.json();
+            renderBackupsStats(stats);
+        }
+
+        // 2. Carregar Lista de Backups
+        const resList = await fetch(`${API_URL}/admin/backups`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (resList.ok) {
+            const backups = await resList.json();
+            currentBackupsList = backups;
+            renderBackupsTable(backups);
+        } else {
+            if (tableBody) {
+                tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#ef4444; padding:2rem;">Erro ao carregar lista de backups.</td></tr>';
+            }
+        }
+    } catch (e) {
+        console.error("Erro ao carregar dados de backup:", e);
+        if (tableBody) {
+            tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:#ef4444; padding:2rem;">Erro de conexão ao carregar backups.</td></tr>';
+        }
+    }
+}
+
+function renderBackupsStats(stats) {
+    if (!stats) return;
+
+    const elTotal = document.getElementById('backupTotalHistorico');
+    if (elTotal) elTotal.innerText = stats.total_backups || 0;
+
+    const ultimo = stats.ultimo_backup;
+    const elUltimaData = document.getElementById('backupUltimaData');
+    const elUltimoStatus = document.getElementById('backupUltimoStatus');
+    const elTotalReg = document.getElementById('backupTotalRegistros');
+    const elSmsStatus = document.getElementById('backupSmsStatus');
+
+    if (ultimo) {
+        if (elUltimaData) elUltimaData.innerText = ultimo.data || "Nenhum";
+        if (elUltimoStatus) {
+            const isOk = (ultimo.status || '').toLowerCase() === 'concluido';
+            elUltimoStatus.innerHTML = isOk 
+                ? `<span style="color:#10b981; font-weight:600;"><i class="fa-solid fa-check-circle"></i> Concluído com Sucesso</span>`
+                : `<span style="color:#ef4444; font-weight:600;"><i class="fa-solid fa-triangle-exclamation"></i> Falha no Backup</span>`;
+        }
+        if (elTotalReg) elTotalReg.innerText = Number(ultimo.total_registros || 0).toLocaleString('pt-BR');
+        if (elSmsStatus) {
+            elSmsStatus.innerText = ultimo.sms_enviado ? "✅ Notificado via SMS" : "⚠️ Envio Pendente";
+        }
+    } else {
+        if (elUltimaData) elUltimaData.innerText = "Nenhum backup realizado";
+        if (elUltimoStatus) elUltimoStatus.innerText = "Execute o primeiro backup acima";
+        if (elTotalReg) elTotalReg.innerText = "0";
+    }
+}
+
+function renderBackupsTable(backups) {
+    const tableBody = document.getElementById('backupsTableBody');
+    if (!tableBody) return;
+
+    if (!backups || backups.length === 0) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+                    <i class="fa-solid fa-database" style="font-size: 2.5rem; margin-bottom: 1rem; color: #cbd5e1; display: block;"></i>
+                    Nenhum backup gerado ainda.<br>
+                    <button class="btn btn-primary btn-sm" onclick="executarBackupManual()" style="margin-top: 10px; background: #10b981; border-color: #10b981;">
+                        <i class="fa-solid fa-bolt"></i> Gerar Primeiro Backup Agora
+                    </button>
+                </td>
+            </tr>
+        `;
+        return;
+    }
+
+    let html = '';
+    backups.forEach(b => {
+        const isOk = (b.status || '').toLowerCase() === 'concluido';
+        const statusBadge = isOk 
+            ? `<span class="badge" style="background:#dcfce7; color:#166534; padding:4px 8px; border-radius:6px; font-weight:600;"><i class="fa-solid fa-check"></i> Sucesso</span>`
+            : `<span class="badge" style="background:#fee2e2; color:#991b1b; padding:4px 8px; border-radius:6px; font-weight:600;"><i class="fa-solid fa-times"></i> Erro</span>`;
+
+        const tipoLabel = (b.tipo_execucao === 'agendado_diario') 
+            ? `<span style="background:rgba(59, 130, 246, 0.1); color:#3b82f6; padding:3px 8px; border-radius:4px; font-size:0.8rem; font-weight:600;"><i class="fa-solid fa-clock"></i> Automático Diário</span>`
+            : `<span style="background:rgba(139, 92, 246, 0.1); color:#8b5cf6; padding:3px 8px; border-radius:4px; font-size:0.8rem; font-weight:600;"><i class="fa-solid fa-hand"></i> Manual (Painel)</span>`;
+
+        const smsBadge = b.sms_enviado 
+            ? `<span title="${b.sms_status || 'SMS enviado ao Admin'}" style="color:#10b981; font-size:0.85rem; display:inline-flex; align-items:center; gap:4px;"><i class="fa-solid fa-circle-check"></i> Enviado</span>`
+            : `<span title="${b.sms_status || 'Não enviado'}" style="color:#f59e0b; font-size:0.85rem; display:inline-flex; align-items:center; gap:4px;"><i class="fa-solid fa-clock"></i> Pendente</span>`;
+
+        const detalhesJsonEscaped = encodeURIComponent(JSON.stringify(b.detalhes || {}));
+
+        html += `
+            <tr>
+                <td style="font-weight:600; font-size:0.85rem; white-space:nowrap;">${b.criado_em || 'N/A'}</td>
+                <td>${tipoLabel}</td>
+                <td style="font-family:monospace; font-size:0.8rem; color:var(--text-muted); max-width:200px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${b.arquivo_nome}">${b.arquivo_nome}</td>
+                <td style="font-weight:700; color:#3b82f6;">${Number(b.total_registros || 0).toLocaleString('pt-BR')}</td>
+                <td style="font-size:0.85rem; color:var(--text-muted);">${b.tamanho_kb ? b.tamanho_kb + ' KB' : '-'}</td>
+                <td>${statusBadge}</td>
+                <td>${smsBadge}</td>
+                <td>
+                    <div style="display: flex; gap: 6px;">
+                        <button class="btn btn-sm btn-outline" onclick="downloadBackupFile(${b.id}, '${b.arquivo_nome}')" title="Baixar Cópia do Banco (JSON)" style="padding: 4px 8px; font-size: 0.8rem; color: #10b981; border-color: #10b981;">
+                            <i class="fa-solid fa-download"></i> Baixar
+                        </button>
+                        <button class="btn btn-sm btn-outline" onclick="verDetalhesBackup('${detalhesJsonEscaped}', '${b.arquivo_nome}', '${b.criado_em}', ${b.total_registros}, ${b.tamanho_kb})" title="Ver Resumo por Tabela" style="padding: 4px 8px; font-size: 0.8rem;">
+                            <i class="fa-solid fa-circle-info"></i> Detalhes
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    });
+
+    tableBody.innerHTML = html;
+}
+
+async function executarBackupManual() {
+    const btn = document.getElementById('btnExecutarBackup');
+    const originalText = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processando Backup...';
+    }
+
+    try {
+        Swal.fire({
+            title: 'Gerando Backup do Banco...',
+            html: 'Preservando cadastros, agendamentos, ocorrências e disparando SMS aos Administradores Gerais.',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const res = await fetch(`${API_URL}/admin/backups/executar`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+
+        if (res.ok) {
+            const data = await res.json();
+            Swal.fire({
+                icon: 'success',
+                title: 'Backup Concluído com Sucesso!',
+                html: `
+                    <div style="text-align: left; background: var(--bg-card); padding: 12px; border-radius: 8px; font-size: 0.9rem; border: 1px solid var(--border);">
+                        <p style="margin: 4px 0;"><b>Arquivo:</b> ${data.arquivo_nome}</p>
+                        <p style="margin: 4px 0;"><b>Total de Registros:</b> <span style="color:#10b981; font-weight:bold;">${data.total_registros}</span></p>
+                        <p style="margin: 4px 0;"><b>Tamanho:</b> ${data.tamanho_kb} KB</p>
+                        <p style="margin: 4px 0;"><b>Notificação SMS:</b> ${data.sms_status}</p>
+                    </div>
+                `,
+                confirmButtonColor: '#10b981',
+                confirmButtonText: 'OK, Perfeito'
+            });
+            loadBackupsData();
+        } else {
+            const err = await res.json().catch(() => ({}));
+            Swal.fire({
+                icon: 'error',
+                title: 'Erro ao Gerar Backup',
+                text: err.detail || 'Ocorreu um erro ao processar a cópia de segurança.'
+            });
+        }
+    } catch (e) {
+        console.error("Erro ao executar backup manual:", e);
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro de Conexão',
+            text: 'Não foi possível conectar ao servidor para gerar o backup.'
+        });
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+}
+
+async function downloadBackupFile(backupId, filename) {
+    try {
+        Swal.fire({
+            title: 'Baixando Backup...',
+            text: 'Aguarde enquanto o arquivo é transferido com segurança.',
+            allowOutsideClick: false,
+            didOpen: () => { Swal.showLoading(); }
+        });
+
+        const res = await fetch(`${API_URL}/admin/backups/${backupId}/download`, {
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+
+        if (res.ok) {
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename || `backup_${backupId}.json`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            Swal.close();
+        } else {
+            Swal.fire({
+                icon: 'error',
+                title: 'Falha no Download',
+                text: 'Não foi possível baixar o arquivo de backup selecionado.'
+            });
+        }
+    } catch (e) {
+        console.error("Erro ao baixar backup:", e);
+        Swal.fire({
+            icon: 'error',
+            title: 'Erro',
+            text: 'Erro de conexão ao baixar backup.'
+        });
+    }
+}
+
+function verDetalhesBackup(detalhesEncoded, arquivoNome, criadoEm, totalReg, tamanhoKb) {
+    try {
+        const detalhes = JSON.parse(decodeURIComponent(detalhesEncoded));
+        
+        let tabelasHtml = '';
+        const labelsMap = {
+            usuarios: 'Cidadãos Cadastrados',
+            secretarias: 'Secretarias Municipais',
+            admins_secretaria: 'Equipe de Sub-Admins',
+            ocorrencias: 'Ocorrências / Solicitações',
+            agendamentos: 'Agendamentos (Bolsa Família, etc.)',
+            avisos: 'Mural de Avisos',
+            logs_auditoria: 'Logs de Auditoria Administrativa',
+            logs_invasao: 'Logs do Firewall / Invasões',
+            logs_recuperacao_senha: 'Logs de Senhas Solicitadas',
+            logs_pwa: 'Instalações do App (PWA)'
+        };
+
+        for (const [k, v] of Object.entries(detalhes)) {
+            const nomeTabela = labelsMap[k] || k;
+            tabelasHtml += `
+                <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
+                    <span><i class="fa-solid fa-table" style="color:var(--text-muted); margin-right:6px;"></i> ${nomeTabela}</span>
+                    <strong style="color:#3b82f6;">${v}</strong>
+                </div>
+            `;
+        }
+
+        Swal.fire({
+            title: 'Detalhes da Cópia de Segurança',
+            html: `
+                <div style="text-align:left;">
+                    <p style="font-size:0.85rem; color:var(--text-muted); margin-bottom:10px;">
+                        <b>Arquivo:</b> ${arquivoNome}<br>
+                        <b>Gerado em:</b> ${criadoEm}<br>
+                        <b>Tamanho Total:</b> ${tamanhoKb} KB | <b>Total de Registros:</b> ${totalReg}
+                    </p>
+                    <h5 style="margin:10px 0 6px 0; font-size:0.9rem; color:var(--text-primary);"><i class="fa-solid fa-database"></i> Registros por Tabela:</h5>
+                    <div style="background:var(--bg-card); padding:10px; border-radius:8px; border:1px solid var(--border); max-height:220px; overflow-y:auto;">
+                        ${tabelasHtml || '<p style="color:var(--text-muted);">Sem detalhes disponíveis.</p>'}
+                    </div>
+                </div>
+            `,
+            confirmButtonColor: '#3b82f6',
+            confirmButtonText: 'Fechar'
+        });
+    } catch (e) {
+        console.error("Erro ao abrir detalhes do backup:", e);
+    }
+}
