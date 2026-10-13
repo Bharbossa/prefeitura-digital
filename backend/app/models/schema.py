@@ -280,6 +280,6 @@ class BackupBanco(Base):
     detalhes = Column(Text, nullable=True) # Resumo em JSON: { "usuarios": 150, "agendamentos": 32, ... }
     sms_enviado = Column(Integer, default=0) # 1=sim, 0=nao
     sms_status = Column(String(255), nullable=True)
-    tipo_execucao = Column(String(50), default="agendado_diario") # agendado_diario, manual
+    tipo_execucao = Column(String(50), default="agendado_semanal") # agendado_semanal, manual
     criado_em = Column(DateTime, default=get_brasilia_time)
 

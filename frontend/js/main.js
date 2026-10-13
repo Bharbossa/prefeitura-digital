@@ -365,39 +365,7 @@ window.addEventListener('beforeinstallprompt', (e) => {
 
 // Função para disparar a instalação (suporte completo a iOS e Android com estimativa)
 function promptPWAInstall() {
-    const user = getUserInfo();
-    const token = getToken();
-
-    // Bloqueia a instalação para usuários não cadastrados/não logados (proíbe anônimos)
-    if (!user || !token) {
-        if (typeof Swal !== 'undefined') {
-            Swal.fire({
-                title: 'Cadastro Necessário!',
-                html: `
-                    <div style="font-size: 1.05rem; line-height: 1.6; color: #334155; padding: 10px 0;">
-                        Para baixar o aplicativo <b>Colônia Digital</b>, é necessário fazer login ou criar seu cadastro de cidadão primeiro.
-                    </div>
-                `,
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonText: '<i class="fa-solid fa-user-plus"></i> Criar Cadastro',
-                cancelButtonText: '<i class="fa-solid fa-right-to-bracket"></i> Fazer Login',
-                confirmButtonColor: '#2563eb',
-                cancelButtonColor: '#004D40'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    window.location.href = 'register.html';
-                } else if (result.dismiss === Swal.DismissReason.cancel) {
-                    window.location.href = 'login.html';
-                }
-            });
-        } else {
-            alert("Cadastro Necessário!\nPara baixar o aplicativo Colônia Digital, é necessário fazer login ou criar seu cadastro de cidadão primeiro.");
-            window.location.href = 'register.html';
-        }
-        return;
-    }
-
+    const user = getUserInfo() || {};
     const userAgent = window.navigator.userAgent.toLowerCase();
     const isIOS = /iphone|ipad|ipod/.test(userAgent);
     const isStandalone = window.navigator.standalone === true || window.matchMedia('(display-mode: standalone)').matches;

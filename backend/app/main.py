@@ -235,14 +235,14 @@ def startup_db_init():
                     detalhes TEXT,
                     sms_enviado INTEGER DEFAULT 0,
                     sms_status VARCHAR(255),
-                    tipo_execucao VARCHAR(50) DEFAULT 'agendado_diario',
+                    tipo_execucao VARCHAR(50) DEFAULT 'agendado_semanal',
                     criado_em TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
                 """))
                 conn.commit()
             except Exception as e: print(f"Error creating backups_banco table: {e}")
 
-        # Iniciar Agendador Automático de Backups Diários em background
+        # Iniciar Agendador Automático de Backups Semanais em background
         try:
             asyncio.create_task(agendador_backup_automatico_task())
         except Exception as e_bg:

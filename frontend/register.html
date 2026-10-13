@@ -7,6 +7,10 @@
     <title>Cadastro - Colônia Digital</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
     <!-- PWA -->
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1e3a8a">
@@ -164,18 +168,20 @@
             const bairro = document.getElementById('bairro').value.trim();
             const fullAddress = (rua && bairro) ? `${rua}, ${bairro}` : (rua || bairro);
 
+            const cleanCpf = document.getElementById('cpf').value.replace(/\D/g, '').trim();
+            const cleanTel = document.getElementById('telefone').value.replace(/\D/g, '').trim();
+            const cleanWsp = document.getElementById('whatsapp').value.replace(/\D/g, '').trim();
+
             const data = {
                 nome: document.getElementById('nome').value.trim(),
-                cpf: document.getElementById('cpf').value.trim(),
-                email: document.getElementById('email').value.trim(),
-                telefone: document.getElementById('telefone').value.trim(),
-                whatsapp: document.getElementById('whatsapp').value.trim(),
+                cpf: cleanCpf,
+                email: document.getElementById('email').value.trim().toLowerCase(),
+                telefone: cleanTel,
+                whatsapp: cleanWsp || cleanTel,
                 endereco: fullAddress,
                 genero: document.getElementById('genero').value,
                 senha: senha
             };
-
-            const errorMsg = document.getElementById('errorMsg');
 
             try {
                 const response = await fetch(`${API_URL}/auth/register`, {
@@ -185,15 +191,27 @@
                 });
 
                 if (response.ok) {
-                    alert('Cadastro realizado com sucesso! Sua conta agora passará por uma análise administrativa. Você poderá fazer login assim que for aprovado.');
-                    window.location.href = 'login.html';
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Usuário cadastrado com sucesso',
+                        html: '<p style="color: var(--text-secondary); margin-top: 10px;">Sua conta foi criada! Você já pode acessar a plataforma utilizando seu E-mail/CPF e Senha.</p>',
+                        confirmButtonColor: '#10b981',
+                        confirmButtonText: '<i class="fa-solid fa-arrow-right-to-bracket"></i> Ir para o Login'
+                    }).then(() => {
+                        window.location.href = 'login.html';
+                    });
                 } else {
-                    const errorData = await response.json();
-                    errorMsg.innerText = errorData.detail || "Erro no cadastro.";
+                    const errorData = await response.json().catch(() => ({}));
+                    let detailMsg = errorData.detail || "Erro ao realizar o cadastro.";
+                    if (Array.isArray(detailMsg)) {
+                        detailMsg = detailMsg.map(d => d.msg || d.detail).join(', ');
+                    }
+                    errorMsg.innerText = detailMsg;
                     errorMsg.style.display = "block";
                 }
             } catch (err) {
-                errorMsg.innerText = "Erro ao conectar ao servidor.";
+                console.error("Erro no cadastro:", err);
+                errorMsg.innerText = "Erro ao conectar ao servidor. Verifique sua conexão.";
                 errorMsg.style.display = "block";
             }
         });

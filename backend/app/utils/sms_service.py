@@ -150,29 +150,79 @@ def send_password_sms(phone: str, password: str):
     
     return False
 
+def get_gcm_subadmins_and_admins(db, secretaria_id: int = None):
+    """
+    Returns a set of unique phone numbers for all Guarda Municipal subadmins,
+    specific GCM emails, and General Administrators.
+    """
+    from app.models.schema import AdminSecretaria, Secretaria, Usuario, TipoUsuario
+    from sqlalchemy import or_, func
+
+    dest_phones = set()
+
+    is_gcm = False
+    if secretaria_id in [16, 17] or secretaria_id is None:
+        is_gcm = True
+    elif secretaria_id:
+        sec = db.query(Secretaria).filter(Secretaria.id == secretaria_id).first()
+        if sec and any(k in (sec.nome or "").lower() for k in ["guarda", "patrulha", "mulher", "seguran"]):
+            is_gcm = True
+
+    gcm_allowed_emails = [
+        "patrulhamariadapenha.gcm.clp@gmail.com",
+        "guardamunicipalcolonia@gmail.com",
+        "daniel.carlos16@hotmail.com",
+        "wilsongleidson@hotmail.com",
+        "gameprf88@gmail.com",
+        "ezequias_fernandes@outlook.com.br"
+    ]
+
+    if is_gcm:
+        subadmins = db.query(AdminSecretaria).outerjoin(Secretaria).filter(
+            or_(
+                AdminSecretaria.secretaria_id.in_([16, 17]),
+                func.lower(Secretaria.nome).like("%guarda%"),
+                func.lower(Secretaria.nome).like("%patrulha%"),
+                func.lower(Secretaria.nome).like("%mulher%"),
+                func.lower(Secretaria.nome).like("%seguran%"),
+                func.lower(AdminSecretaria.email).in_([e.lower() for e in gcm_allowed_emails])
+            )
+        ).all()
+    else:
+        subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
+
+    for sa in subadmins:
+        if sa.telefone:
+            dest_phones.add(sa.telefone)
+
+    if is_gcm:
+        global_admins = db.query(Usuario).filter(
+            or_(
+                Usuario.tipo_usuario == TipoUsuario.admin,
+                Usuario.tipo_usuario == "admin"
+            )
+        ).all()
+        for ga in global_admins:
+            if ga.telefone:
+                dest_phones.add(ga.telefone)
+            if getattr(ga, 'whatsapp', None):
+                dest_phones.add(ga.whatsapp)
+
+    return dest_phones
+
 def notify_subadmins_background(secretaria_id: int, message: str):
     from app.database import SessionLocal
-    from app.models.schema import AdminSecretaria
-    from sqlalchemy import or_
     db = SessionLocal()
     try:
-        if secretaria_id == 17:
-            subadmins = db.query(AdminSecretaria).filter(
-                or_(AdminSecretaria.secretaria_id == secretaria_id, 
-                    AdminSecretaria.email == "patrulhamariadapenha.gcm.clp@gmail.com")
-            ).all()
-        else:
-            subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
-            
         if secretaria_id == 22:
             custom_msg = "COLÔNIA DIGITAL: Cadastro unico! Existe uma nova solicitação de serviço!"
         else:
             custom_msg = message
             
-        for sub in subadmins:
-            phone = getattr(sub, 'telefone', None)
-            if phone:
-                send_status_sms(phone, custom_msg)
+        dest_phones = get_gcm_subadmins_and_admins(db, secretaria_id)
+        for phone in sorted(list(dest_phones)):
+            send_status_sms(phone, custom_msg)
+            time.sleep(0.5)
     except Exception as e:
         logger.error(f"Erro em notify_subadmins_background: {e}")
     finally:
@@ -180,30 +230,15 @@ def notify_subadmins_background(secretaria_id: int, message: str):
 
 def notify_subadmins_voice_background(secretaria_id: int, message: str):
     """
-    Sends a voice call in the background to all subadmins of a given secretaria.
+    Sends a voice call in the background to all subadmins of Guarda Municipal / Patrulha / Segurança AND General Administrator.
     """
     from app.database import SessionLocal
-    from app.models.schema import AdminSecretaria
-    from sqlalchemy import or_
     db = SessionLocal()
     try:
-        if secretaria_id == 17:
-            subadmins = db.query(AdminSecretaria).filter(
-                or_(AdminSecretaria.secretaria_id == secretaria_id, 
-                    AdminSecretaria.email == "patrulhamariadapenha.gcm.clp@gmail.com")
-            ).all()
-        else:
-            subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
-            
-        if secretaria_id == 22:
-            custom_msg = "COLÔNIA DIGITAL: Cadastro unico! Existe uma nova solicitação de serviço!"
-        else:
-            custom_msg = message
-            
-        for sub in subadmins:
-            phone = getattr(sub, 'telefone', None)
-            if phone:
-                make_voice_call(phone, custom_msg)
+        dest_phones = get_gcm_subadmins_and_admins(db, secretaria_id)
+        for phone in sorted(list(dest_phones)):
+            make_voice_call(phone, message)
+            time.sleep(0.5)
     except Exception as e:
         logger.error(f"Erro em notify_subadmins_voice_background: {e}")
     finally:

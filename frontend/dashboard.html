@@ -133,6 +133,7 @@
             <button class="btn tab-btn" onclick="selecionarAba('viagens')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-bus"></i> Viagens</button>
             <button class="btn tab-btn" onclick="selecionarAba('bolsafamilia')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-hands-holding-child"></i> Bolsa Família</button>
             <button class="btn tab-btn" onclick="selecionarAba('maquinas')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-tractor"></i> Máquinas Agrícolas</button>
+            <button class="btn tab-btn" onclick="redirecionarColoniaPrev()" style="background: rgba(16, 185, 129, 0.15); color: #10b981; border: 1px solid #10b981; border-radius: 20px; white-space: nowrap; font-weight: 600;"><i class="fa-solid fa-file-invoice-dollar"></i> Contracheque ColôniaPrev</button>
             <!-- <button class="btn tab-btn" onclick="selecionarAba('concursos')" style="background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); border-radius: 20px; white-space: nowrap;"><i class="fa-solid fa-trophy"></i> Concursos</button> -->
         </div>
 
@@ -155,6 +156,9 @@
             </button>
             <button id="btn-nova-maquina" class="btn btn-primary action-btn" style="background: #8b5cf6; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalMaquinas()">
                 <i class="fa-solid fa-tractor"></i> Máquinas Agrícolas
+            </button>
+            <button id="btn-coloniaprev" class="btn btn-primary action-btn" style="background: #10b981; flex: 1; min-width: 160px; max-width: 240px; font-weight: 700;" onclick="redirecionarColoniaPrev()">
+                <i class="fa-solid fa-file-invoice-dollar"></i> Contracheque ColôniaPrev
             </button>
             <!-- <button id="btn-novo-concurso" class="btn btn-primary action-btn" style="background: #a855f7; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalConcursos()">
                 <i class="fa-solid fa-trophy"></i> Concursos
@@ -2954,18 +2958,43 @@
         }
 
         async function acionarBotaoPanico() {
-            const pontoReferencia = document.getElementById('pontoReferenciaPanico').value;
+            const pontoReferencia = (document.getElementById('pontoReferenciaPanico')?.value || '').trim();
             Swal.fire({
-                title: 'Atenção',
-                text: "Realmente precisa de ajuda?",
+                title: '🚨 CONFIRMAÇÃO DE SOCORRO',
+                html: '<p style="color:#b91c1c; font-weight:bold;">Você realmente precisa do envio imediato da Guarda Municipal / Patrulha Maria da Penha?</p><small style="color:#64748b;">Sua localização e dados serão enviados em tempo real para a viatura mais próxima.</small>',
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#ef4444',
                 cancelButtonColor: '#6b7280',
-                confirmButtonText: 'Sim',
-                cancelButtonText: 'Não'
+                confirmButtonText: '🚨 SIM, PEDIR SOCORRO AGORA!',
+                cancelButtonText: 'Cancelar'
             }).then(async (result) => {
                 if (result.isConfirmed) {
+                    Swal.fire({
+                        title: 'Disparando Alerta de Emergência...',
+                        html: 'Obtendo localização e notificando a Guarda Municipal...',
+                        allowOutsideClick: false,
+                        didOpen: () => { Swal.showLoading(); }
+                    });
+
+                    // Tenta capturar geolocalização exata
+                    let latitude = null;
+                    let longitude = null;
+                    
+                    if (navigator.geolocation) {
+                        try {
+                            const pos = await new Promise((resolve) => {
+                                navigator.geolocation.getCurrentPosition(resolve, () => resolve(null), { timeout: 3500, enableHighAccuracy: true });
+                            });
+                            if (pos && pos.coords) {
+                                latitude = pos.coords.latitude;
+                                longitude = pos.coords.longitude;
+                            }
+                        } catch(geoErr) {
+                            console.warn("Geolocalização não disponível:", geoErr);
+                        }
+                    }
+
                     try {
                         const res = await fetch(`${API_URL}/panico`, {
                             method: 'POST',
@@ -2973,22 +3002,35 @@
                                 'Authorization': `Bearer ${getToken()}`,
                                 'Content-Type': 'application/json'
                             },
-                            body: JSON.stringify({ ponto_referencia: pontoReferencia })
+                            body: JSON.stringify({ 
+                                ponto_referencia: pontoReferencia,
+                                latitude: latitude,
+                                longitude: longitude
+                            })
                         });
                         if (res.ok) {
+                            const resData = await res.json().catch(() => ({}));
                             Swal.fire({
                                 icon: 'success', 
-                                title: 'ALERTA ENVIADO!', 
-                                text: 'A Guarda Municipal foi acionada com sucesso. Mantenha a calma, o socorro está a caminho.',
-                                confirmButtonColor: '#22c55e'
+                                title: '🚨 ALERTA TRANSMITIDO COM SUCESSO!', 
+                                html: `
+                                    <div style="background:#fef2f2; border:1px solid #f87171; border-radius:8px; padding:12px; text-align:left; color:#991b1b; font-size:0.9rem;">
+                                        <p style="margin:4px 0;"><b>Protocolo:</b> ${resData.protocolo || 'GCM-SOCORRO'}</p>
+                                        <p style="margin:4px 0;"><b>Status:</b> Viatura e Patrulha Maria da Penha acionadas.</p>
+                                        <p style="margin:4px 0;"><b>Orientações:</b> Permaneça em local seguro. O socorro está a caminho!</p>
+                                    </div>
+                                `,
+                                confirmButtonColor: '#16a34a',
+                                confirmButtonText: 'OK, Entendido'
                             });
-                            document.getElementById('pontoReferenciaPanico').value = '';
+                            const refInput = document.getElementById('pontoReferenciaPanico');
+                            if (refInput) refInput.value = '';
                         } else {
-                            const err = await res.json();
+                            const err = await res.json().catch(() => ({}));
                             Swal.fire('Erro', err.detail || 'Falha ao acionar.', 'error');
                         }
                     } catch(e) {
-                        Swal.fire('Erro de Conexão', 'Falha ao enviar alerta de pânico.', 'error');
+                        Swal.fire('Erro de Conexão', 'Falha ao enviar alerta de pânico. Tente novamente ou ligue 190 / Guarda Municipal.', 'error');
                     }
                 }
             });
@@ -2997,6 +3039,24 @@
         // Executar checagem na inicialização do painel
         setTimeout(checkPanicoAuth, 500);
 
+        function redirecionarColoniaPrev() {
+            Swal.fire({
+                title: 'Redirecionando para o Portal ColôniaPrev...',
+                html: 'Você será transferido com segurança para o Portal de Contracheques do Servidor.<br><br><small style="color: var(--text-muted);">https://www.supridata-al.com.br/contracheques/acesso.php</small>',
+                icon: 'info',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: '<i class="fa-solid fa-arrow-up-right-from-square"></i> Acessar Agora',
+                cancelButtonText: 'Cancelar',
+                timer: 4000,
+                timerProgressBar: true
+            }).then((result) => {
+                if (result.isConfirmed || result.dismiss === Swal.DismissReason.timer) {
+                    window.open('https://www.supridata-al.com.br/contracheques/acesso.php', '_blank');
+                }
+            });
+        }
     </script>
 
     <footer class="footer">

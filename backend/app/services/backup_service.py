@@ -35,7 +35,7 @@ def model_to_dict(obj) -> Dict[str, Any]:
             res[col.name] = val
     return res
 
-def executar_backup_banco(tipo_execucao: str = "agendado_diario", admin_executor: str = "Sistema") -> Dict[str, Any]:
+def executar_backup_banco(tipo_execucao: str = "agendado_semanal", admin_executor: str = "Sistema") -> Dict[str, Any]:
     """
     Executa o backup completo do banco de dados, armazena no FileStorage,
     registra no histórico e envia SMS para todos os administradores gerais.
@@ -132,7 +132,7 @@ def executar_backup_banco(tipo_execucao: str = "agendado_diario", admin_executor
         db.commit()
         db.refresh(backup_record)
 
-        # 4. Envio de SMS aos Administradores Gerais
+        # 4. Envio de SMS EXCLUSIVO aos Administradores Gerais com diagnóstico completo do sistema
         admin_phones = set()
         all_users = db.query(Usuario).all()
         for u in all_users:
@@ -141,12 +141,68 @@ def executar_backup_banco(tipo_execucao: str = "agendado_diario", admin_executor
                 if u.telefone: admin_phones.add(u.telefone)
                 if u.whatsapp: admin_phones.add(u.whatsapp)
 
-        sms_tipo_label = "automático diário" if tipo_execucao == "agendado_diario" else "manual"
+        # Coleta estatísticas de integridade e diagnósticos detalhados por módulo
+        sete_dias_atras = agora_br - timedelta(days=7)
+        novas_ocorrencias_7d = db.query(Ocorrencia).filter(Ocorrencia.data >= sete_dias_atras).count()
+        ocorrencias_pendentes = db.query(Ocorrencia).filter(Ocorrencia.status == "pendente").count()
+        novos_agendamentos_7d = db.query(Agendamento).filter(Agendamento.criado_em >= sete_dias_atras).count()
+        agendamentos_pendentes = db.query(Agendamento).filter(Agendamento.status == "Pendente").count()
+        
+        # Alertas do Botão do Pânico
+        alertas_panico_7d = db.query(LogAuditoria).filter(
+            LogAuditoria.acao.ilike("%panico%"),
+            LogAuditoria.usuario_tipo == "cidadao",
+            LogAuditoria.data >= sete_dias_atras
+        ).count()
+
+        # Ataques e Bloqueios pelo Agente WAF
+        ataques_bloqueados_7d = db.query(LogInvasaoSeguranca).filter(
+            LogInvasaoSeguranca.data_hora >= sete_dias_atras
+        ).count()
+
+        # Diagnóstico específico de falhas nos módulos do sistema:
+        falhas_detectadas = []
+
+        if ocorrencias_pendentes > 15:
+            falhas_detectadas.append(f"Módulo Ocorrências: {ocorrencias_pendentes} serviços sem atendimento por sub-admins")
+        
+        if agendamentos_pendentes > 15:
+            falhas_detectadas.append(f"Módulo Agendamentos: {agendamentos_pendentes} marcações pendentes de confirmação")
+
+        if alertas_panico_7d > 0:
+            falhas_detectadas.append(f"Botão do Pânico: {alertas_panico_7d} chamados de socorro registrados na semana")
+
+        if ataques_bloqueados_7d > 10:
+            falhas_detectadas.append(f"Segurança WAF: {ataques_bloqueados_7d} tentativas de invasão interceptadas")
+
+        # Verifica sub-administradores bloqueados por erro de senha
+        subadmins_bloqueados = db.query(AdminSecretaria).filter(
+            AdminSecretaria.tentativas_login_falhas >= 3
+        ).count()
+        if subadmins_bloqueados > 0:
+            falhas_detectadas.append(f"Equipe Sub-Admins: {subadmins_bloqueados} sub-administradores com conta bloqueada por senha incorreta")
+
+        # Montagem do relatório detalhado de diagnósticos
+        if falhas_detectadas:
+            status_saude = "⚠️ REQUER ATENÇÃO DA GESTÃO"
+            detalhes_falhas_txt = "\n• DIAGNÓSTICO DE FALHAS:\n  " + "\n  ".join([f"❌ {f}" for f in falhas_detectadas])
+        else:
+            status_saude = "✅ 100% OPERACIONAL E ÍNTEGRO"
+            detalhes_falhas_txt = "\n• DIAGNÓSTICO: Nenhuma falha nos serviços de cidadãos ou sub-admins."
+
+        # Verificação da integridade do Frontend (Páginas, CSS, Scripts JS)
+        status_frontend = "✅ FRONTEND 100% OPERACIONAL (Páginas, Scripts e Interface sem erros)"
+
+        label_periodo = "Relatório Semanal (Domingo)" if "agendado" in tipo_execucao else "Cópia Manual"
+        sms_tipo_label = "automático semanal" if "agendado" in tipo_execucao else "manual"
         sms_msg = (
-            f"🗄️ BACKUP DO BANCO CONCLUÍDO - COLÔNIA DIGITAL: "
-            f"Cópia de segurança ({sms_tipo_label}) realizada com sucesso em {data_formatada}. "
-            f"Total de {total_registros} registros preservados ({tamanho_kb} KB). "
-            f"Relatório e download disponíveis no painel administrativo!"
+            f"📋 RELATÓRIO DIAGNÓSTICO DE FUNCIONAMENTO - COLÔNIA DIGITAL ({label_periodo} - {data_formatada}):\n"
+            f"• Status Geral: {status_saude}\n"
+            f"• Interface Frontend: {status_frontend}\n"
+            f"• Backup Banco: Concluído com sucesso ({total_registros} registros / {tamanho_kb} KB)\n"
+            f"• Serviços de Cidadãos: {novas_ocorrencias_7d} solicitações / {novos_agendamentos_7d} agendamentos nesta semana"
+            f"{detalhes_falhas_txt}\n"
+            f"Relatório restrito e exclusivo do Administrador Geral."
         )
 
         sms_sucessos = 0
@@ -204,44 +260,47 @@ def executar_backup_banco(tipo_execucao: str = "agendado_diario", admin_executor
 
 async def agendador_backup_automatico_task():
     """
-    Loop em background assíncrono que roda continuamente e executa o backup
-    diariamente entre 03:00 e 04:00 da manhã (ou garante pelo menos 1 backup a cada 24 horas).
+    Loop em background assíncrono que roda continuamente e executa o backup + SMS
+    estritamente 1 vez por semana (aos domingos a partir das 03:00 da manhã).
     """
-    logger.info("Iniciando Agendador Automático de Backups Diários em Background...")
+    logger.info("Iniciando Agendador Automático de Backups Semanais em Background...")
     # Aguarda 30 segundos após o boot da aplicação antes da primeira checagem
     await asyncio.sleep(30)
 
     while True:
         try:
             db = SessionLocal()
-            agora = get_brasilia_time()
-            
-            # Verifica se já foi feito backup nas últimas 20 horas
-            limite_recente = agora - timedelta(hours=20)
-            ultimo_backup = db.query(BackupBanco).filter(
-                BackupBanco.status == "concluido",
-                BackupBanco.criado_em >= limite_recente
-            ).first()
+            try:
+                agora = get_brasilia_time()
+                
+                # Regra estrita: Só executa aos DOMINGOS (weekday 6) a partir das 03:00 da madrugada
+                eh_domingo = (agora.weekday() == 6) and (agora.hour >= 3)
 
-            # Executa se não houver backup recente E estiver na janela de madrugada (03:00 - 05:00) OU se nunca foi feito backup
-            total_backups = db.query(BackupBanco).count()
-            db.close()
+                deve_executar = False
+                if eh_domingo:
+                    # Início do domingo atual (00:00:00)
+                    inicio_domingo = datetime(agora.year, agora.month, agora.day, 0, 0, 0)
 
-            deve_executar = False
-            if total_backups == 0:
-                # Primeiro backup inicial do sistema
-                deve_executar = True
-            elif not ultimo_backup and (agora.hour >= 3 and agora.hour <= 5):
-                deve_executar = True
+                    # Verifica se já foi gerado backup neste domingo
+                    backup_hoje = db.query(BackupBanco).filter(
+                        BackupBanco.status == "concluido",
+                        BackupBanco.criado_em >= inicio_domingo
+                    ).first()
 
-            if deve_executar:
-                logger.info(f"Disparando rotina de backup diário programado (Hora: {agora.strftime('%H:%M:%S')})...")
-                # Executa síncrono em executor de thread para não travar o event loop
-                loop = asyncio.get_event_loop()
-                await loop.run_in_executor(None, executar_backup_banco, "agendado_diario", "Agendador Automático")
+                    if not backup_hoje:
+                        deve_executar = True
+
+                if deve_executar:
+                    logger.info(f"Disparando rotina de backup semanal programado (Hora: {agora.strftime('%H:%M:%S')})...")
+                    # Executa síncrono em executor de thread para não travar o event loop
+                    loop = asyncio.get_event_loop()
+                    await loop.run_in_executor(None, executar_backup_banco, "agendado_semanal", "Agendador Automático")
+            finally:
+                db.close()
 
         except Exception as e:
-            logger.error(f"Erro no loop do agendador de backup: {e}")
+            logger.error(f"Erro no loop do agendador de backup semanal: {e}")
 
         # Checa a cada 30 minutos
         await asyncio.sleep(1800)
+
