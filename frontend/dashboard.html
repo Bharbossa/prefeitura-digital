@@ -2360,7 +2360,7 @@
                                      const assuntoStr = (a.assunto || '').toLowerCase();
                                      const secStr = (secretariaNomeStr || '').toLowerCase();
                                      const isViagem = tipoStr.includes('viagem') || tipoStr.includes('marcação de viagem') || assuntoStr.includes('viagem');
-                                     const isGaragem = secStr.includes('garagem') || a.secretaria_id == 22 || isViagem;
+                                     const isGaragem = secStr.includes('garagem') || a.secretaria_id == 22 || a.secretaria_id == 24 || isViagem;
                                      const isMaquina = tipoStr.includes('máquina') || tipoStr.includes('maquina') || tipoStr.includes('trator') || tipoStr.includes('açude') || tipoStr.includes('estrada') || assuntoStr.includes('maquina') || assuntoStr.includes('máquina') || assuntoStr.includes('trator') || assuntoStr.includes('arado') || assuntoStr.includes('açude') || assuntoStr.includes('barreiro');
                                      const isAgricultura = secStr.includes('agricultura') || isMaquina;
                                      const isConfirmado = a.status && a.status.toLowerCase() === 'confirmado';

@@ -871,6 +871,12 @@ async function loadRecentActivity() {
                 listAgendamentos = listAgendamentos.filter(a => (a.assunto && a.assunto.toUpperCase().includes('ACIOLY')) || (a.posto && a.posto.toUpperCase().includes('ACIOLY')));
             } else if (userInfo && userInfo.email === 'vanuzasoares667@gmail.com') {
                 listAgendamentos = listAgendamentos.filter(a => (a.assunto && (a.assunto.toUpperCase().includes('POSTO CENTRO') || a.assunto.toUpperCase().includes('PSF 02'))) || (a.posto && (a.posto.toUpperCase().includes('CENTRO') || a.posto.toUpperCase().includes('PSF 02'))));
+            } else if (userInfo && (userInfo.email === 'sbarros.joaolucas@gmail.com' || currentSecId == 24 || (userInfo.secretaria_nome && userInfo.secretaria_nome.toLowerCase().includes('garagem')))) {
+                listAgendamentos = listAgendamentos.filter(a => {
+                    const t = (a.tipo || '').toLowerCase();
+                    const s = (a.assunto || '').toLowerCase();
+                    return parseInt(a.secretaria_id) === 24 || parseInt(a.secretaria_id) === parseInt(currentSecId) || t.includes('viagem') || s.includes('viagem');
+                });
             } else if (currentSecId) {
                 listAgendamentos = listAgendamentos.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
             }
@@ -1328,6 +1334,12 @@ async function loadAgendamentos() {
                 list = list.filter(a => (a.assunto && a.assunto.toUpperCase().includes('ACIOLY')) || (a.posto && a.posto.toUpperCase().includes('ACIOLY')));
             } else if (userInfo && userInfo.email === 'vanuzasoares667@gmail.com') {
                 list = list.filter(a => (a.assunto && (a.assunto.toUpperCase().includes('POSTO CENTRO') || a.assunto.toUpperCase().includes('PSF 02'))) || (a.posto && (a.posto.toUpperCase().includes('CENTRO') || a.posto.toUpperCase().includes('PSF 02'))));
+            } else if (userInfo && (userInfo.email === 'sbarros.joaolucas@gmail.com' || currentSecId == 24 || (userInfo.secretaria_nome && userInfo.secretaria_nome.toLowerCase().includes('garagem')))) {
+                list = list.filter(a => {
+                    const t = (a.tipo || '').toLowerCase();
+                    const s = (a.assunto || '').toLowerCase();
+                    return parseInt(a.secretaria_id) === 24 || parseInt(a.secretaria_id) === parseInt(currentSecId) || t.includes('viagem') || s.includes('viagem');
+                });
             } else if (currentSecId) {
                 list = list.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
             }
@@ -1339,10 +1351,11 @@ async function loadAgendamentos() {
                 return;
             }
 
-            let html = `<table class="data-table"><thead><tr><th>Protocolo</th><th>Senha</th><th>Assunto</th><th>Cidadão</th><th>Data/Hora</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
+            let html = `<table class="data-table"><thead><tr><th>Protocolo</th><th>Senha</th><th>Assunto / Destino</th><th>Cidadão</th><th>Data/Hora</th><th>Status</th><th>Ações</th></tr></thead><tbody>`;
             list.forEach(a => {
                 const s = a.status.toLowerCase();
                 const isEmergencia = a.assunto && a.assunto.includes('EMERGÊNCIA');
+                const isViagem = (a.tipo && a.tipo.toLowerCase().includes('viagem')) || (a.assunto && a.assunto.toLowerCase().includes('viagem'));
                 
                 let anexosButtons = '';
                 if (a.anexo) {
@@ -1358,7 +1371,11 @@ async function loadAgendamentos() {
                     });
                 }
 
-                const assuntoLabel = isEmergencia ? `<span style="background-color: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; display: inline-block; animation: pulse 2s infinite; margin-right: 5px;"><i class="fa-solid fa-truck-medical"></i> EMERGÊNCIA</span> ${a.assunto}` : a.assunto;
+                let assuntoLabel = isEmergencia ? `<span style="background-color: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; display: inline-block; animation: pulse 2s infinite; margin-right: 5px;"><i class="fa-solid fa-truck-medical"></i> EMERGÊNCIA</span> ${a.assunto}` : a.assunto;
+                if (isViagem) {
+                    assuntoLabel = `<span style="background: rgba(37, 99, 235, 0.12); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.3); padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; margin-right: 5px;"><i class="fa-solid fa-bus"></i> VIAGEM</span> <strong>${a.assunto}</strong>`;
+                }
+
                 const rowClass = isEmergencia ? 'class="emergency-row"' : '';
 
                 html += `
@@ -1367,7 +1384,8 @@ async function loadAgendamentos() {
                         <td><span style="font-weight: bold; color: var(--primary);">${a.senha || '---'}</span></td>
                         <td>
                             ${assuntoLabel}
-                            ${a.motivo ? `<div style="font-size: 0.8rem; color: #ef4444; margin-top: 4px; font-weight: 500; white-space: pre-line;"><i class="fa-solid fa-notes-medical"></i> <strong>Sintomas:</strong> ${a.motivo}</div>` : ''}
+                            ${a.motivo ? `<div style="font-size: 0.8rem; color: #ef4444; margin-top: 4px; font-weight: 500; white-space: pre-line;"><i class="fa-solid ${isViagem ? 'fa-clipboard-question' : 'fa-notes-medical'}"></i> <strong>${isViagem ? 'Motivo da Viagem:' : 'Sintomas:'}</strong> ${a.motivo}</div>` : ''}
+                            ${a.acompanhante ? `<div style="font-size: 0.8rem; color: #0284c7; margin-top: 3px; font-weight: 600;"><i class="fa-solid fa-user-group"></i> <strong>Acompanhante:</strong> ${a.acompanhante}</div>` : ''}
                         </td>
                         <td>${a.usuario_nome || 'N/A'}</td>
                         <td>${new Date(a.data_hora).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })} ${new Date(a.data_hora).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })}</td>
@@ -1375,8 +1393,9 @@ async function loadAgendamentos() {
                         <td>
                             <div style="display: flex; flex-direction: column; gap: 0.2rem;">
                                 ${a.cartao_sus ? `<div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;"><i class="fa-solid fa-address-card"></i> SUS: ${a.cartao_sus}</div>` : ''}
-                                <div style="display: flex; gap: 0.5rem;">
-                                    ${s === 'pendente' ? `<button class="btn btn-primary" onclick="updateAgendamento('${a.id}', 'Confirmado')">Confirmar</button>` : ''}
+                                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                    ${s === 'pendente' ? `<button class="btn btn-primary" title="Confirmar Viagem / Agendamento" onclick="updateAgendamento('${a.id}', 'Confirmado')"><i class="fa-solid fa-check"></i> Confirmar</button>` : ''}
+                                    ${s === 'pendente' ? `<button class="btn btn-outline" style="border-color: #ef4444; color: #ef4444;" title="Cancelar Agendamento" onclick="updateAgendamento('${a.id}', 'Cancelado')"><i class="fa-solid fa-ban"></i> Cancelar</button>` : ''}
                                     <button class="btn btn-outline" title="Imprimir Recibo" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>
                                     ${anexosButtons}
                                     ${!currentSecId ? `<button class="btn btn-outline" title="Excluir Agendamento" style="border-color: #ef4444; color: #ef4444;" onclick="deletarAgendamento('${a.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
@@ -1750,7 +1769,7 @@ async function imprimirAgendamento(id) {
                             const assuntoStr = (a.assunto || '').toLowerCase();
                             const secStr = (secretariaNomeStr || '').toLowerCase();
                             const isViagem = tipoStr.includes('viagem') || tipoStr.includes('marcação de viagem') || assuntoStr.includes('viagem');
-                            const isGaragem = secStr.includes('garagem') || a.secretaria_id == 22 || isViagem;
+                            const isGaragem = secStr.includes('garagem') || a.secretaria_id == 22 || a.secretaria_id == 24 || isViagem;
                             const isMaquina = tipoStr.includes('máquina') || tipoStr.includes('maquina') || tipoStr.includes('trator') || tipoStr.includes('açude') || tipoStr.includes('estrada') || assuntoStr.includes('maquina') || assuntoStr.includes('máquina') || assuntoStr.includes('trator') || assuntoStr.includes('arado') || assuntoStr.includes('açude') || assuntoStr.includes('barreiro');
                             const isAgricultura = secStr.includes('agricultura') || isMaquina;
                             const isConfirmado = a.status && a.status.toLowerCase() === 'confirmado';
@@ -1957,6 +1976,8 @@ async function loadAdmins() {
                 let lotacaoHtml = `<span class="badge badge-progress">${sMap[a.secretaria_id] || 'N/A'}</span>`;
                 if (postoNome) {
                     lotacaoHtml += `<div style="margin-top: 4px;"><span style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-user-doctor"></i> ${postoNome}</span></div>`;
+                } else if (emailLower === 'sbarros.joaolucas@gmail.com' || a.secretaria_id == 24) {
+                    lotacaoHtml += `<div style="margin-top: 4px;"><span style="background: rgba(37, 99, 235, 0.15); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.35); padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-bus"></i> RESPONSÁVEL EM CONFIRMAR VIAGEM</span></div>`;
                 }
 
                 html += `

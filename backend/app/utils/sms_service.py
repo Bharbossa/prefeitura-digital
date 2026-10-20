@@ -237,6 +237,19 @@ def get_subadmins_and_admins(db, secretaria_id: int = None, extra_context: str =
                 if pu.telefone:
                     dest_phones.add(pu.telefone)
 
+    # Suporte a Garagem Municipal / Marcação de Viagem (inclui João Lucas e responsáveis da Garagem)
+    is_viagem_context = (secretaria_id == 24) or (extra_context and any(k in (extra_context or "").lower() for k in ["viagem", "garagem"]))
+    if is_viagem_context:
+        garagem_admins = db.query(AdminSecretaria).filter(
+            or_(
+                AdminSecretaria.secretaria_id == 24,
+                func.lower(AdminSecretaria.email) == 'sbarros.joaolucas@gmail.com'
+            )
+        ).all()
+        for ga in garagem_admins:
+            if ga.telefone:
+                dest_phones.add(ga.telefone)
+
     # SEMPRE incluir os Administradores Gerais do sistema (Usuario onde tipo_usuario == admin)
     global_admins = db.query(Usuario).filter(
         or_(

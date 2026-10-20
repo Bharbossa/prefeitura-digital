@@ -472,7 +472,24 @@ def listar_meus_agendamentos(current_user = Depends(get_current_user), db_sql: S
         results = query.filter(Agendamento.usuario_id == current_user.id).order_by(Agendamento.data_hora.desc()).all()
     elif role in ["admin", "subadmin"]:
         sec_id = current_user.secretaria_id
-        if sec_id:
+        user_email = (getattr(current_user, 'email', '') or '').lower().strip()
+        is_garagem_user = (sec_id == 24) or (user_email == 'sbarros.joaolucas@gmail.com')
+        if not is_garagem_user and sec_id:
+            sec = db_sql.query(Secretaria).filter(Secretaria.id == sec_id).first()
+            if sec and "garagem" in sec.nome.lower():
+                is_garagem_user = True
+
+        if is_garagem_user:
+            # João Lucas / Garagem Municipal é responsável por todos os agendamentos de viagem e da Garagem
+            results = query.filter(
+                or_(
+                    Agendamento.secretaria_id == 24,
+                    Agendamento.secretaria_id == sec_id,
+                    Agendamento.tipo.ilike("%viagem%"),
+                    Agendamento.assunto.ilike("%viagem%")
+                )
+            ).order_by(Agendamento.data_hora.desc()).all()
+        elif sec_id:
             results = query.filter(Agendamento.secretaria_id == sec_id).order_by(Agendamento.data_hora.desc()).all()
         else:
             # General Admin see all
@@ -557,7 +574,6 @@ def obter_quantidade_camisas_concurso(
 
 
 @router.get("/{agend_id}", response_model=AgendamentoResponse)
-
 def obter_agendamento(agend_id: int, current_user = Depends(get_current_user), db_sql: Session = Depends(get_db)):
     agend = db_sql.query(Agendamento).options(joinedload(Agendamento.usuario)).filter(Agendamento.id == agend_id).first()
     if not agend:
@@ -569,8 +585,18 @@ def obter_agendamento(agend_id: int, current_user = Depends(get_current_user), d
         raise HTTPException(status_code=403, detail="Acesso negado.")
     
     sec_id = getattr(current_user, "secretaria_id", None)
+    user_email = (getattr(current_user, 'email', '') or '').lower().strip()
+    is_viagem_agend = (agend.tipo and "viagem" in agend.tipo.lower()) or (agend.assunto and "viagem" in agend.assunto.lower())
+    is_garagem_user = (sec_id == 24) or (user_email == "sbarros.joaolucas@gmail.com")
+    if not is_garagem_user and sec_id:
+        sec = db_sql.query(Secretaria).filter(Secretaria.id == sec_id).first()
+        if sec and "garagem" in sec.nome.lower():
+            is_garagem_user = True
+
     if sec_id and agend.secretaria_id != sec_id:
-        raise HTTPException(status_code=403, detail="Acesso negado.")
+        # Se for agendamento de viagem e o usuário for da Garagem / João Lucas, permite o acesso
+        if not (is_viagem_agend and is_garagem_user):
+            raise HTTPException(status_code=403, detail="Acesso negado.")
 
     agend.usuario_nome = agend.usuario.nome if agend.usuario else f"Cidadão #{agend.usuario_id}"
     agend.usuario_endereco = agend.usuario.endereco if agend.usuario else ""
@@ -587,7 +613,19 @@ def atualizar_status(agend_id: int, status: str, current_user = Depends(get_curr
     
     # Permission check for subadmin
     if current_user.tipo_usuario_verificado == "subadmin":
-        if agendamento.secretaria_id != current_user.secretaria_id:
+        user_email = (getattr(current_user, 'email', '') or '').lower().strip()
+        is_viagem_agend = (agendamento.tipo and "viagem" in agendamento.tipo.lower()) or (agendamento.assunto and "viagem" in agendamento.assunto.lower())
+        is_garagem_user = (current_user.secretaria_id == 24) or (user_email == "sbarros.joaolucas@gmail.com")
+        if not is_garagem_user and current_user.secretaria_id:
+            sec = db_sql.query(Secretaria).filter(Secretaria.id == current_user.secretaria_id).first()
+            if sec and "garagem" in sec.nome.lower():
+                is_garagem_user = True
+
+        if is_viagem_agend and is_garagem_user:
+            # Sub-administrador João Lucas ou responsável pela Garagem tem permissão total para confirmar viagem!
+            if not agendamento.secretaria_id or agendamento.secretaria_id != 24:
+                agendamento.secretaria_id = 24
+        elif agendamento.secretaria_id != current_user.secretaria_id:
             raise HTTPException(status_code=403, detail="Agendamento pertence a outra secretaria.")
             
     old_status = agendamento.status
@@ -596,8 +634,9 @@ def atualizar_status(agend_id: int, status: str, current_user = Depends(get_curr
     if status == "Confirmado" and old_status != "Confirmado":
         if agendamento.usuario and agendamento.usuario.telefone:
             dt_str = agendamento.data_hora.strftime("%d/%m/%Y %H:%M")
-            is_garagem = (agendamento.secretaria_id == 22) or \
-                         (agendamento.tipo and "viagem" in agendamento.tipo.lower())
+            is_garagem = (agendamento.secretaria_id == 24) or (agendamento.secretaria_id == 22) or \
+                         (agendamento.tipo and "viagem" in agendamento.tipo.lower()) or \
+                         (agendamento.assunto and "viagem" in agendamento.assunto.lower())
             if not is_garagem and agendamento.secretaria_id:
                 sec = db_sql.query(Secretaria).filter(Secretaria.id == agendamento.secretaria_id).first()
                 if sec and "garagem" in sec.nome.lower():
@@ -606,6 +645,19 @@ def atualizar_status(agend_id: int, status: str, current_user = Depends(get_curr
             msg = get_confirmed_message(agendamento.assunto, dt_str, is_garagem=is_garagem)
             send_status_sms(agendamento.usuario.telefone, msg)
             
+    # Audit log
+    try:
+        user_name = getattr(current_user, 'nome', '') or getattr(current_user, 'email', '')
+        log = LogAuditoria(
+            usuario_id=current_user.id,
+            usuario_tipo=getattr(current_user, 'tipo_usuario_verificado', 'admin'),
+            acao="atualizacao_status_agendamento",
+            detalhes=f"Status do agendamento #{agendamento.id} ({agendamento.tipo} - {agendamento.protocolo}) alterado de '{old_status}' para '{status}' por {user_name}"
+        )
+        db_sql.add(log)
+    except Exception as e:
+        print(f"Erro ao registrar auditoria: {e}")
+
     db_sql.commit()
     db_sql.refresh(agendamento)
     return agendamento
