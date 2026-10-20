@@ -282,16 +282,16 @@
                 </div>
             </div>
 
-            <!-- Banner em destaque de Vagas Lotadas em Agosto para Máquinas Agrícolas -->
+            <!-- Banner em destaque de Vagas Lotadas até Março para Máquinas Agrícolas -->
             <div id="maquina_aviso_container" style="display: none; background: #eff6ff; border: 2px dashed #3b82f6; border-radius: 12px; padding: 1.2rem; margin-bottom: 1.5rem; animation: borderPulse 2s infinite;">
                 <div style="display: flex; align-items: flex-start; gap: 12px; color: #1e40af;">
                     <i class="fa-solid fa-calendar-xmark" style="font-size: 1.8rem; color: #2563eb; margin-top: 2px;"></i>
                     <div>
                         <h4 style="margin: 0 0 4px 0; font-size: 1.05rem; font-weight: 800; color: #1e3a8a; text-transform: uppercase; letter-spacing: 0.5px;">
-                            🚜 Vagas do Mês de Agosto Preenchidas
+                            🚜 Vagas Preenchidas até Março de 2027
                         </h4>
                         <p style="margin: 0; font-size: 0.9rem; color: #1e40af; line-height: 1.4;">
-                            Todas as datas para o mês de <strong>Agosto</strong> já foram preenchidas. O agendamento de máquinas agrícolas está <strong>liberado apenas a partir de Setembro (01/09/2026)</strong>.
+                            Todas as datas até o mês de <strong>Março de 2027</strong> já foram preenchidas. O agendamento de máquinas agrícolas está <strong>liberado apenas a partir de Abril (01/04/2027)</strong>.
                         </p>
                     </div>
                 </div>
@@ -705,8 +705,8 @@
             const avisoMaquina = document.getElementById('maquina_aviso_container');
             if (avisoMaquina) avisoMaquina.style.display = 'block';
 
-            // Liberar agendamento apenas a partir de Setembro (01/09/2026)
-            document.getElementById('ag_data_date').min = '2026-09-01';
+            // Liberar agendamento apenas a partir de Abril (01/04/2027)
+            document.getElementById('ag_data_date').min = '2027-04-01';
             document.getElementById('ag_data_date').required = true;
             document.getElementById('ag_data_time').required = true;
 
@@ -1519,6 +1519,9 @@
             const tipo = (a.tipo || '').toLowerCase();
             const assunto = (a.assunto || '').toLowerCase();
             
+            if (tipo.includes('maquina') || tipo.includes('máquina') || assunto.includes('maquina') || assunto.includes('máquina') || assunto.includes('trator') || assunto.includes('arado') || assunto.includes('açude') || assunto.includes('barreiro')) {
+                return 'maquinas';
+            }
             if (tipo.includes('concurso') || assunto.includes('concurso')) {
                 return 'concursos';
             }
@@ -1832,6 +1835,18 @@
 
             if (tipoAtend !== "Concurso" && (!dataDate || !dataTime)) {
                 Swal.fire({icon: 'warning', title: 'Atenção', text: 'Selecione data e hora.'});
+                return;
+            }
+
+            const maquinaKeywordsList = ["maquina", "trator", "acude", "estrada", "arado", "escavadeira", "retroescavadeira", "motoniveladora", "patrol", "cacamba", "carregadeira", "barreiro", "agricola", "esteira", "grade", "pa carregadeira", "rural"];
+            const isMaquinaForm = maquinaKeywordsList.some(k => (tipoAtend || '').toLowerCase().includes(k) || (document.getElementById('ag_assunto')?.value || '').toLowerCase().includes(k));
+            if (isMaquinaForm && dataDate < '2027-04-01') {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Vagas Já Preenchidas',
+                    text: 'Todas as datas até o mês de Março de 2027 já foram preenchidas. O agendamento de máquinas agrícolas está liberado apenas a partir de 01/04/2027.',
+                    confirmButtonColor: '#8b5cf6'
+                });
                 return;
             }
 
@@ -2825,6 +2840,11 @@
                 setTimeout(() => {
                     abrirModalBolsaFamilia();
                 }, 500);
+            } else if (params.get('action') === 'maquinas') {
+                setTimeout(() => {
+                    selecionarAba('maquinas');
+                    abrirModalMaquinas();
+                }, 500);
             }
         });
     </script>
@@ -3042,7 +3062,7 @@
         function redirecionarColoniaPrev() {
             Swal.fire({
                 title: 'Redirecionando para o Portal ColôniaPrev...',
-                html: 'Você será transferido com segurança para o Portal de Contracheques do Servidor.<br><br><small style="color: var(--text-muted);">https://www.supridata-al.com.br/contracheques/acesso.php</small>',
+                html: 'Você será transferido com segurança para o Portal de Contracheques do Servidor.<br><br><small style="color: var(--text-muted);">https://coloniaprev.sysefolha.com.br/</small>',
                 icon: 'info',
                 showCancelButton: true,
                 confirmButtonColor: '#10b981',
@@ -3053,7 +3073,7 @@
                 timerProgressBar: true
             }).then((result) => {
                 if (result.isConfirmed || result.dismiss === Swal.DismissReason.timer) {
-                    window.open('https://www.supridata-al.com.br/contracheques/acesso.php', '_blank');
+                    window.open('https://coloniaprev.sysefolha.com.br/', '_blank');
                 }
             });
         }

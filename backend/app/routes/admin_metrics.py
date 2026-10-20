@@ -28,8 +28,8 @@ def get_admin_summary(current_user = Depends(get_current_admin), db_sql: Session
     resolvidas_ocorrencias = q_ocorrencias.filter(Ocorrencia.status == StatusOcorrencia.resolvido).count()
     
     total_agendamentos = q_agendamentos.count()
-    pendentes_agendamentos = q_agendamentos.filter(Agendamento.status == "Pendente").count()
-    confirmados_agendamentos = q_agendamentos.filter(Agendamento.status == "Confirmado").count()
+    pendentes_agendamentos = q_agendamentos.filter(func.lower(Agendamento.status) == "pendente").count()
+    confirmados_agendamentos = q_agendamentos.filter(func.lower(Agendamento.status) == "confirmado").count()
     
     # User metrics (Admin only or limited for subadmin?)
     users_stats = {}

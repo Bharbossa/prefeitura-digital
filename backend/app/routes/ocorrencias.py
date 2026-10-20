@@ -158,8 +158,9 @@ async def create_ocorrencia(
         db_sql.refresh(ocorrencia)
 
         # Notificar administradores
-        msg = f"COLÔNIA DIGITAL: Nova Ocorrência ({protocolo}) registrada. Verifique o painel!"
-        notify_admins_of_new_record(db_sql, secretaria_id, msg)
+        titulo_resumo = (titulo or "Geral")[:40]
+        msg = f"COLÔNIA DIGITAL: Nova Ocorrência #{protocolo} ({titulo_resumo}) registrada. Verifique o painel!"
+        notify_admins_of_new_record(db_sql, secretaria_id, msg, extra_context=f"Ocorrência {titulo}")
 
         return ocorrencia
     except Exception as e:

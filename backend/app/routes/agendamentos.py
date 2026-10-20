@@ -84,12 +84,12 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
 
     protocolo = generate_protocol()
     
-    # Identifica se a solicitação atual é de máquina agrícola (independente de qual máquina)
-    is_solicitacao_maquina = is_maquina_agendamento(agend.secretaria_id, agend.tipo, agend.assunto, db_sql)
+    # Auto-resolução da secretaria_id se omitida ou 0
+    tipo_lower = (agend.tipo or "").lower()
+    assunto_lower = (agend.assunto or "").lower()
 
-    if agend.tipo == "Bolsa Família":
-        # Resolve secretaria_id automaticamente para Assistência Social se omitida
-        if not agend.secretaria_id or agend.secretaria_id == 0:
+    if not agend.secretaria_id or agend.secretaria_id == 0:
+        if "bolsa" in tipo_lower or "social" in tipo_lower:
             sec_bf = db_sql.query(Secretaria).filter(
                 func.lower(Secretaria.nome).like("%assist%social%") |
                 func.lower(Secretaria.nome).like("%social%") |
@@ -97,11 +97,33 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
             ).first()
             if sec_bf:
                 agend.secretaria_id = sec_bf.id
-            else:
-                primeira_sec = db_sql.query(Secretaria).first()
-                if primeira_sec:
-                    agend.secretaria_id = primeira_sec.id
+        elif is_maquina_agendamento(agend.secretaria_id, agend.tipo, agend.assunto, db_sql) or "agrícola" in tipo_lower or "agricola" in tipo_lower or "máquina" in tipo_lower or "maquina" in tipo_lower:
+            sec_agri = db_sql.query(Secretaria).filter(func.lower(Secretaria.nome).like("%agri%")).first()
+            if sec_agri:
+                agend.secretaria_id = sec_agri.id
+        elif "consulta" in tipo_lower or "saúde" in tipo_lower or "saude" in tipo_lower or "hospital" in assunto_lower or "posto" in assunto_lower:
+            sec_saude = db_sql.query(Secretaria).filter(func.lower(Secretaria.nome).like("%saúde%") | func.lower(Secretaria.nome).like("%saude%")).first()
+            if sec_saude:
+                agend.secretaria_id = sec_saude.id
+        elif "viagem" in tipo_lower:
+            sec_gar = db_sql.query(Secretaria).filter(func.lower(Secretaria.nome).like("%garag%")).first()
+            if sec_gar:
+                agend.secretaria_id = sec_gar.id
+        elif "concurso" in tipo_lower:
+            sec_cult = db_sql.query(Secretaria).filter(func.lower(Secretaria.nome).like("%cultura%")).first()
+            if sec_cult:
+                agend.secretaria_id = sec_cult.id
+        
+        # Fallback de segurança se ainda estiver vazio
+        if not agend.secretaria_id or agend.secretaria_id == 0:
+            primeira_sec = db_sql.query(Secretaria).first()
+            if primeira_sec:
+                agend.secretaria_id = primeira_sec.id
 
+    # Identifica se a solicitação atual é de máquina agrícola (independente de qual máquina)
+    is_solicitacao_maquina = is_maquina_agendamento(agend.secretaria_id, agend.tipo, agend.assunto, db_sql)
+
+    if agend.tipo == "Bolsa Família":
         # Limite de 15 senhas por dia para o Bolsa Família
         data_escolhida = agend.data_hora.date()
         inicio_dia = datetime.combine(data_escolhida, time.min)
@@ -132,12 +154,12 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
     elif is_solicitacao_maquina:
         data_escolhida = agend.data_hora.date()
 
-        # Trava dos meses de Setembro e Outubro (todas as datas preenchidas)
+        # Trava até o mês de Março de 2027 (todas as datas preenchidas)
         from datetime import date
-        if data_escolhida < date(2026, 11, 1):
+        if data_escolhida < date(2027, 4, 1):
             raise HTTPException(
                 status_code=400,
-                detail="Todas as datas para os meses de Setembro e Outubro já foram preenchidas. O agendamento de máquinas agrícolas está liberado apenas a partir de 01/11/2026."
+                detail="Todas as datas até o mês de Março de 2027 já foram preenchidas. O agendamento de máquinas agrícolas está liberado apenas a partir de 01/04/2027."
             )
         
         # 1. Trava de 1 agendamento por dia no sistema para a máquina (limite da frota/dia)
@@ -202,8 +224,10 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
     db_sql.refresh(novo_agendamento)
 
     # Notificar administradores
-    msg = f"COLÔNIA DIGITAL: Novo Agendamento ({protocolo}) solicitado. Senha: {senha}. Verifique o painel!"
-    notify_admins_of_new_record(db_sql, agend.secretaria_id, msg)
+    dt_fmt = novo_agendamento.data_hora.strftime("%d/%m/%Y %H:%M") if novo_agendamento.data_hora else ""
+    assunto_resumido = (agend.assunto or agend.tipo or "Atendimento")[:45]
+    msg = f"COLÔNIA DIGITAL: Novo Agendamento ({assunto_resumido}) para {dt_fmt}. Protocolo: {protocolo}, Senha: {senha}. Verifique o painel!"
+    notify_admins_of_new_record(db_sql, novo_agendamento.secretaria_id, msg, extra_context=f"{agend.tipo} {agend.assunto}")
 
     return novo_agendamento
 
@@ -235,6 +259,16 @@ def criar_agendamento_viagem(
         raise HTTPException(status_code=400, detail="O destino da viagem é obrigatório.")
     if not motivo or not motivo.strip():
         raise HTTPException(status_code=400, detail="O motivo da viagem é obrigatório.")
+
+    # Auto-resolução da Garagem Municipal se secretaria_id omitida ou 0
+    if not secretaria_id or secretaria_id == 0:
+        sec_gar = db_sql.query(Secretaria).filter(func.lower(Secretaria.nome).like("%garag%")).first()
+        if sec_gar:
+            secretaria_id = sec_gar.id
+        else:
+            primeira_sec = db_sql.query(Secretaria).first()
+            if primeira_sec:
+                secretaria_id = primeira_sec.id
 
     # Limite de 5 viagens por dia
     data_escolhida = data_obj.date()
@@ -281,8 +315,9 @@ def criar_agendamento_viagem(
     db_sql.refresh(novo_agendamento)
 
     # Notificar administradores
-    msg = f"COLÔNIA DIGITAL: Novo Agendamento de Viagem ({protocolo}) solicitado. Senha: {senha}."
-    notify_admins_of_new_record(db_sql, secretaria_id, msg)
+    dt_fmt = data_obj.strftime("%d/%m/%Y %H:%M")
+    msg = f"COLÔNIA DIGITAL: Novo Agendamento de Viagem ({assunto}) para {dt_fmt}. Protocolo: {protocolo}, Senha: {senha}. Verifique o painel!"
+    notify_admins_of_new_record(db_sql, secretaria_id, msg, extra_context=f"Viagem Garagem Municipal {assunto}")
 
     return novo_agendamento
 
@@ -419,8 +454,9 @@ def criar_agendamento_concurso(
     db_sql.refresh(novo_agendamento)
 
     # Notificar administradores
-    msg = f"COLÔNIA DIGITAL: Nova Inscrição de Concurso ({protocolo}) solicitada. Inscrição: {senha}."
-    notify_admins_of_new_record(db_sql, secretaria_id, msg)
+    assunto_curto = (assunto or "Concurso")[:40]
+    msg = f"COLÔNIA DIGITAL: Nova Inscrição de Concurso ({assunto_curto}) solicitada. Protocolo: {protocolo}, Inscrição: {senha}. Verifique o painel!"
+    notify_admins_of_new_record(db_sql, secretaria_id, msg, extra_context=f"Concurso Cultura Esporte {assunto}")
 
     novo_agendamento.usuario_nome = current_user.nome
     novo_agendamento.usuario_endereco = getattr(current_user, 'endereco', "")

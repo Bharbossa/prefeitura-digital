@@ -3,7 +3,8 @@ from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
 from ..database import get_db
-from ..models.schema import Usuario, StatusUsuario, AdminSecretaria, LogAuditoria, TipoUsuario, Ocorrencia, StatusOcorrencia
+from sqlalchemy import func
+from ..models.schema import Usuario, StatusUsuario, AdminSecretaria, LogAuditoria, TipoUsuario, Ocorrencia, StatusOcorrencia, Agendamento
 from ..models.pydantic_schemas import (
     UsuarioResponse, 
     AdminSecretariaCreate, 
@@ -25,16 +26,30 @@ def notify_subadmin_pending(admin_id: int, current_admin = Depends(get_general_a
     if not admin.telefone:
         raise HTTPException(status_code=400, detail="Sub-administrador não possui telefone cadastrado.")
 
-    # Contar ocorrências pendentes da secretaria dele
-    count_pending = db_sql.query(Ocorrencia).filter(
+    # Contar ocorrências e agendamentos pendentes da secretaria dele
+    count_pending_oc = db_sql.query(Ocorrencia).filter(
         Ocorrencia.secretaria_id == admin.secretaria_id,
         Ocorrencia.status == StatusOcorrencia.pendente
     ).count()
 
-    if count_pending == 0:
-        msg = f"COLÔNIA DIGITAL: Olá {admin.nome.split(' ')[0]}, o sistema está em dia! Nenhuma nova ocorrência pendente em sua secretaria."
+    count_pending_ag = db_sql.query(Agendamento).filter(
+        Agendamento.secretaria_id == admin.secretaria_id,
+        func.lower(Agendamento.status) == "pendente"
+    ).count()
+
+    total_pending = count_pending_oc + count_pending_ag
+    primeiro_nome = admin.nome.split(' ')[0]
+
+    if total_pending == 0:
+        msg = f"COLÔNIA DIGITAL: Olá {primeiro_nome}, o sistema está em dia! Nenhuma pendência em sua secretaria."
     else:
-        msg = f"ALERTA URGENTE - COLÔNIA DIGITAL: Olá {admin.nome.split(' ')[0]}, existem {count_pending} ocorrências PENDENTES aguardando resposta em sua secretaria. Verifique o painel agora!"
+        partes = []
+        if count_pending_oc > 0:
+            partes.append(f"{count_pending_oc} ocorrência(s)")
+        if count_pending_ag > 0:
+            partes.append(f"{count_pending_ag} agendamento(s)")
+        detalhes_pend = " e ".join(partes)
+        msg = f"ALERTA URGENTE - COLÔNIA DIGITAL: Olá {primeiro_nome}, existem {detalhes_pend} PENDENTES em sua secretaria. Acesse o painel agora!"
 
     success = send_status_sms(admin.telefone, msg)
     
@@ -46,12 +61,12 @@ def notify_subadmin_pending(admin_id: int, current_admin = Depends(get_general_a
         usuario_id=current_admin.id,
         usuario_tipo="admin",
         acao="notify_subadmin",
-        detalhes=f"Enviou alerta de {count_pending} pendências para sub-admin {admin.email} (Tel: {admin.telefone})"
+        detalhes=f"Enviou alerta de {total_pending} pendências ({count_pending_oc} ocorrencias, {count_pending_ag} agendamentos) para sub-admin {admin.email} (Tel: {admin.telefone})"
     )
     db_sql.add(log)
     db_sql.commit()
 
-    return {"message": "Notificação enviada com sucesso!", "count_pending": count_pending}
+    return {"message": "Notificação enviada com sucesso!", "count_pending": total_pending, "ocorrencias_pendentes": count_pending_oc, "agendamentos_pendentes": count_pending_ag}
 
 @router.get("/pending", response_model=List[UsuarioResponse])
 def get_pending_users(current_admin = Depends(get_general_admin), db_sql: Session = Depends(get_db)):

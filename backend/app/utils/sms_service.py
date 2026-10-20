@@ -21,8 +21,14 @@ def send_status_sms(phone: str, message: str):
     
     # Clean phone number
     clean_phone = "".join(filter(str.isdigit, phone))
-    # Usually Brazil uses +55
-    if not clean_phone.startswith("55"):
+    if clean_phone.startswith("0"):
+        clean_phone = clean_phone.lstrip("0")
+    if len(clean_phone) < 10:
+        logger.warning(f"Tentativa de envio para telefone inválido: {phone}")
+        return False
+    if len(clean_phone) in (10, 11):
+        clean_phone = "55" + clean_phone
+    elif not clean_phone.startswith("55") and len(clean_phone) < 13:
         clean_phone = "55" + clean_phone
     formatted_phone = "+" + clean_phone
     
@@ -61,7 +67,14 @@ def make_voice_call(phone: str, message_text: str):
         return False
         
     clean_phone = "".join(filter(str.isdigit, phone))
-    if not clean_phone.startswith("55"):
+    if clean_phone.startswith("0"):
+        clean_phone = clean_phone.lstrip("0")
+    if len(clean_phone) < 10:
+        logger.warning(f"Tentativa de chamada para telefone inválido: {phone}")
+        return False
+    if len(clean_phone) in (10, 11):
+        clean_phone = "55" + clean_phone
+    elif not clean_phone.startswith("55") and len(clean_phone) < 13:
         clean_phone = "55" + clean_phone
     formatted_phone = "+" + clean_phone
     
@@ -150,10 +163,13 @@ def send_password_sms(phone: str, password: str):
     
     return False
 
-def get_gcm_subadmins_and_admins(db, secretaria_id: int = None):
+def get_subadmins_and_admins(db, secretaria_id: int = None, extra_context: str = None):
     """
-    Returns a set of unique phone numbers for all Guarda Municipal subadmins,
-    specific GCM emails, and General Administrators.
+    Retorna o conjunto de telefones de:
+    1. Sub-administradores da secretaria especificada (AdminSecretaria)
+    2. Administradores Gerais do sistema (Usuario onde tipo_usuario == admin)
+    3. Para Guarda Municipal / Patrulha / Mulher, subadmins específicos de GCM
+    4. Para Saúde, se o agendamento for de um posto específico (PSF / Hospital), o coordenador responsável
     """
     from app.models.schema import AdminSecretaria, Secretaria, Usuario, TipoUsuario
     from sqlalchemy import or_, func
@@ -161,7 +177,7 @@ def get_gcm_subadmins_and_admins(db, secretaria_id: int = None):
     dest_phones = set()
 
     is_gcm = False
-    if secretaria_id in [16, 17] or secretaria_id is None:
+    if secretaria_id in [16, 17]:
         is_gcm = True
     elif secretaria_id:
         sec = db.query(Secretaria).filter(Secretaria.id == secretaria_id).first()
@@ -188,41 +204,72 @@ def get_gcm_subadmins_and_admins(db, secretaria_id: int = None):
                 func.lower(AdminSecretaria.email).in_([e.lower() for e in gcm_allowed_emails])
             )
         ).all()
-    else:
+    elif secretaria_id:
         subadmins = db.query(AdminSecretaria).filter(AdminSecretaria.secretaria_id == secretaria_id).all()
+    else:
+        subadmins = []
 
     for sa in subadmins:
         if sa.telefone:
             dest_phones.add(sa.telefone)
 
-    if is_gcm:
-        global_admins = db.query(Usuario).filter(
-            or_(
-                Usuario.tipo_usuario == TipoUsuario.admin,
-                Usuario.tipo_usuario == "admin"
-            )
-        ).all()
-        for ga in global_admins:
-            if ga.telefone:
-                dest_phones.add(ga.telefone)
-            if getattr(ga, 'whatsapp', None):
-                dest_phones.add(ga.whatsapp)
+    # Suporte a PSF / Postos de Saúde específicos se for agendamento de saúde
+    if extra_context and (secretaria_id == 15 or any(k in (extra_context or "").lower() for k in ["saude", "saúde", "hospital", "posto", "consulta", "emergência", "emergencia"])):
+        ctx_lower = extra_context.lower()
+        psf_map = {
+            'denilmalucass@gmail.com': ['hospital maria loureiro', 'maria loureiro', 'emergência', 'emergencia'],
+            'vivianlmk@hotmail.com': ['josé luiz lessa', 'jose luiz lessa', 'luiz lessa', 'psf 01', 'psf 1'],
+            'vanuzasoares667@gmail.com': ['posto centro', 'psf 02', 'psf 2'],
+            'ketlinandrade01@icloud.com': ['vila nova', 'psf 03', 'psf 3'],
+            'cassianub12@icloud.com': ['daniel monteiro', 'psf 04', 'psf 4'],
+            'trajanojuliana17@gmail.com': ['usina taquara', 'taquara', 'psf 05', 'psf 5'],
+            'ana.gabriela_2@hotmail.com': ['belo jardim', 'psf 06', 'psf 6'],
+            'flaviadanielly381@gmail.com': ['josé adamor', 'jose adamor', 'adamor', 'psf 07', 'psf 7'],
+            'arianacarater@gmail.com': ['josé acioly', 'jose acioly', 'acioly', 'psf 08', 'psf 8']
+        }
+        matched_emails = []
+        for email, keywords in psf_map.items():
+            if any(k in ctx_lower for k in keywords):
+                matched_emails.append(email)
+        if matched_emails:
+            psf_users = db.query(Usuario).filter(func.lower(Usuario.email).in_(matched_emails)).all()
+            for pu in psf_users:
+                if pu.telefone:
+                    dest_phones.add(pu.telefone)
+
+    # SEMPRE incluir os Administradores Gerais do sistema (Usuario onde tipo_usuario == admin)
+    global_admins = db.query(Usuario).filter(
+        or_(
+            Usuario.tipo_usuario == TipoUsuario.admin,
+            Usuario.tipo_usuario == "admin"
+        )
+    ).all()
+    for ga in global_admins:
+        if ga.telefone:
+            dest_phones.add(ga.telefone)
+        if getattr(ga, 'whatsapp', None):
+            dest_phones.add(ga.whatsapp)
 
     return dest_phones
+
+# Alias para manter compatibilidade com códigos legados
+get_gcm_subadmins_and_admins = get_subadmins_and_admins
 
 def notify_subadmins_background(secretaria_id: int, message: str):
     from app.database import SessionLocal
     db = SessionLocal()
     try:
-        if secretaria_id == 22:
-            custom_msg = "COLÔNIA DIGITAL: Cadastro unico! Existe uma nova solicitação de serviço!"
-        else:
+        if message:
             custom_msg = message
+        elif secretaria_id == 22:
+            custom_msg = "COLÔNIA DIGITAL: Assistência Social / Cadastro Único! Existe uma nova solicitação de serviço!"
+        else:
+            custom_msg = "COLÔNIA DIGITAL: Nova solicitação de serviço registrada! Verifique o painel."
             
-        dest_phones = get_gcm_subadmins_and_admins(db, secretaria_id)
+        dest_phones = get_subadmins_and_admins(db, secretaria_id, extra_context=message)
         for phone in sorted(list(dest_phones)):
             send_status_sms(phone, custom_msg)
-            time.sleep(0.5)
+            time.sleep(0.3)
     except Exception as e:
         logger.error(f"Erro em notify_subadmins_background: {e}")
     finally:
