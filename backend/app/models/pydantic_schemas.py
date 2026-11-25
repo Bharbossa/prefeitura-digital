@@ -176,6 +176,7 @@ class AgendamentoResponse(AgendamentoBase):
     usuario_nome: Optional[str] = None
     usuario_endereco: Optional[str] = None
     status: str
+    motivo_recusa: Optional[str] = None
     anexo: Optional[str] = None
     cartao_sus: Optional[str] = None
     criado_em: datetime

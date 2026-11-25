@@ -12,7 +12,7 @@ from ..models.schema import Usuario, AdminSecretaria, Agendamento, LogAuditoria,
 import io
 from ..models.pydantic_schemas import AgendamentoCreate, AgendamentoResponse
 from ..core.auth_deps import get_current_user, get_current_admin, get_general_admin
-from ..utils.sms_service import send_status_sms, get_confirmed_message
+from ..utils.sms_service import send_status_sms, get_confirmed_message, get_cancelled_message, get_refused_message
 from ..utils.notification_helper import notify_admins_of_new_record
 from ..core.utils import generate_protocol, get_brasilia_time, generate_ticket_number
 from sqlalchemy.orm import joinedload
@@ -84,9 +84,18 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
 
     protocolo = generate_protocol()
     
-    # Auto-resolução da secretaria_id se omitida ou 0
+    # Auto-resolução da secretaria_id se omitida, 0 ou se for Bolsa Família
     tipo_lower = (agend.tipo or "").lower()
     assunto_lower = (agend.assunto or "").lower()
+
+    if "bolsa" in tipo_lower or "bolsa" in assunto_lower:
+        sec_bf = db_sql.query(Secretaria).filter(
+            func.lower(Secretaria.nome).like("%assist%social%") |
+            func.lower(Secretaria.nome).like("%social%") |
+            func.lower(Secretaria.nome).like("%bolsa%")
+        ).first()
+        if sec_bf:
+            agend.secretaria_id = sec_bf.id
 
     if not agend.secretaria_id or agend.secretaria_id == 0:
         if "bolsa" in tipo_lower or "social" in tipo_lower:
@@ -135,7 +144,7 @@ def criar_agendamento(agend: AgendamentoCreate, current_user = Depends(get_curre
             Agendamento.data_hora <= fim_dia
         ).all()
         
-        agendamentos_ativos = [a for a in agendamentos_dia if (a.status or "").lower() != "cancelado"]
+        agendamentos_ativos = [a for a in agendamentos_dia if (a.status or "").lower() not in ["cancelado", "recusado"]]
         count = len(agendamentos_ativos)
         if count >= 15:
             raise HTTPException(status_code=400, detail="Limite diário de 15 agendamentos para Bolsa Família atingido para esta data.")
@@ -474,10 +483,13 @@ def listar_meus_agendamentos(current_user = Depends(get_current_user), db_sql: S
         sec_id = current_user.secretaria_id
         user_email = (getattr(current_user, 'email', '') or '').lower().strip()
         is_garagem_user = (sec_id == 24) or (user_email == 'sbarros.joaolucas@gmail.com')
+        is_bolsa_user = (sec_id == 22) or (user_email in ['eduardofandrade97@gmail.com', 'davylavianaa@gmail.com'])
         if not is_garagem_user and sec_id:
             sec = db_sql.query(Secretaria).filter(Secretaria.id == sec_id).first()
             if sec and "garagem" in sec.nome.lower():
                 is_garagem_user = True
+            if sec and any(k in sec.nome.lower() for k in ["assist", "social", "bolsa"]):
+                is_bolsa_user = True
 
         if is_garagem_user:
             # João Lucas / Garagem Municipal é responsável por todos os agendamentos de viagem e da Garagem
@@ -487,6 +499,16 @@ def listar_meus_agendamentos(current_user = Depends(get_current_user), db_sql: S
                     Agendamento.secretaria_id == sec_id,
                     Agendamento.tipo.ilike("%viagem%"),
                     Agendamento.assunto.ilike("%viagem%")
+                )
+            ).order_by(Agendamento.data_hora.desc()).all()
+        elif is_bolsa_user:
+            # Eduardo e Dávyla / Assistência Social são responsáveis pelos agendamentos do Bolsa Família e Assistência Social
+            results = query.filter(
+                or_(
+                    Agendamento.secretaria_id == 22,
+                    Agendamento.secretaria_id == sec_id,
+                    Agendamento.tipo.ilike("%bolsa%"),
+                    Agendamento.assunto.ilike("%bolsa%")
                 )
             ).order_by(Agendamento.data_hora.desc()).all()
         elif sec_id:
@@ -588,14 +610,18 @@ def obter_agendamento(agend_id: int, current_user = Depends(get_current_user), d
     user_email = (getattr(current_user, 'email', '') or '').lower().strip()
     is_viagem_agend = (agend.tipo and "viagem" in agend.tipo.lower()) or (agend.assunto and "viagem" in agend.assunto.lower())
     is_garagem_user = (sec_id == 24) or (user_email == "sbarros.joaolucas@gmail.com")
+    is_bolsa_agend = (agend.tipo and "bolsa" in agend.tipo.lower()) or (agend.assunto and "bolsa" in agend.assunto.lower())
+    is_bolsa_user = (sec_id == 22) or (user_email in ["eduardofandrade97@gmail.com", "davylavianaa@gmail.com"])
     if not is_garagem_user and sec_id:
         sec = db_sql.query(Secretaria).filter(Secretaria.id == sec_id).first()
         if sec and "garagem" in sec.nome.lower():
             is_garagem_user = True
+        if sec and any(k in sec.nome.lower() for k in ["assist", "social", "bolsa"]):
+            is_bolsa_user = True
 
     if sec_id and agend.secretaria_id != sec_id:
-        # Se for agendamento de viagem e o usuário for da Garagem / João Lucas, permite o acesso
-        if not (is_viagem_agend and is_garagem_user):
+        # Se for agendamento de viagem (Garagem) ou Bolsa Família (Assistência Social), permite o acesso aos respectivos responsáveis
+        if not ((is_viagem_agend and is_garagem_user) or (is_bolsa_agend and is_bolsa_user)):
             raise HTTPException(status_code=403, detail="Acesso negado.")
 
     agend.usuario_nome = agend.usuario.nome if agend.usuario else f"Cidadão #{agend.usuario_id}"
@@ -603,11 +629,24 @@ def obter_agendamento(agend_id: int, current_user = Depends(get_current_user), d
     return agend
 
 @router.patch("/{agend_id}/status")
-def atualizar_status(agend_id: int, status: str, current_user = Depends(get_current_admin), db_sql: Session = Depends(get_db)):
-    if status not in ["Confirmado", "Cancelado", "Pendente"]:
+def atualizar_status(
+    agend_id: int,
+    status: str,
+    motivo_recusa: Optional[str] = None,
+    current_user = Depends(get_current_admin),
+    db_sql: Session = Depends(get_db)
+):
+    status_map = {
+        "confirmado": "Confirmado",
+        "cancelado": "Cancelado",
+        "recusado": "Recusado",
+        "pendente": "Pendente"
+    }
+    status_clean = status_map.get((status or "").strip().lower())
+    if not status_clean:
         raise HTTPException(status_code=400, detail="Status inválido.")
         
-    agendamento = db_sql.query(Agendamento).filter(Agendamento.id == agend_id).first()
+    agendamento = db_sql.query(Agendamento).options(joinedload(Agendamento.usuario)).filter(Agendamento.id == agend_id).first()
     if not agendamento:
         raise HTTPException(status_code=404, detail="Agendamento não encontrado.")
     
@@ -616,25 +655,54 @@ def atualizar_status(agend_id: int, status: str, current_user = Depends(get_curr
         user_email = (getattr(current_user, 'email', '') or '').lower().strip()
         is_viagem_agend = (agendamento.tipo and "viagem" in agendamento.tipo.lower()) or (agendamento.assunto and "viagem" in agendamento.assunto.lower())
         is_garagem_user = (current_user.secretaria_id == 24) or (user_email == "sbarros.joaolucas@gmail.com")
+        is_bolsa_agend = (agendamento.tipo and "bolsa" in agendamento.tipo.lower()) or (agendamento.assunto and "bolsa" in agendamento.assunto.lower())
+        is_bolsa_user = (current_user.secretaria_id == 22) or (user_email in ["eduardofandrade97@gmail.com", "davylavianaa@gmail.com"])
         if not is_garagem_user and current_user.secretaria_id:
             sec = db_sql.query(Secretaria).filter(Secretaria.id == current_user.secretaria_id).first()
             if sec and "garagem" in sec.nome.lower():
                 is_garagem_user = True
+            if sec and any(k in sec.nome.lower() for k in ["assist", "social", "bolsa"]):
+                is_bolsa_user = True
 
         if is_viagem_agend and is_garagem_user:
             # Sub-administrador João Lucas ou responsável pela Garagem tem permissão total para confirmar viagem!
             if not agendamento.secretaria_id or agendamento.secretaria_id != 24:
                 agendamento.secretaria_id = 24
-        elif agendamento.secretaria_id != current_user.secretaria_id:
+        elif is_bolsa_agend and is_bolsa_user:
+            # Sub-administradores Eduardo e Dávyla têm permissão total para confirmar/recusar agendamentos do Bolsa Família!
+            if not agendamento.secretaria_id or agendamento.secretaria_id != 22:
+                agendamento.secretaria_id = 22
+        elif current_user.secretaria_id and agendamento.secretaria_id and agendamento.secretaria_id != current_user.secretaria_id:
             raise HTTPException(status_code=403, detail="Agendamento pertence a outra secretaria.")
             
-    old_status = agendamento.status
-    agendamento.status = status
+    old_status = agendamento.status or "Pendente"
+    agendamento.status = status_clean
+    if motivo_recusa is not None and motivo_recusa.strip():
+        agendamento.motivo_recusa = motivo_recusa.strip()
+    elif status_clean == "Confirmado":
+        agendamento.motivo_recusa = None
     
-    if status == "Confirmado" and old_status != "Confirmado":
-        if agendamento.usuario and agendamento.usuario.telefone:
-            dt_str = agendamento.data_hora.strftime("%d/%m/%Y %H:%M")
-            is_garagem = (agendamento.secretaria_id == 24) or (agendamento.secretaria_id == 22) or \
+    # Pega as informações do usuário e monta a mensagem ANTES do commit (evita expiração de sessão SQLAlchemy)
+    cidadao = agendamento.usuario
+    if not cidadao and agendamento.usuario_id:
+        cidadao = db_sql.query(Usuario).filter(Usuario.id == agendamento.usuario_id).first()
+
+    phones_to_send = []
+    if cidadao:
+        seen_digits = set()
+        for raw_phone in [getattr(cidadao, "whatsapp", None), getattr(cidadao, "telefone", None)]:
+            if raw_phone:
+                digits = "".join(filter(str.isdigit, str(raw_phone)))
+                if len(digits) >= 10 and digits not in seen_digits:
+                    seen_digits.add(digits)
+                    phones_to_send.append(raw_phone)
+
+    sms_msg = None
+    if phones_to_send:
+        dt_str = agendamento.data_hora.strftime("%d/%m/%Y %H:%M") if agendamento.data_hora else ""
+        assunto_msg = agendamento.assunto or agendamento.tipo or "Atendimento"
+        if status_clean == "Confirmado":
+            is_garagem = (agendamento.secretaria_id == 24) or \
                          (agendamento.tipo and "viagem" in agendamento.tipo.lower()) or \
                          (agendamento.assunto and "viagem" in agendamento.assunto.lower())
             if not is_garagem and agendamento.secretaria_id:
@@ -642,17 +710,30 @@ def atualizar_status(agend_id: int, status: str, current_user = Depends(get_curr
                 if sec and "garagem" in sec.nome.lower():
                     is_garagem = True
 
-            msg = get_confirmed_message(agendamento.assunto, dt_str, is_garagem=is_garagem)
-            send_status_sms(agendamento.usuario.telefone, msg)
+            sms_msg = get_confirmed_message(
+                assunto_msg,
+                dt_str,
+                is_garagem=is_garagem,
+                protocolo=agendamento.protocolo,
+                senha=agendamento.senha
+            )
+        elif status_clean == "Recusado":
+            sms_msg = get_refused_message(assunto_msg, motivo_recusa=agendamento.motivo_recusa)
+        elif status_clean == "Cancelado" and old_status.lower() != "cancelado":
+            if agendamento.motivo_recusa:
+                sms_msg = get_refused_message(assunto_msg, motivo_recusa=agendamento.motivo_recusa)
+            else:
+                sms_msg = get_cancelled_message(assunto_msg)
             
     # Audit log
     try:
         user_name = getattr(current_user, 'nome', '') or getattr(current_user, 'email', '')
+        detalhe_motivo = f" (Motivo: {agendamento.motivo_recusa})" if agendamento.motivo_recusa else ""
         log = LogAuditoria(
             usuario_id=current_user.id,
             usuario_tipo=getattr(current_user, 'tipo_usuario_verificado', 'admin'),
             acao="atualizacao_status_agendamento",
-            detalhes=f"Status do agendamento #{agendamento.id} ({agendamento.tipo} - {agendamento.protocolo}) alterado de '{old_status}' para '{status}' por {user_name}"
+            detalhes=f"Status do agendamento #{agendamento.id} ({agendamento.tipo} - {agendamento.protocolo}) alterado de '{old_status}' para '{status_clean}'{detalhe_motivo} por {user_name}"
         )
         db_sql.add(log)
     except Exception as e:
@@ -660,6 +741,12 @@ def atualizar_status(agend_id: int, status: str, current_user = Depends(get_curr
 
     db_sql.commit()
     db_sql.refresh(agendamento)
+
+    # Envia a confirmação ou recusa por SMS ao usuário após salvar o status no banco
+    if sms_msg and phones_to_send:
+        for phone in phones_to_send:
+            send_status_sms(phone, sms_msg)
+
     return agendamento
 
 CONCURSOS_DOCS_JSON = "uploads/concursos_documentos.json"

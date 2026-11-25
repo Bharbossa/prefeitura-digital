@@ -87,3 +87,7 @@ Thumbs.db
 # Uploads directory
 uploads/
 
+# Agent local skills symlinks
+.agent/
+.agents/
+

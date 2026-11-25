@@ -116,10 +116,25 @@ def get_progress_message(titulo: str):
 def get_cancelled_message(titulo: str):
     return f"COLÔNIA DIGITAL: Sua solicitação ({titulo}) foi CANCELADA."
 
-def get_confirmed_message(assunto: str, data_hora: str, is_garagem: bool = False):
+def get_refused_message(assunto: str, motivo_recusa: str = None):
+    assunto_str = assunto or "Bolsa Família"
+    if motivo_recusa and motivo_recusa.strip():
+        return f"COLÔNIA DIGITAL: Seu agendamento ({assunto_str}) foi RECUSADO. Motivo: {motivo_recusa.strip()}"
+    return f"COLÔNIA DIGITAL: Seu agendamento ({assunto_str}) foi RECUSADO."
+
+def get_confirmed_message(assunto: str, data_hora: str, is_garagem: bool = False, protocolo: str = None, senha: str = None):
+    detalhes_extra = ""
+    if protocolo and senha:
+        detalhes_extra = f" Protocolo: {protocolo}, Senha: {senha}."
+    elif protocolo:
+        detalhes_extra = f" Protocolo: {protocolo}."
+    assunto_str = assunto or "Atendimento"
     if is_garagem:
-        return f"ATENÇÃO - CONFIRMAÇÃO DE VIAGEM OBRIGATÓRIA\nO CIDADÃO DEVE COMPARECER À GARAGEM MUNICIPAL PARA CONFIRMAR SUA VIAGEM!"
-    return f"COLÔNIA DIGITAL: Seu agendamento ({assunto}) para {data_hora} foi CONFIRMADO."
+        return (
+            f"COLÔNIA DIGITAL: Seu agendamento ({assunto_str}) para {data_hora} foi CONFIRMADO!{detalhes_extra} "
+            f"ATENÇÃO - CONFIRMAÇÃO DE VIAGEM OBRIGATÓRIA: O CIDADÃO DEVE COMPARECER À GARAGEM MUNICIPAL PARA CONFIRMAR SUA VIAGEM!"
+        )
+    return f"COLÔNIA DIGITAL: Seu agendamento ({assunto_str}) para {data_hora} foi CONFIRMADO!{detalhes_extra}"
 
 def send_password_sms(phone: str, password: str):
     """
@@ -237,6 +252,33 @@ def get_subadmins_and_admins(db, secretaria_id: int = None, extra_context: str =
                 if pu.telefone:
                     dest_phones.add(pu.telefone)
 
+    # Suporte a Assistência Social / Bolsa Família (inclui Eduardo e Dávyla)
+    bolsa_familia_emails = [
+        'eduardofandrade97@gmail.com',
+        'davylavianaa@gmail.com'
+    ]
+    is_bolsa_context = (secretaria_id == 22) or (
+        extra_context and any(k in (extra_context or "").lower() for k in ["bolsa", "família", "familia", "assistência", "assistencia", "social", "cadastro único", "cadastro unico", "cadunico"])
+    )
+    if is_bolsa_context:
+        bolsa_admins = db.query(AdminSecretaria).filter(
+            or_(
+                AdminSecretaria.secretaria_id == 22,
+                func.lower(func.trim(AdminSecretaria.email)).in_(bolsa_familia_emails)
+            )
+        ).all()
+        for ba in bolsa_admins:
+            if ba.telefone:
+                dest_phones.add(ba.telefone)
+        bolsa_users = db.query(Usuario).filter(
+            func.lower(func.trim(Usuario.email)).in_(bolsa_familia_emails)
+        ).all()
+        for bu in bolsa_users:
+            if bu.telefone:
+                dest_phones.add(bu.telefone)
+            if getattr(bu, 'whatsapp', None):
+                dest_phones.add(bu.whatsapp)
+
     # Suporte a Garagem Municipal / Marcação de Viagem (inclui João Lucas e responsáveis da Garagem)
     is_viagem_context = (secretaria_id == 24) or (extra_context and any(k in (extra_context or "").lower() for k in ["viagem", "garagem"]))
     if is_viagem_context:
@@ -263,7 +305,16 @@ def get_subadmins_and_admins(db, secretaria_id: int = None, extra_context: str =
         if getattr(ga, 'whatsapp', None):
             dest_phones.add(ga.whatsapp)
 
-    return dest_phones
+    # Deduplica por dígitos para evitar envio duplicado ao mesmo número com máscara diferente
+    unique_clean_phones = set()
+    final_phones = set()
+    for p in dest_phones:
+        digits = "".join(filter(str.isdigit, str(p)))
+        if len(digits) >= 10 and digits not in unique_clean_phones:
+            unique_clean_phones.add(digits)
+            final_phones.add(p)
+
+    return final_phones
 
 # Alias para manter compatibilidade com códigos legados
 get_gcm_subadmins_and_admins = get_subadmins_and_admins

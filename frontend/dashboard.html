@@ -138,29 +138,68 @@
         </div>
 
         <!-- Botões de Ação (Aparecem baseados na Aba) -->
-        <div id="action-buttons" style="display: flex; gap: 1rem; margin-bottom: 2rem; flex-wrap: wrap;">
-            <button id="btn-nova-ocorrencia" class="btn btn-primary action-btn" style="background: var(--primary-color); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalOcorrencia()">
+        <style>
+            #action-buttons {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+                gap: 0.85rem;
+                margin-bottom: 2rem;
+            }
+            #action-buttons .action-btn {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 0.5rem;
+                min-height: 48px;
+                width: 100%;
+                text-align: center;
+            }
+            @media (max-width: 768px) {
+                #action-buttons {
+                    display: flex;
+                    gap: 1rem;
+                    flex-wrap: wrap;
+                }
+                #action-buttons .action-btn {
+                    flex: 1;
+                    min-width: 140px;
+                    max-width: 200px;
+                    width: auto;
+                    min-height: unset;
+                }
+                #action-buttons #btn-coloniaprev,
+                #action-buttons #btn-conselho-tutelar {
+                    min-width: 160px;
+                    max-width: 240px;
+                }
+            }
+        </style>
+        <div id="action-buttons">
+            <button id="btn-nova-ocorrencia" class="btn btn-primary action-btn" style="background: var(--primary-color);" onclick="abrirModalOcorrencia()">
                 <i class="fa-solid fa-plus"></i> Registrar Problema
             </button>
-            <!-- <button id="btn-nova-consulta" class="btn btn-primary action-btn" style="background: var(--success); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalConsulta()">
+            <!-- <button id="btn-nova-consulta" class="btn btn-primary action-btn" style="background: var(--success);" onclick="abrirModalConsulta()">
                 <i class="fa-solid fa-user-doctor"></i> Consulta
             </button> -->
-            <button id="btn-novo-atendimento" class="btn btn-primary action-btn" style="background: var(--accent); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalAtendimento()">
+            <button id="btn-novo-atendimento" class="btn btn-primary action-btn" style="background: var(--accent);" onclick="abrirModalAtendimento()">
                 <i class="fa-solid fa-users"></i> Atendimento
             </button>
-            <button id="btn-nova-viagem" class="btn btn-primary action-btn" style="background: var(--primary-color); flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalViagem()">
+            <button id="btn-nova-viagem" class="btn btn-primary action-btn" style="background: var(--primary-color);" onclick="abrirModalViagem()">
                 <i class="fa-solid fa-bus"></i> Viagem
             </button>
-            <button id="btn-novo-bolsafamilia" class="btn btn-primary action-btn" style="background: #f59e0b; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalBolsaFamilia()">
+            <button id="btn-novo-bolsafamilia" class="btn btn-primary action-btn" style="background: #f59e0b;" onclick="abrirModalBolsaFamilia()">
                 <i class="fa-solid fa-hands-holding-child"></i> Bolsa Família
             </button>
-            <button id="btn-nova-maquina" class="btn btn-primary action-btn" style="background: #8b5cf6; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalMaquinas()">
+            <button id="btn-nova-maquina" class="btn btn-primary action-btn" style="background: #8b5cf6;" onclick="abrirModalMaquinas()">
                 <i class="fa-solid fa-tractor"></i> Máquinas Agrícolas
             </button>
-            <button id="btn-coloniaprev" class="btn btn-primary action-btn" style="background: #10b981; flex: 1; min-width: 160px; max-width: 240px; font-weight: 700;" onclick="redirecionarColoniaPrev()">
+            <button id="btn-coloniaprev" class="btn btn-primary action-btn" style="background: #10b981; font-weight: 700;" onclick="redirecionarColoniaPrev()">
                 <i class="fa-solid fa-file-invoice-dollar"></i> Contracheque ColôniaPrev
             </button>
-            <!-- <button id="btn-novo-concurso" class="btn btn-primary action-btn" style="background: #a855f7; flex: 1; min-width: 140px; max-width: 200px;" onclick="abrirModalConcursos()">
+            <button id="btn-conselho-tutelar" class="btn btn-primary action-btn" style="background: #ec4899; font-weight: 700;" onclick="abrirModalConselhoTutelar()">
+                <i class="fa-solid fa-children"></i> Denúncia Conselho Tutelar
+            </button>
+            <!-- <button id="btn-novo-concurso" class="btn btn-primary action-btn" style="background: #a855f7;" onclick="abrirModalConcursos()">
                 <i class="fa-solid fa-trophy"></i> Concursos
             </button> -->
         </div>
@@ -844,14 +883,18 @@
 
             // Atualizar botões de ação
             document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = 'none');
-            if (aba === 'todas') document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = 'block');
-            else if (aba === 'ocorrencias') document.getElementById('btn-nova-ocorrencia').style.display = 'block';
-            else if (aba === 'consultas') document.getElementById('btn-nova-consulta').style.display = 'block';
-            else if (aba === 'atendimentos') document.getElementById('btn-novo-atendimento').style.display = 'block';
-            else if (aba === 'viagens') document.getElementById('btn-nova-viagem').style.display = 'block';
-            else if (aba === 'bolsafamilia') document.getElementById('btn-novo-bolsafamilia').style.display = 'block';
-            else if (aba === 'maquinas') document.getElementById('btn-nova-maquina').style.display = 'block';
-            else if (aba === 'concursos') document.getElementById('btn-novo-concurso').style.display = 'block';
+            if (aba === 'todas') document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = '');
+            else if (aba === 'ocorrencias') {
+                document.getElementById('btn-nova-ocorrencia').style.display = '';
+                const btnCT = document.getElementById('btn-conselho-tutelar');
+                if (btnCT) btnCT.style.display = '';
+            }
+            else if (aba === 'consultas') { const b = document.getElementById('btn-nova-consulta'); if (b) b.style.display = ''; }
+            else if (aba === 'atendimentos') document.getElementById('btn-novo-atendimento').style.display = '';
+            else if (aba === 'viagens') document.getElementById('btn-nova-viagem').style.display = '';
+            else if (aba === 'bolsafamilia') document.getElementById('btn-novo-bolsafamilia').style.display = '';
+            else if (aba === 'maquinas') { const b = document.getElementById('btn-nova-maquina'); if (b) b.style.display = ''; }
+            else if (aba === 'concursos') { const b = document.getElementById('btn-novo-concurso'); if (b) b.style.display = ''; }
 
             renderizarLista();
         }
@@ -1480,13 +1523,18 @@
 
             // Atualizar botões de ação
             document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = 'none');
-            if (aba === 'todas') document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = 'block');
-            else if (aba === 'ocorrencias') document.getElementById('btn-nova-ocorrencia').style.display = 'block';
-            else if (aba === 'consultas') document.getElementById('btn-nova-consulta').style.display = 'block';
-            else if (aba === 'atendimentos') document.getElementById('btn-novo-atendimento').style.display = 'block';
-            else if (aba === 'viagens') document.getElementById('btn-nova-viagem').style.display = 'block';
-            else if (aba === 'bolsafamilia') document.getElementById('btn-novo-bolsafamilia').style.display = 'block';
-            else if (aba === 'concursos') document.getElementById('btn-novo-concurso').style.display = 'block';
+            if (aba === 'todas') document.querySelectorAll('.action-btn').forEach(btn => btn.style.display = '');
+            else if (aba === 'ocorrencias') {
+                document.getElementById('btn-nova-ocorrencia').style.display = '';
+                const btnCT = document.getElementById('btn-conselho-tutelar');
+                if (btnCT) btnCT.style.display = '';
+            }
+            else if (aba === 'consultas') { const b = document.getElementById('btn-nova-consulta'); if (b) b.style.display = ''; }
+            else if (aba === 'atendimentos') document.getElementById('btn-novo-atendimento').style.display = '';
+            else if (aba === 'viagens') document.getElementById('btn-nova-viagem').style.display = '';
+            else if (aba === 'bolsafamilia') document.getElementById('btn-novo-bolsafamilia').style.display = '';
+            else if (aba === 'maquinas') { const b = document.getElementById('btn-nova-maquina'); if (b) b.style.display = ''; }
+            else if (aba === 'concursos') { const b = document.getElementById('btn-novo-concurso'); if (b) b.style.display = ''; }
 
             renderizarLista();
         }
@@ -1627,7 +1675,7 @@
         }
         
         function renderAgendamentoHtml(a) {
-            const statusClass = {'pendente': 'status-pendente', 'confirmado': 'status-confirmado', 'cancelado': 'status-error'}[a.status.toLowerCase()] || 'status-pendente';
+            const statusClass = {'pendente': 'status-pendente', 'confirmado': 'status-confirmado', 'cancelado': 'status-error', 'recusado': 'status-error'}[a.status.toLowerCase()] || 'status-pendente';
 
             let anexoHtml = '';
             if (a.anexo) {
@@ -1706,6 +1754,11 @@
                         </p>
                     </div>
                     <span class="status-badge ${statusClass}">${a.status}</span>
+                    ${a.motivo_recusa ? `
+                        <div style="margin-top: 0.8rem; background: #fef2f2; border: 1px solid #fecaca; border-left: 4px solid #dc2626; padding: 0.8rem; border-radius: 8px; color: #991b1b; font-size: 0.9rem; white-space: pre-line;">
+                            <i class="fa-solid fa-circle-xmark" style="color: #dc2626;"></i> <strong>Motivo da Recusa:</strong> ${a.motivo_recusa}
+                        </div>
+                    ` : ''}
                     ${anexoHtml}
                     <div style="margin-top: 1rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
                         ${['resolvido', 'concluido', 'concluído', 'confirmado'].includes(a.status.toLowerCase()) && a.avaliacao_nota == null ? `
@@ -2569,6 +2622,16 @@
                     'Agressão à Mulher',
                     'Perturbação da Ordem'
                 ];
+            } else if (nome.includes('CONSELHO TUTELAR')) {
+                return [
+                    'Maus-tratos contra Criança ou Adolescente',
+                    'Abandono / Negligência Familiar',
+                    'Violência Física ou Psicológica',
+                    'Abuso / Exploração Infantojuvenil',
+                    'Trabalho Infantil',
+                    'Evasão Escolar / Criança Fora da Escola',
+                    'Criança ou Adolescente em Situação de Risco'
+                ];
             } else if (nome.includes('INFRAESTRUTURA') || nome.includes('OBRAS') || nome.includes('ILUMINAÇÃO') || nome.includes('LIMPEZA') || nome.includes('MEIO AMBIENTE')) {
                 return [
                     'Buraco na rua',
@@ -2596,7 +2659,7 @@
             }
 
             const anonimaContainer = document.getElementById('anonima-container');
-            if (selectedText.toUpperCase().includes('GUARDA MUNICIPAL')) {
+            if (selectedText.toUpperCase().includes('GUARDA MUNICIPAL') || selectedText.toUpperCase().includes('CONSELHO TUTELAR')) {
                 anonimaContainer.style.display = 'flex';
             } else {
                 anonimaContainer.style.display = 'none';
@@ -2704,6 +2767,32 @@
         function _abrirModalOcorrenciaDireto() {
             document.getElementById('modalNovaOcorrencia').style.display = 'block';
             setTimeout(initMap, 300); // Aguarda o modal abrir para renderizar o mapa
+        }
+
+        function abrirModalConselhoTutelar() {
+            abrirModalOcorrencia();
+            setTimeout(() => {
+                const secSelect = document.getElementById('oc_secretaria');
+                if (secSelect) {
+                    let found = false;
+                    for (let i = 0; i < secSelect.options.length; i++) {
+                        if (secSelect.options[i].text.toUpperCase().includes('CONSELHO TUTELAR')) {
+                            secSelect.selectedIndex = i;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        for (let i = 0; i < secSelect.options.length; i++) {
+                            if (secSelect.options[i].text.toUpperCase().includes('ASSISTÊNCIA') || secSelect.options[i].text.toUpperCase().includes('ASSISTENCIA')) {
+                                secSelect.selectedIndex = i;
+                                break;
+                            }
+                        }
+                    }
+                    atualizarTiposProblema();
+                }
+            }, 350);
         }
 
         function fecharModalAvaliacao() {
@@ -2830,6 +2919,8 @@
                         }
                     }
                 }, 400); // short wait for map and modal to render
+            } else if (params.get('action') === 'conselhotutelar') {
+                abrirModalConselhoTutelar();
             }
         }
         init();

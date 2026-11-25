@@ -184,7 +184,8 @@ class Agendamento(Base):
     acompanhante = Column(String(100), nullable=True) # Nome do acompanhante (Viagem)
     cartao_sus = Column(String(50), nullable=True)
     data_hora = Column(DateTime)
-    status = Column(String(50), default="Pendente") # Pendente, Confirmado, Cancelado
+    status = Column(String(50), default="Pendente") # Pendente, Confirmado, Cancelado, Recusado
+    motivo_recusa = Column(Text, nullable=True) # Motivo informado pelo sub-administrador ao recusar
     anexo = Column(Text, nullable=True) # Path/URL for the uploaded proof
     criado_em = Column(DateTime, default=get_brasilia_time)
     avaliacao_nota = Column(Integer, nullable=True)

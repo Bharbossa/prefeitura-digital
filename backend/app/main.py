@@ -170,7 +170,9 @@ def startup_db_init():
                 "ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS senha VARCHAR(10)",
 
                 "ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS avaliacao_nota INTEGER",
-                "ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS avaliacao_comentario TEXT"
+                "ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS avaliacao_comentario TEXT",
+                "ALTER TABLE agendamentos ADD COLUMN IF NOT EXISTS motivo_recusa TEXT",
+                "INSERT INTO secretarias (nome) SELECT 'CONSELHO TUTELAR' WHERE NOT EXISTS (SELECT 1 FROM secretarias WHERE UPPER(nome) = 'CONSELHO TUTELAR')"
             ]:
                 try: 
                     conn.execute(text(cmd))

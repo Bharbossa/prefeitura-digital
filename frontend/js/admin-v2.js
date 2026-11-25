@@ -877,6 +877,12 @@ async function loadRecentActivity() {
                     const s = (a.assunto || '').toLowerCase();
                     return parseInt(a.secretaria_id) === 24 || parseInt(a.secretaria_id) === parseInt(currentSecId) || t.includes('viagem') || s.includes('viagem');
                 });
+            } else if (userInfo && (['eduardofandrade97@gmail.com', 'davylavianaa@gmail.com'].includes((userInfo.email || '').toLowerCase().trim()) || currentSecId == 22 || (userInfo.secretaria_nome && userInfo.secretaria_nome.toLowerCase().includes('assist')))) {
+                listAgendamentos = listAgendamentos.filter(a => {
+                    const t = (a.tipo || '').toLowerCase();
+                    const s = (a.assunto || '').toLowerCase();
+                    return parseInt(a.secretaria_id) === 22 || parseInt(a.secretaria_id) === parseInt(currentSecId) || t.includes('bolsa') || s.includes('bolsa');
+                });
             } else if (currentSecId) {
                 listAgendamentos = listAgendamentos.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
             }
@@ -1340,6 +1346,12 @@ async function loadAgendamentos() {
                     const s = (a.assunto || '').toLowerCase();
                     return parseInt(a.secretaria_id) === 24 || parseInt(a.secretaria_id) === parseInt(currentSecId) || t.includes('viagem') || s.includes('viagem');
                 });
+            } else if (userInfo && (['eduardofandrade97@gmail.com', 'davylavianaa@gmail.com'].includes((userInfo.email || '').toLowerCase().trim()) || currentSecId == 22 || (userInfo.secretaria_nome && userInfo.secretaria_nome.toLowerCase().includes('assist')))) {
+                list = list.filter(a => {
+                    const t = (a.tipo || '').toLowerCase();
+                    const s = (a.assunto || '').toLowerCase();
+                    return parseInt(a.secretaria_id) === 22 || parseInt(a.secretaria_id) === parseInt(currentSecId) || t.includes('bolsa') || s.includes('bolsa');
+                });
             } else if (currentSecId) {
                 list = list.filter(a => parseInt(a.secretaria_id) === parseInt(currentSecId));
             }
@@ -1356,6 +1368,7 @@ async function loadAgendamentos() {
                 const s = a.status.toLowerCase();
                 const isEmergencia = a.assunto && a.assunto.includes('EMERGÊNCIA');
                 const isViagem = (a.tipo && a.tipo.toLowerCase().includes('viagem')) || (a.assunto && a.assunto.toLowerCase().includes('viagem'));
+                const isBolsaFamilia = (a.tipo && a.tipo.toLowerCase().includes('bolsa')) || (a.assunto && a.assunto.toLowerCase().includes('bolsa')) || parseInt(a.secretaria_id) === 22;
                 
                 let anexosButtons = '';
                 if (a.anexo) {
@@ -1374,6 +1387,8 @@ async function loadAgendamentos() {
                 let assuntoLabel = isEmergencia ? `<span style="background-color: #ef4444; color: white; padding: 2px 6px; border-radius: 4px; font-weight: bold; font-size: 0.75rem; display: inline-block; animation: pulse 2s infinite; margin-right: 5px;"><i class="fa-solid fa-truck-medical"></i> EMERGÊNCIA</span> ${a.assunto}` : a.assunto;
                 if (isViagem) {
                     assuntoLabel = `<span style="background: rgba(37, 99, 235, 0.12); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.3); padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; margin-right: 5px;"><i class="fa-solid fa-bus"></i> VIAGEM</span> <strong>${a.assunto}</strong>`;
+                } else if (isBolsaFamilia) {
+                    assuntoLabel = `<span style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 6px; border-radius: 4px; font-weight: 700; font-size: 0.75rem; display: inline-flex; align-items: center; gap: 4px; margin-right: 5px;"><i class="fa-solid fa-hands-holding-child"></i> BOLSA FAMÍLIA</span> <strong>${a.assunto}</strong>`;
                 }
 
                 const rowClass = isEmergencia ? 'class="emergency-row"' : '';
@@ -1384,18 +1399,20 @@ async function loadAgendamentos() {
                         <td><span style="font-weight: bold; color: var(--primary);">${a.senha || '---'}</span></td>
                         <td>
                             ${assuntoLabel}
-                            ${a.motivo ? `<div style="font-size: 0.8rem; color: #ef4444; margin-top: 4px; font-weight: 500; white-space: pre-line;"><i class="fa-solid ${isViagem ? 'fa-clipboard-question' : 'fa-notes-medical'}"></i> <strong>${isViagem ? 'Motivo da Viagem:' : 'Sintomas:'}</strong> ${a.motivo}</div>` : ''}
+                            ${a.motivo ? `<div style="font-size: 0.8rem; color: #ef4444; margin-top: 4px; font-weight: 500; white-space: pre-line;"><i class="fa-solid ${isViagem ? 'fa-clipboard-question' : 'fa-notes-medical'}"></i> <strong>${isViagem ? 'Motivo da Viagem:' : 'Sintomas/Observações:'}</strong> ${a.motivo}</div>` : ''}
                             ${a.acompanhante ? `<div style="font-size: 0.8rem; color: #0284c7; margin-top: 3px; font-weight: 600;"><i class="fa-solid fa-user-group"></i> <strong>Acompanhante:</strong> ${a.acompanhante}</div>` : ''}
+                            ${a.motivo_recusa ? `<div style="font-size: 0.8rem; color: #dc2626; background: #fef2f2; border: 1px solid #fecaca; padding: 6px 10px; border-radius: 6px; margin-top: 6px; font-weight: 600; white-space: pre-line;"><i class="fa-solid fa-circle-xmark"></i> <strong>Motivo da Recusa:</strong> ${a.motivo_recusa}</div>` : ''}
                         </td>
                         <td>${a.usuario_nome || 'N/A'}</td>
                         <td>${new Date(a.data_hora).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo', day: '2-digit', month: '2-digit', year: 'numeric' })} ${new Date(a.data_hora).toLocaleTimeString('pt-BR', { timeZone: 'America/Sao_Paulo', hour: '2-digit', minute: '2-digit', hour12: false })}</td>
-                        <td><span class="badge badge-${s === 'confirmado' ? 'done' : (s === 'cancelado' ? 'danger' : 'pending')}">${a.status}</span></td>
+                        <td><span class="badge badge-${s === 'confirmado' ? 'done' : ((s === 'cancelado' || s === 'recusado') ? 'danger' : 'pending')}">${a.status}</span></td>
                         <td>
                             <div style="display: flex; flex-direction: column; gap: 0.2rem;">
                                 ${a.cartao_sus ? `<div style="font-size: 0.75rem; color: var(--primary); font-weight: 600;"><i class="fa-solid fa-address-card"></i> SUS: ${a.cartao_sus}</div>` : ''}
                                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                     ${s === 'pendente' ? `<button class="btn btn-primary" title="Confirmar Viagem / Agendamento" onclick="updateAgendamento('${a.id}', 'Confirmado')"><i class="fa-solid fa-check"></i> Confirmar</button>` : ''}
-                                    ${s === 'pendente' ? `<button class="btn btn-outline" style="border-color: #ef4444; color: #ef4444;" title="Cancelar Agendamento" onclick="updateAgendamento('${a.id}', 'Cancelado')"><i class="fa-solid fa-ban"></i> Cancelar</button>` : ''}
+                                    ${s === 'pendente' && isBolsaFamilia ? `<button class="btn btn-outline" style="border-color: #dc2626; color: #dc2626; font-weight: 600;" title="Recusar Agendamento do Bolsa Família e Informar Motivo" onclick="recusarAgendamentoBolsaFamilia('${a.id}')"><i class="fa-solid fa-xmark"></i> Recusar</button>` : ''}
+                                    ${s === 'pendente' && !isBolsaFamilia ? `<button class="btn btn-outline" style="border-color: #ef4444; color: #ef4444;" title="Cancelar Agendamento" onclick="updateAgendamento('${a.id}', 'Cancelado')"><i class="fa-solid fa-ban"></i> Cancelar</button>` : ''}
                                     <button class="btn btn-outline" title="Imprimir Recibo" onclick="imprimirAgendamento('${a.id}')"><i class="fa-solid fa-print"></i></button>
                                     ${anexosButtons}
                                     ${!currentSecId ? `<button class="btn btn-outline" title="Excluir Agendamento" style="border-color: #ef4444; color: #ef4444;" onclick="deletarAgendamento('${a.id}')"><i class="fa-solid fa-trash"></i></button>` : ''}
@@ -1638,7 +1655,21 @@ async function updateAgendamento(id, status) {
             headers: { 'Authorization': `Bearer ${getToken()}` }
         });
         if (res.ok) {
-            alert("Status atualizado com sucesso!");
+            if (status === 'Confirmado') {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Agendamento Confirmado!',
+                    text: 'O agendamento foi confirmado com sucesso e a confirmação via SMS foi enviada ao cidadão.',
+                    confirmButtonText: 'Ok'
+                });
+            } else {
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Status Atualizado',
+                    text: `Status alterado para ${status} e notificação enviada ao cidadão.`,
+                    confirmButtonText: 'Ok'
+                });
+            }
             loadAgendamentos();
             loadConcursos();
             loadDashboard(); // Update metrics too
@@ -1648,6 +1679,54 @@ async function updateAgendamento(id, status) {
         }
     } catch(e) { 
         Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'}); 
+    }
+}
+
+async function recusarAgendamentoBolsaFamilia(id) {
+    const { value: motivoRecusa, isConfirmed } = await Swal.fire({
+        title: 'Recusar Agendamento (Bolsa Família)',
+        input: 'textarea',
+        inputLabel: 'Digite o motivo pelo qual este agendamento está sendo recusado:',
+        inputPlaceholder: 'Ex: Cadastro já atualizado recentemente, documentação pendente, dados divergentes...',
+        inputAttributes: {
+            'aria-label': 'Motivo da recusa',
+            'rows': 4
+        },
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: '<i class="fa-solid fa-xmark"></i> Confirmar Recusa',
+        cancelButtonText: 'Voltar',
+        inputValidator: (value) => {
+            if (!value || !value.trim()) {
+                return 'Por favor, digite o motivo da recusa antes de confirmar!';
+            }
+        }
+    });
+
+    if (!isConfirmed || !motivoRecusa) return;
+
+    try {
+        const res = await fetch(`${API_URL}/agendamentos/${id}/status?status=Recusado&motivo_recusa=${encodeURIComponent(motivoRecusa.trim())}`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${getToken()}` }
+        });
+        if (res.ok) {
+            Swal.fire({
+                icon: 'success',
+                title: 'Agendamento Recusado',
+                text: 'O agendamento foi recusado com sucesso e o motivo foi registrado e enviado ao cidadão via SMS.',
+                confirmButtonText: 'Ok'
+            });
+            loadAgendamentos();
+            loadDashboard();
+        } else {
+            const err = await res.json().catch(() => ({}));
+            Swal.fire({icon: 'error', title: 'Falha', text: 'Falha ao recusar agendamento: ' + (err.detail || '')});
+        }
+    } catch(e) {
+        Swal.fire({icon: 'error', title: 'Erro', text: 'Erro de conexão.'});
     }
 }
 
@@ -1702,6 +1781,11 @@ async function imprimirAgendamento(id) {
                 statusColor = '#dc2626'; // Red-600
                 stampColor = '#dc2626';
                 badgeText = isConcurso ? 'INSCRIÇÃO CANCELADA' : 'AGENDAMENTO CANCELADO';
+            } else if (a.status.toLowerCase() === 'recusado') {
+                statusText = 'RECUSADO';
+                statusColor = '#dc2626'; // Red-600
+                stampColor = '#dc2626';
+                badgeText = 'AGENDAMENTO RECUSADO';
             }
 
             const printWindow = window.open('', '_blank');
@@ -1744,6 +1828,7 @@ async function imprimirAgendamento(id) {
                         <div class="row"><span class="label">SECRETARIA:</span> <strong>${secretariaNomeStr}</strong></div>
                         <div class="row"><span class="label">ASSUNTO:</span> ${a.assunto}</div>
                         ${a.motivo ? `<div class="row" style="white-space: pre-line;"><span class="label">MOTIVO:</span> ${a.motivo}</div>` : ''}
+                        ${a.motivo_recusa ? `<div class="row" style="white-space: pre-line; color: #dc2626; font-weight: 700;"><span class="label" style="color: #dc2626;">MOTIVO DA RECUSA:</span> ${a.motivo_recusa}</div>` : ''}
                         ${a.cartao_sus ? `<div class="row"><span class="label">CARTÃO SUS:</span> ${a.cartao_sus}</div>` : ''}
                         ${a.acompanhante ? `<div class="row"><span class="label">ACOMPANHANTE:</span> ${a.acompanhante}</div>` : ''}
                         <div class="row" style="background: #f1f5f9; padding: 10px; border-radius: 8px; border: 1px solid #e2e8f0;">
@@ -1978,6 +2063,8 @@ async function loadAdmins() {
                     lotacaoHtml += `<div style="margin-top: 4px;"><span style="background: rgba(16, 185, 129, 0.2); color: #10b981; border: 1px solid rgba(16, 185, 129, 0.4); padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-user-doctor"></i> ${postoNome}</span></div>`;
                 } else if (emailLower === 'sbarros.joaolucas@gmail.com' || a.secretaria_id == 24) {
                     lotacaoHtml += `<div style="margin-top: 4px;"><span style="background: rgba(37, 99, 235, 0.15); color: #2563eb; border: 1px solid rgba(37, 99, 235, 0.35); padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-bus"></i> RESPONSÁVEL EM CONFIRMAR VIAGEM</span></div>`;
+                } else if (['eduardofandrade97@gmail.com', 'davylavianaa@gmail.com'].includes(emailLower) || a.secretaria_id == 22) {
+                    lotacaoHtml += `<div style="margin-top: 4px;"><span style="background: rgba(245, 158, 11, 0.15); color: #d97706; border: 1px solid rgba(245, 158, 11, 0.35); padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;"><i class="fa-solid fa-hands-holding-child"></i> RESPONSÁVEL BOLSA FAMÍLIA</span></div>`;
                 }
 
                 html += `

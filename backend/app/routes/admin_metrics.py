@@ -21,11 +21,14 @@ def get_admin_summary(current_user = Depends(get_current_admin), db_sql: Session
     if role == "subadmin" and sec_id:
         user_email = (getattr(current_user, 'email', '') or '').lower().strip()
         is_garagem_user = (sec_id == 24) or (user_email == "sbarros.joaolucas@gmail.com")
+        is_bolsa_user = (sec_id == 22) or (user_email in ["eduardofandrade97@gmail.com", "davylavianaa@gmail.com"])
         if not is_garagem_user and sec_id:
             from ..models.schema import Secretaria
             sec = db_sql.query(Secretaria).filter(Secretaria.id == sec_id).first()
             if sec and "garagem" in sec.nome.lower():
                 is_garagem_user = True
+            if sec and any(k in sec.nome.lower() for k in ["assist", "social", "bolsa"]):
+                is_bolsa_user = True
 
         if is_garagem_user:
             q_agendamentos = q_agendamentos.filter(
@@ -33,6 +36,13 @@ def get_admin_summary(current_user = Depends(get_current_admin), db_sql: Session
                 (Agendamento.secretaria_id == sec_id) |
                 Agendamento.tipo.ilike("%viagem%") |
                 Agendamento.assunto.ilike("%viagem%")
+            )
+        elif is_bolsa_user:
+            q_agendamentos = q_agendamentos.filter(
+                (Agendamento.secretaria_id == 22) |
+                (Agendamento.secretaria_id == sec_id) |
+                Agendamento.tipo.ilike("%bolsa%") |
+                Agendamento.assunto.ilike("%bolsa%")
             )
         else:
             q_agendamentos = q_agendamentos.filter(Agendamento.secretaria_id == sec_id)

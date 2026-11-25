@@ -78,8 +78,28 @@
         .hero-content {
             position: relative;
             z-index: 2;
-            max-width: 800px;
+            max-width: 960px;
+            width: 100%;
             padding: 2rem;
+        }
+
+        .hero-buttons-wrapper {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(240px, 1fr));
+            gap: 1rem;
+            max-width: 760px;
+            margin: 0 auto;
+        }
+
+        .hero-buttons-wrapper .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            width: 100%;
+            min-height: 52px;
+            text-align: center;
+            box-sizing: border-box;
         }
 
         .hero-content h1 {
@@ -114,6 +134,16 @@
             }
             .hero-content p {
                 font-size: 1rem;
+            }
+            .hero-buttons-wrapper {
+                display: flex;
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+            .hero-buttons-wrapper .btn {
+                width: auto;
+                min-height: unset;
             }
         }
     </style>
@@ -167,39 +197,37 @@
             </h1>
             <p class="slide-in-left" style="animation-delay: 0.5s;">Plataforma digital para registro de problemas
                 urbanos e comunicação direta com a prefeitura.</p>
-            <div class="slide-in-left"
-                style="animation-delay: 0.8s; display: flex; flex-wrap: wrap; gap: 1rem; justify-content: flex-start;">
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <a href="register.html" class="btn btn-primary"
-                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem;">Começar Agora <i
-                            class="fa-solid fa-arrow-right"></i></a>
-                    <!-- <a href="dashboard.html" class="btn btn-outline"
-                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white;">Agendar Consulta <i
-                            class="fa-solid fa-user-doctor"></i></a> -->
-                </div>
-                <div style="display: flex; flex-direction: column; gap: 1rem;">
-                    <a href="dashboard.html" class="btn btn-outline"
-                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(255,255,255,0.1);">Atendimento
-                        Geral <i class="fa-solid fa-users"></i></a>
-                    <a href="dashboard.html" class="btn btn-outline"
-                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(255,255,255,0.1);">Marcação
-                        de Viagem <i class="fa-solid fa-bus"></i></a>
-                    <a href="dashboard.html?action=bolsafamilia" class="btn btn-outline"
-                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(255,255,255,0.1);">Bolsa
-                        Família <i class="fa-solid fa-hands-holding-child"></i></a>
-                    <!-- <a href="dashboard.html?action=concursos" class="btn btn-outline"
-                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(168, 85, 247, 0.2); border-color: #a855f7;">Concursos
-                        <i class="fa-solid fa-trophy"></i></a> -->
-                    <a href="dashboard.html?action=maquinas" class="btn btn-outline"
-                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(139, 92, 246, 0.2); border-color: #8b5cf6;">Máquinas Agrícolas
-                        <i class="fa-solid fa-tractor"></i></a>
-                    <a href="https://coloniaprev.sysefolha.com.br/" target="_blank" class="btn btn-outline"
-                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(16, 185, 129, 0.2); border-color: #10b981;">Contracheque ColôniaPrev
-                        <i class="fa-solid fa-file-invoice-dollar"></i></a>
-                    <a href="dashboard.html?action=guardamunicipal" class="btn btn-outline"
-                        style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(220, 38, 38, 0.2); border-color: #dc2626;">Guarda Municipal
-                        <i class="fa-solid fa-shield-halved"></i></a>
-                </div>
+            <div class="slide-in-left hero-buttons-wrapper" style="animation-delay: 0.8s;">
+                <a href="register.html" class="btn btn-primary"
+                    style="font-size: 1.1rem; padding: 0.8rem 1.5rem;">Começar Agora <i
+                        class="fa-solid fa-arrow-right"></i></a>
+                <!-- <a href="dashboard.html" class="btn btn-outline"
+                    style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white;">Agendar Consulta <i
+                        class="fa-solid fa-user-doctor"></i></a> -->
+                <a href="dashboard.html" class="btn btn-outline"
+                    style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(255,255,255,0.1);">Atendimento
+                    Geral <i class="fa-solid fa-users"></i></a>
+                <a href="dashboard.html" class="btn btn-outline"
+                    style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(255,255,255,0.1);">Marcação
+                    de Viagem <i class="fa-solid fa-bus"></i></a>
+                <a href="dashboard.html?action=bolsafamilia" class="btn btn-outline"
+                    style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(255,255,255,0.1);">Bolsa
+                    Família <i class="fa-solid fa-hands-holding-child"></i></a>
+                <!-- <a href="dashboard.html?action=concursos" class="btn btn-outline"
+                    style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(168, 85, 247, 0.2); border-color: #a855f7;">Concursos
+                    <i class="fa-solid fa-trophy"></i></a> -->
+                <a href="dashboard.html?action=maquinas" class="btn btn-outline"
+                    style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(139, 92, 246, 0.2); border-color: #8b5cf6;">Máquinas Agrícolas
+                    <i class="fa-solid fa-tractor"></i></a>
+                <a href="https://coloniaprev.sysefolha.com.br/" target="_blank" class="btn btn-outline"
+                    style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(16, 185, 129, 0.2); border-color: #10b981;">Contracheque ColôniaPrev
+                    <i class="fa-solid fa-file-invoice-dollar"></i></a>
+                <a href="dashboard.html?action=guardamunicipal" class="btn btn-outline"
+                    style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(220, 38, 38, 0.2); border-color: #dc2626;">Guarda Municipal
+                    <i class="fa-solid fa-shield-halved"></i></a>
+                <a href="dashboard.html?action=conselhotutelar" class="btn btn-outline"
+                    style="font-size: 1.1rem; padding: 0.8rem 1.5rem; color: white; background: rgba(236, 72, 153, 0.22); border-color: #ec4899;">Denúncia Conselho Tutelar
+                    <i class="fa-solid fa-children"></i></a>
             </div>
         </div>
     </header>
